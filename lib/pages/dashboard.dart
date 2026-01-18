@@ -28,7 +28,7 @@ class DashboardPage extends StatelessWidget {
                     const Text(
                       'Dashboard',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF111827),
                       ),
@@ -36,7 +36,7 @@ class DashboardPage extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       'Manage your account and view your enrollments',
-                      style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -55,7 +55,7 @@ class DashboardPage extends StatelessWidget {
                   ),
                   child: const Text(
                     'Sign Out',
-                    style: TextStyle(fontSize: 12, color: Colors.red),
+                    style: TextStyle(fontSize: 13, color: Colors.red),
                   ),
                 ),
               ],
@@ -262,7 +262,7 @@ class DashboardPage extends StatelessWidget {
                   title,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 18,
                   ),
                 ),
                 const SizedBox(height: 8),

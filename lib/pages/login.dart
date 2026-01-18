@@ -1,10 +1,60 @@
 import 'package:flutter/material.dart';
+import 'package:pulchowkx_app/auth/service/google_auth.dart';
 import 'package:pulchowkx_app/cards/logo.dart';
+import 'package:pulchowkx_app/pages/dashboard.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final FirebaseServices _firebaseServices = FirebaseServices();
+  bool _isLoading = false;
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final bool success = await _firebaseServices.signInWithGoogle();
+
+      if (!mounted) return;
+
+      if (success) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardPage()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sign in was cancelled or failed. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error signing in: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,11 +80,9 @@ class LoginPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 InkWell(
-                  onTap: () {
-                    // Handle forgot password logic here
-                  },
+                  onTap: _isLoading ? null : _handleGoogleSignIn,
                   child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12.0),
+                    padding: const EdgeInsets.symmetric(vertical: 12.0),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
@@ -44,23 +92,28 @@ class LoginPage extends StatelessWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                       ),
-
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SvgPicture.asset(
-                            'assets/images/google_logo.svg',
-                            width: 24,
-                            height: 24,
-                            semanticsLabel: 'Google logo', // Optional
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Continue with Google',
-                            style: TextStyle(color: Colors.black),
-                          ),
-                        ],
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SvgPicture.asset(
+                                  'assets/images/google_logo.svg',
+                                  width: 24,
+                                  height: 24,
+                                  semanticsLabel: 'Google logo',
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Continue with Google',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                 ),
