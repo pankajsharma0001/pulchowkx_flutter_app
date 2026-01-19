@@ -8,9 +8,17 @@ import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 
 class EventDetailsPage extends StatefulWidget {
-  final ClubEvent event;
+  /// The event to display. Can be partial data (from enrollments) or full data.
+  final ClubEvent? event;
 
-  const EventDetailsPage({super.key, required this.event});
+  /// Event ID - used to fetch full event data if event is null or partial.
+  final int? eventId;
+
+  const EventDetailsPage({super.key, this.event, this.eventId})
+    : assert(
+        event != null || eventId != null,
+        'Either event or eventId must be provided',
+      );
 
   @override
   State<EventDetailsPage> createState() => _EventDetailsPageState();
@@ -21,22 +29,68 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
   bool _isRegistering = false;
   bool _isRegistered = false;
   bool _isCancelling = false;
+  ClubEvent? _fullEvent;
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _checkRegistrationStatus();
+    _loadFullEventData();
+  }
+
+  /// Fetch the complete event data from API
+  Future<void> _loadFullEventData() async {
+    final eventId = widget.eventId ?? widget.event?.id;
+    if (eventId == null) {
+      setState(() {
+        _error = 'No event ID provided';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      // Fetch all events and find the one we need
+      final allEvents = await _apiService.getAllEvents();
+      final fullEvent = allEvents.firstWhere(
+        (e) => e.id == eventId,
+        orElse: () => widget.event!,
+      );
+
+      if (mounted) {
+        setState(() {
+          _fullEvent = fullEvent;
+          _isLoading = false;
+        });
+        _checkRegistrationStatus();
+      }
+    } catch (e) {
+      if (mounted) {
+        // Fall back to widget.event if available
+        setState(() {
+          _fullEvent = widget.event;
+          _isLoading = false;
+          if (widget.event == null) {
+            _error = 'Failed to load event details';
+          }
+        });
+        if (widget.event != null) {
+          _checkRegistrationStatus();
+        }
+      }
+    }
   }
 
   Future<void> _checkRegistrationStatus() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null || _fullEvent == null) return;
 
     final enrollments = await _apiService.getEnrollments(user.uid);
     if (mounted) {
       setState(() {
         _isRegistered = enrollments.any(
-          (e) => e.eventId == widget.event.id && e.status == 'registered',
+          (e) => e.eventId == _fullEvent!.id && e.status == 'registered',
         );
       });
     }
@@ -54,13 +108,13 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     try {
       final success = await _apiService.registerForEvent(
         user.uid,
-        widget.event.id,
+        _fullEvent!.id,
       );
 
       if (mounted) {
         if (success) {
           setState(() => _isRegistered = true);
-          _showSnackBar('Successfully registered for ${widget.event.title}!');
+          _showSnackBar('Successfully registered for ${_fullEvent!.title}!');
         } else {
           _showSnackBar('Failed to register. Please try again.', isError: true);
         }
@@ -116,7 +170,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     try {
       final success = await _apiService.cancelRegistration(
         user.uid,
-        widget.event.id,
+        _fullEvent!.id,
       );
 
       if (mounted) {
@@ -153,236 +207,276 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final event = widget.event;
-    final dateFormat = DateFormat('EEEE, MMMM d, yyyy');
-    final timeFormat = DateFormat('h:mm a');
-
     return Scaffold(
       appBar: const CustomAppBar(),
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.heroGradient),
-        child: SingleChildScrollView(
+        child: _buildContent(),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    // Show loading state
+    if (_isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: AppColors.primary),
+            SizedBox(height: AppSpacing.md),
+            Text('Loading event details...', style: AppTextStyles.bodyMedium),
+          ],
+        ),
+      );
+    }
+
+    // Show error state
+    if (_error != null || _fullEvent == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Banner
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (event.bannerUrl != null)
-                      CachedNetworkImage(
-                        imageUrl: event.bannerUrl!,
-                        fit: BoxFit.cover,
-                        placeholder: (_, __) => _buildBannerPlaceholder(),
-                        errorWidget: (_, __, ___) => _buildBannerPlaceholder(),
-                      )
-                    else
-                      _buildBannerPlaceholder(),
-                    // Gradient overlay
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.8),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Status badge
-                    Positioned(top: 16, left: 16, child: _buildStatusBadge()),
-                    // Title at bottom
-                    Positioned(
-                      bottom: 16,
-                      left: 16,
-                      right: 16,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (event.club != null)
-                            Row(
-                              children: [
-                                if (event.club!.logoUrl != null)
-                                  Container(
-                                    width: 28,
-                                    height: 28,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.5,
-                                        ),
-                                      ),
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(7),
-                                      child: CachedNetworkImage(
-                                        imageUrl: event.club!.logoUrl!,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  event.club!.name,
-                                  style: AppTextStyles.labelMedium.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          const SizedBox(height: 8),
-                          Text(
-                            event.title,
-                            style: AppTextStyles.h2.copyWith(
-                              color: Colors.white,
-                              fontSize: 24,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              const Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: AppColors.error,
               ),
-
-              // Content
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Quick Info Cards
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _InfoCard(
-                            icon: Icons.calendar_today_rounded,
-                            title: 'Date',
-                            value: dateFormat.format(event.eventStartTime),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: _InfoCard(
-                            icon: Icons.access_time_rounded,
-                            title: 'Time',
-                            value:
-                                '${timeFormat.format(event.eventStartTime)} - ${timeFormat.format(event.eventEndTime)}',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _InfoCard(
-                            icon: Icons.location_on_rounded,
-                            title: 'Venue',
-                            value: event.venue ?? 'TBA',
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: _InfoCard(
-                            icon: Icons.people_rounded,
-                            title: 'Participants',
-                            value: event.maxParticipants != null
-                                ? '${event.currentParticipants}/${event.maxParticipants}'
-                                : '${event.currentParticipants} registered',
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Registration deadline
-                    if (event.registrationDeadline != null) ...[
-                      const SizedBox(height: AppSpacing.md),
-                      Container(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        decoration: BoxDecoration(
-                          color: AppColors.warning.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                          border: Border.all(
-                            color: AppColors.warning.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.timer_rounded,
-                              color: AppColors.warning,
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Registration Deadline',
-                                    style: AppTextStyles.labelSmall.copyWith(
-                                      color: AppColors.warning,
-                                    ),
-                                  ),
-                                  Text(
-                                    dateFormat.format(
-                                      event.registrationDeadline!,
-                                    ),
-                                    style: AppTextStyles.labelMedium.copyWith(
-                                      color: AppColors.textPrimary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-
-                    // Description
-                    if (event.description != null) ...[
-                      const SizedBox(height: AppSpacing.xl),
-                      Text(
-                        'About This Event',
-                        style: AppTextStyles.h4.copyWith(
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Container(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Text(
-                          event.description!,
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
-                            height: 1.6,
-                          ),
-                        ),
-                      ),
-                    ],
-
-                    // Register Button
-                    const SizedBox(height: AppSpacing.xl),
-                    _buildActionButton(),
-                    const SizedBox(height: AppSpacing.lg),
-                  ],
-                ),
+              const SizedBox(height: AppSpacing.md),
+              Text(_error ?? 'Failed to load event', style: AppTextStyles.h4),
+              const SizedBox(height: AppSpacing.md),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Go Back'),
               ),
             ],
           ),
         ),
+      );
+    }
+
+    final event = _fullEvent!;
+    final dateFormat = DateFormat('EEEE, MMMM d, yyyy');
+    final timeFormat = DateFormat('h:mm a');
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Banner
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (event.bannerUrl != null)
+                  CachedNetworkImage(
+                    imageUrl: event.bannerUrl!,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => _buildBannerPlaceholder(),
+                    errorWidget: (_, __, ___) => _buildBannerPlaceholder(),
+                  )
+                else
+                  _buildBannerPlaceholder(),
+                // Gradient overlay
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.8),
+                      ],
+                    ),
+                  ),
+                ),
+                // Status badge
+                Positioned(top: 16, left: 16, child: _buildStatusBadge(event)),
+                // Title at bottom
+                Positioned(
+                  bottom: 16,
+                  left: 16,
+                  right: 16,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (event.club != null)
+                        Row(
+                          children: [
+                            if (event.club!.logoUrl != null)
+                              Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(7),
+                                  child: CachedNetworkImage(
+                                    imageUrl: event.club!.logoUrl!,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                            const SizedBox(width: 10),
+                            Text(
+                              event.club!.name,
+                              style: AppTextStyles.labelMedium.copyWith(
+                                color: Colors.white.withValues(alpha: 0.9),
+                              ),
+                            ),
+                          ],
+                        ),
+                      const SizedBox(height: 8),
+                      Text(
+                        event.title,
+                        style: AppTextStyles.h2.copyWith(
+                          color: Colors.white,
+                          fontSize: 24,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Quick Info Cards
+                Row(
+                  children: [
+                    Expanded(
+                      child: _InfoCard(
+                        icon: Icons.calendar_today_rounded,
+                        title: 'Date',
+                        value: dateFormat.format(event.eventStartTime),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: _InfoCard(
+                        icon: Icons.access_time_rounded,
+                        title: 'Time',
+                        value:
+                            '${timeFormat.format(event.eventStartTime)} - ${timeFormat.format(event.eventEndTime)}',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _InfoCard(
+                        icon: Icons.location_on_rounded,
+                        title: 'Venue',
+                        value: event.venue ?? 'TBA',
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: _InfoCard(
+                        icon: Icons.people_rounded,
+                        title: 'Participants',
+                        value: event.maxParticipants != null
+                            ? '${event.currentParticipants}/${event.maxParticipants}'
+                            : '${event.currentParticipants} registered',
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Registration deadline
+                if (event.registrationDeadline != null) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: Border.all(
+                        color: AppColors.warning.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.timer_rounded,
+                          color: AppColors.warning,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Registration Deadline',
+                                style: AppTextStyles.labelSmall.copyWith(
+                                  color: AppColors.warning,
+                                ),
+                              ),
+                              Text(
+                                dateFormat.format(event.registrationDeadline!),
+                                style: AppTextStyles.labelMedium.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Description
+                if (event.description != null) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  Text(
+                    'About This Event',
+                    style: AppTextStyles.h4.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Text(
+                      event.description!,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textSecondary,
+                        height: 1.6,
+                      ),
+                    ),
+                  ),
+                ],
+
+                // Register Button
+                const SizedBox(height: AppSpacing.xl),
+                _buildActionButton(event),
+                const SizedBox(height: AppSpacing.lg),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -396,18 +490,18 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     );
   }
 
-  Widget _buildStatusBadge() {
+  Widget _buildStatusBadge(ClubEvent event) {
     Color bgColor;
     String text;
     IconData? icon;
 
-    if (widget.event.isOngoing) {
+    if (event.isOngoing) {
       bgColor = AppColors.success;
       text = 'LIVE NOW';
       icon = Icons.circle;
-    } else if (widget.event.isUpcoming) {
+    } else if (event.isUpcoming) {
       bgColor = AppColors.primary;
-      text = widget.event.eventType.toUpperCase();
+      text = event.eventType.toUpperCase();
     } else {
       bgColor = AppColors.textSecondary;
       text = 'COMPLETED';
@@ -438,8 +532,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     );
   }
 
-  Widget _buildActionButton() {
-    final event = widget.event;
+  Widget _buildActionButton(ClubEvent event) {
     final user = FirebaseAuth.instance.currentUser;
 
     // Not logged in

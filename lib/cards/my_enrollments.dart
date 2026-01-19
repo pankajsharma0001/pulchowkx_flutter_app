@@ -125,7 +125,7 @@ class _MyEnrollmentsState extends State<MyEnrollments> {
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
-                                EventDetailsPage(event: event),
+                                EventDetailsPage(eventId: event.id),
                           ),
                         ).then((_) {
                           // Refresh enrollments when coming back

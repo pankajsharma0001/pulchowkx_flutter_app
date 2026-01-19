@@ -7,6 +7,7 @@ import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ClubDetailsPage extends StatefulWidget {
   final int clubId;
@@ -220,8 +221,14 @@ class _ClubHeader extends StatelessWidget {
               _StatChip(
                 icon: Icons.people_rounded,
                 value: '${club.totalParticipants ?? 0}',
-                label: 'Members',
+                label: 'Participants',
               ),
+              if (club.createdAt != null)
+                _StatChip(
+                  icon: Icons.calendar_month_rounded,
+                  value: 'Est. ${club.createdAt!.year}',
+                  label: '',
+                ),
             ],
           ),
         ],
@@ -326,6 +333,29 @@ class _AboutTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Quick Info Section
+          if (profile?.establishedYear != null ||
+              profile?.totalEventHosted != null &&
+                  profile!.totalEventHosted > 0) ...[
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                // if (profile?.establishedYear != null)
+                //   _QuickInfoChip(
+                //     icon: Icons.calendar_month_rounded,
+                //     label: 'Est. ${profile!.establishedYear}',
+                //   ),
+                if (profile?.totalEventHosted != null &&
+                    profile!.totalEventHosted > 0)
+                  _QuickInfoChip(
+                    icon: Icons.celebration_rounded,
+                    label: '${profile!.totalEventHosted} Events Hosted',
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
           if (profile?.aboutClub != null) ...[
             _SectionCard(
               title: 'About',
@@ -334,43 +364,13 @@ class _AboutTab extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.md),
           ],
-          if (profile?.mission != null) ...[
-            _SectionCard(
-              title: 'Mission',
-              icon: Icons.flag_outlined,
-              content: profile!.mission!,
-            ),
-            const SizedBox(height: AppSpacing.md),
-          ],
-          if (profile?.vision != null) ...[
-            _SectionCard(
-              title: 'Vision',
-              icon: Icons.visibility_outlined,
-              content: profile!.vision!,
-            ),
-            const SizedBox(height: AppSpacing.md),
-          ],
-          if (profile?.achievements != null) ...[
-            _SectionCard(
-              title: 'Achievements',
-              icon: Icons.emoji_events_outlined,
-              content: profile!.achievements!,
-            ),
-            const SizedBox(height: AppSpacing.md),
-          ],
-          if (profile?.benefits != null) ...[
-            _SectionCard(
-              title: 'Member Benefits',
-              icon: Icons.star_outline_rounded,
-              content: profile!.benefits!,
-            ),
-            const SizedBox(height: AppSpacing.md),
-          ],
           // Contact Info
           if (club.email != null ||
               profile?.contactPhone != null ||
               profile?.address != null ||
-              profile?.websiteUrl != null) ...[
+              profile?.websiteUrl != null ||
+              (profile?.socialLinks != null &&
+                  profile!.socialLinks!.isNotEmpty)) ...[
             _ContactCard(club: club, profile: profile),
           ],
           if (profile == null && club.description == null) ...[
@@ -396,6 +396,42 @@ class _AboutTab extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickInfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _QuickInfoChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppColors.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: AppTextStyles.labelMedium.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
+            ),
+          ),
         ],
       ),
     );
@@ -465,8 +501,32 @@ class _ContactCard extends StatelessWidget {
 
   const _ContactCard({required this.club, this.profile});
 
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _launchEmail(String email) async {
+    final uri = Uri(scheme: 'mailto', path: email);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  Future<void> _launchPhone(String phone) async {
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final socialLinks = profile?.socialLinks;
+    final hasSocialLinks = socialLinks != null && socialLinks.isNotEmpty;
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -503,11 +563,16 @@ class _ContactCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           if (club.email != null)
-            _ContactItem(icon: Icons.email_outlined, text: club.email!),
+            _ContactItem(
+              icon: Icons.email_outlined,
+              text: club.email!,
+              onTap: () => _launchEmail(club.email!),
+            ),
           if (profile?.contactPhone != null)
             _ContactItem(
               icon: Icons.phone_outlined,
               text: profile!.contactPhone!,
+              onTap: () => _launchPhone(profile!.contactPhone!),
             ),
           if (profile?.address != null)
             _ContactItem(
@@ -518,7 +583,35 @@ class _ContactCard extends StatelessWidget {
             _ContactItem(
               icon: Icons.language_outlined,
               text: profile!.websiteUrl!,
+              onTap: () => _launchUrl(profile!.websiteUrl!),
             ),
+          // Social Links Section
+          if (hasSocialLinks) ...[
+            const SizedBox(height: AppSpacing.md),
+            const Divider(height: 1, color: AppColors.border),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Follow Us',
+              style: AppTextStyles.labelSmall.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: socialLinks.entries
+                  .where((e) => e.value.isNotEmpty)
+                  .map(
+                    (entry) => _SocialLinkButton(
+                      platform: entry.key,
+                      onTap: () => _launchUrl(entry.value),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
         ],
       ),
     );
@@ -528,26 +621,117 @@ class _ContactCard extends StatelessWidget {
 class _ContactItem extends StatelessWidget {
   final IconData icon;
   final String text;
+  final VoidCallback? onTap;
 
-  const _ContactItem({required this.icon, required this.text});
+  const _ContactItem({required this.icon, required this.text, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: AppColors.textSecondary),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              text,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.xs,
+          horizontal: AppSpacing.xs,
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: AppColors.textSecondary),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                text,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: onTap != null
+                      ? AppColors.primary
+                      : AppColors.textPrimary,
+                  decoration: onTap != null ? TextDecoration.underline : null,
+                ),
               ),
             ),
+            if (onTap != null)
+              const Icon(
+                Icons.open_in_new_rounded,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SocialLinkButton extends StatelessWidget {
+  final String platform;
+  final VoidCallback onTap;
+
+  const _SocialLinkButton({required this.platform, required this.onTap});
+
+  IconData _getIcon() {
+    switch (platform.toLowerCase()) {
+      case 'facebook':
+        return Icons.facebook_rounded;
+      case 'instagram':
+        return Icons.camera_alt_rounded;
+      case 'twitter':
+        return Icons.alternate_email_rounded;
+      case 'linkedin':
+        return Icons.work_rounded;
+      case 'github':
+        return Icons.code_rounded;
+      case 'discord':
+        return Icons.discord_rounded;
+      case 'youtube':
+        return Icons.play_circle_rounded;
+      case 'tiktok':
+        return Icons.music_note_rounded;
+      default:
+        return Icons.link_rounded;
+    }
+  }
+
+  Color _getColor() {
+    switch (platform.toLowerCase()) {
+      case 'facebook':
+        return const Color(0xFF1877F2);
+      case 'instagram':
+        return const Color(0xFFE4405F);
+      case 'twitter':
+        return const Color(0xFF1DA1F2);
+      case 'linkedin':
+        return const Color(0xFF0A66C2);
+      case 'github':
+        return const Color(0xFF333333);
+      case 'discord':
+        return const Color(0xFF5865F2);
+      case 'youtube':
+        return const Color(0xFFFF0000);
+      case 'tiktok':
+        return const Color(0xFF000000);
+      default:
+        return AppColors.primary;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _getColor();
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
           ),
-        ],
+          child: Icon(_getIcon(), size: 20, color: color),
+        ),
       ),
     );
   }
