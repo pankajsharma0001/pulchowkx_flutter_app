@@ -1,11 +1,26 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:pulchowkx_app/auth/service/google_auth.dart';
 import 'package:pulchowkx_app/pages/clubs.dart';
+import 'package:pulchowkx_app/pages/home_page.dart';
 import 'package:pulchowkx_app/pages/map.dart';
 import 'package:pulchowkx_app/cards/my_enrollments.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
+
+  Future<void> _handleSignOut(BuildContext context) async {
+    final FirebaseServices firebaseServices = FirebaseServices();
+    await firebaseServices.googleSignOut();
+    if (context.mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+        (route) => false,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +56,7 @@ class DashboardPage extends StatelessWidget {
                   ],
                 ),
                 OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () => _handleSignOut(context),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF374151),
                     side: BorderSide(color: Colors.grey.shade300),
@@ -63,93 +78,107 @@ class DashboardPage extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Profile Card
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade200),
-                borderRadius: BorderRadius.circular(12),
-                color: Colors.white,
-              ),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(18.0),
-                    child: Row(
-                      children: [
-                        const CircleAvatar(
-                          radius: 32,
-                          backgroundColor: Colors.blue,
-                          child: Icon(
-                            Icons.person,
-                            size: 32,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'PANKAJ SHARMA',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF111827),
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                '079bct053.pankaj@pcampus.edu.np',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.shade50,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  'Active Student',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.green.shade700,
-                                    fontWeight: FontWeight.w500,
+            Builder(
+              builder: (context) {
+                final user = FirebaseAuth.instance.currentUser;
+                final String displayName = user?.displayName ?? 'User';
+                final String email = user?.email ?? 'No email';
+                final String? photoUrl = user?.photoURL;
+
+                return Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade200),
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white,
+                  ),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(18.0),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 32,
+                              backgroundColor: Colors.blue,
+                              backgroundImage: photoUrl != null
+                                  ? NetworkImage(photoUrl)
+                                  : null,
+                              child: photoUrl == null
+                                  ? const Icon(
+                                      Icons.person,
+                                      size: 32,
+                                      color: Colors.white,
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    displayName.toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF111827),
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    email,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.shade50,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      'Active Student',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.green.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24.0,
-                      vertical: 16.0,
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          'Member since 2026',
-                          style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 12,
-                          ),
+                      ),
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24.0,
+                          vertical: 16.0,
                         ),
-                      ],
-                    ),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Member since ${user?.metadata.creationTime?.year ?? 2026}',
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
             const SizedBox(height: 32),
 
