@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
+import 'package:pulchowkx_app/widgets/custom_app_bar.dart'
+    show CustomAppBar, AppPage;
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -80,13 +81,13 @@ class _MapPageState extends State<MapPage> {
   Widget build(BuildContext context) {
     if (_styleString == null) {
       return Scaffold(
-        appBar: CustomAppBar(),
+        appBar: const CustomAppBar(currentPage: AppPage.map),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: CustomAppBar(),
+      appBar: const CustomAppBar(currentPage: AppPage.map),
       body: MapLibreMap(
         styleString: _styleString!,
         initialCameraPosition: const CameraPosition(

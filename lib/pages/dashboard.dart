@@ -12,6 +12,62 @@ class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
   Future<void> _handleSignOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: const Icon(
+                Icons.logout_rounded,
+                color: AppColors.error,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text('Sign Out'),
+          ],
+        ),
+        titleTextStyle: AppTextStyles.h4,
+        content: const Text(
+          'Are you sure you want to sign out?',
+          style: AppTextStyles.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.labelMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+            ),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     final FirebaseServices firebaseServices = FirebaseServices();
     await firebaseServices.googleSignOut();
     if (context.mounted) {
@@ -31,7 +87,7 @@ class DashboardPage extends StatelessWidget {
     final String? photoUrl = user?.photoURL;
 
     return Scaffold(
-      appBar: const CustomAppBar(),
+      appBar: const CustomAppBar(currentPage: AppPage.dashboard),
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.heroGradient),
         child: SingleChildScrollView(

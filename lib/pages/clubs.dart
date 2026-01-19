@@ -7,7 +7,7 @@ class ClubsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      appBar: CustomAppBar(),
+      appBar: CustomAppBar(currentPage: AppPage.clubs),
       body: Center(child: Text('Clubs Page')),
     );
   }

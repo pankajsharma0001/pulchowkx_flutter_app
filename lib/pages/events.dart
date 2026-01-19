@@ -7,7 +7,7 @@ class EventsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      appBar: CustomAppBar(),
+      appBar: CustomAppBar(currentPage: AppPage.events),
       body: Center(child: Text('Events Page')),
     );
   }

@@ -12,7 +12,7 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(isHomePage: true),
+      appBar: const CustomAppBar(isHomePage: true, currentPage: AppPage.home),
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.heroGradient),
         child: SafeArea(

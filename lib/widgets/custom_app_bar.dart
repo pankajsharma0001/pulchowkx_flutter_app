@@ -9,10 +9,13 @@ import 'package:pulchowkx_app/pages/login.dart';
 import 'package:pulchowkx_app/pages/map.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 
+enum AppPage { home, clubs, events, map, dashboard, login }
+
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool isHomePage;
+  final AppPage? currentPage;
 
-  const CustomAppBar({super.key, this.isHomePage = false});
+  const CustomAppBar({super.key, this.isHomePage = false, this.currentPage});
 
   @override
   Size get preferredSize => const Size.fromHeight(60);
@@ -45,14 +48,18 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               child: Row(
                 children: [
                   // Logo and Brand
-                  _BrandLogo(isHomePage: isHomePage, compact: isSmallScreen),
+                  _BrandLogo(isHomePage: isHomePage),
 
                   const Spacer(),
 
                   // Navigation Items - show based on screen size
                   if (isSmallScreen)
                     // Mobile: Show menu button
-                    _MobileMenu(isLoggedIn: isLoggedIn, user: user)
+                    _MobileMenu(
+                      isLoggedIn: isLoggedIn,
+                      user: user,
+                      currentPage: currentPage,
+                    )
                   else
                     // Desktop: Show full nav
                     Row(
@@ -61,26 +68,42 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                         _NavBarItem(
                           title: 'Clubs',
                           icon: Icons.groups_rounded,
-                          onTap: () => _navigateToClubs(context, isLoggedIn),
+                          isActive: currentPage == AppPage.clubs,
+                          onTap: () => _navigateToClubs(
+                            context,
+                            isLoggedIn,
+                            currentPage,
+                          ),
                         ),
                         _NavBarItem(
                           title: 'Events',
                           icon: Icons.event_rounded,
-                          onTap: () => _navigateToEvents(context, isLoggedIn),
+                          isActive: currentPage == AppPage.events,
+                          onTap: () => _navigateToEvents(
+                            context,
+                            isLoggedIn,
+                            currentPage,
+                          ),
                         ),
                         _NavBarItem(
                           title: 'Map',
                           icon: Icons.map_rounded,
-                          onTap: () => _navigateToMap(context),
+                          isActive: currentPage == AppPage.map,
+                          onTap: () => _navigateToMap(context, currentPage),
                         ),
                         const SizedBox(width: AppSpacing.xs),
                         if (isLoggedIn)
                           _UserAvatar(
                             photoUrl: user?.photoURL,
-                            onTap: () => _navigateToDashboard(context),
+                            isActive: currentPage == AppPage.dashboard,
+                            onTap: () =>
+                                _navigateToDashboard(context, currentPage),
                           )
                         else
-                          _SignInButton(onTap: () => _navigateToLogin(context)),
+                          _SignInButton(
+                            isActive: currentPage == AppPage.login,
+                            onTap: () => _navigateToLogin(context, currentPage),
+                          ),
                       ],
                     ),
                 ],
@@ -92,7 +115,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  static void _navigateToClubs(BuildContext context, bool isLoggedIn) {
+  static void _navigateToClubs(
+    BuildContext context,
+    bool isLoggedIn,
+    AppPage? currentPage,
+  ) {
+    if (currentPage == AppPage.clubs) return;
+    if (!isLoggedIn && currentPage == AppPage.login) return;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -102,7 +131,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  static void _navigateToEvents(BuildContext context, bool isLoggedIn) {
+  static void _navigateToEvents(
+    BuildContext context,
+    bool isLoggedIn,
+    AppPage? currentPage,
+  ) {
+    if (currentPage == AppPage.events) return;
+    if (!isLoggedIn && currentPage == AppPage.login) return;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -112,21 +147,24 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  static void _navigateToMap(BuildContext context) {
+  static void _navigateToMap(BuildContext context, AppPage? currentPage) {
+    if (currentPage == AppPage.map) return;
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const MapPage()),
     );
   }
 
-  static void _navigateToDashboard(BuildContext context) {
+  static void _navigateToDashboard(BuildContext context, AppPage? currentPage) {
+    if (currentPage == AppPage.dashboard) return;
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const DashboardPage()),
     );
   }
 
-  static void _navigateToLogin(BuildContext context) {
+  static void _navigateToLogin(BuildContext context, AppPage? currentPage) {
+    if (currentPage == AppPage.login) return;
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -136,9 +174,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
 class _BrandLogo extends StatelessWidget {
   final bool isHomePage;
-  final bool compact;
 
-  const _BrandLogo({required this.isHomePage, this.compact = false});
+  const _BrandLogo({required this.isHomePage});
 
   @override
   Widget build(BuildContext context) {
@@ -160,16 +197,15 @@ class _BrandLogo extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               LogoCard(width: 40, height: 40),
-              if (!compact) ...[
-                const SizedBox(width: 8),
-                Text(
-                  'PulchowkX',
-                  style: AppTextStyles.h4.copyWith(
-                    fontSize: 16,
-                    letterSpacing: -0.3,
-                  ),
+              SizedBox(width: 8),
+              Text(
+                'PulchowkX',
+                style: AppTextStyles.h4.copyWith(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0,
                 ),
-              ],
+              ),
             ],
           ),
         ),
@@ -181,8 +217,9 @@ class _BrandLogo extends StatelessWidget {
 class _MobileMenu extends StatelessWidget {
   final bool isLoggedIn;
   final User? user;
+  final AppPage? currentPage;
 
-  const _MobileMenu({required this.isLoggedIn, this.user});
+  const _MobileMenu({required this.isLoggedIn, this.user, this.currentPage});
 
   @override
   Widget build(BuildContext context) {
@@ -192,11 +229,13 @@ class _MobileMenu extends StatelessWidget {
         if (isLoggedIn)
           _UserAvatar(
             photoUrl: user?.photoURL,
-            onTap: () => CustomAppBar._navigateToDashboard(context),
+            isActive: currentPage == AppPage.dashboard,
+            onTap: () =>
+                CustomAppBar._navigateToDashboard(context, currentPage),
           )
         else
           _CompactSignInButton(
-            onTap: () => CustomAppBar._navigateToLogin(context),
+            onTap: () => CustomAppBar._navigateToLogin(context, currentPage),
           ),
         const SizedBox(width: 4),
         PopupMenuButton<String>(
@@ -209,31 +248,60 @@ class _MobileMenu extends StatelessWidget {
           onSelected: (value) {
             switch (value) {
               case 'clubs':
-                CustomAppBar._navigateToClubs(context, isLoggedIn);
+                CustomAppBar._navigateToClubs(context, isLoggedIn, currentPage);
                 break;
               case 'events':
-                CustomAppBar._navigateToEvents(context, isLoggedIn);
+                CustomAppBar._navigateToEvents(
+                  context,
+                  isLoggedIn,
+                  currentPage,
+                );
                 break;
               case 'map':
-                CustomAppBar._navigateToMap(context);
+                CustomAppBar._navigateToMap(context, currentPage);
                 break;
               case 'dashboard':
-                CustomAppBar._navigateToDashboard(context);
+                CustomAppBar._navigateToDashboard(context, currentPage);
                 break;
               case 'login':
-                CustomAppBar._navigateToLogin(context);
+                CustomAppBar._navigateToLogin(context, currentPage);
                 break;
             }
           },
           itemBuilder: (context) => [
-            _buildMenuItem('clubs', Icons.groups_rounded, 'Clubs'),
-            _buildMenuItem('events', Icons.event_rounded, 'Events'),
-            _buildMenuItem('map', Icons.map_rounded, 'Map'),
+            _buildMenuItem(
+              'clubs',
+              Icons.groups_rounded,
+              'Clubs',
+              currentPage == AppPage.clubs,
+            ),
+            _buildMenuItem(
+              'events',
+              Icons.event_rounded,
+              'Events',
+              currentPage == AppPage.events,
+            ),
+            _buildMenuItem(
+              'map',
+              Icons.map_rounded,
+              'Map',
+              currentPage == AppPage.map,
+            ),
             const PopupMenuDivider(),
             if (isLoggedIn)
-              _buildMenuItem('dashboard', Icons.dashboard_rounded, 'Dashboard')
+              _buildMenuItem(
+                'dashboard',
+                Icons.dashboard_rounded,
+                'Dashboard',
+                currentPage == AppPage.dashboard,
+              )
             else
-              _buildMenuItem('login', Icons.login_rounded, 'Sign In'),
+              _buildMenuItem(
+                'login',
+                Icons.login_rounded,
+                'Sign In',
+                currentPage == AppPage.login,
+              ),
           ],
         ),
       ],
@@ -244,14 +312,30 @@ class _MobileMenu extends StatelessWidget {
     String value,
     IconData icon,
     String label,
+    bool isActive,
   ) {
     return PopupMenuItem<String>(
       value: value,
+      enabled: !isActive,
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.textSecondary),
+          Icon(
+            icon,
+            size: 18,
+            color: isActive ? AppColors.primary : AppColors.textSecondary,
+          ),
           const SizedBox(width: 10),
-          Text(label, style: AppTextStyles.bodyMedium),
+          Text(
+            label,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: isActive ? AppColors.primary : null,
+              fontWeight: isActive ? FontWeight.w600 : null,
+            ),
+          ),
+          if (isActive) ...[
+            const Spacer(),
+            Icon(Icons.check_rounded, size: 16, color: AppColors.primary),
+          ],
         ],
       ),
     );
@@ -262,11 +346,13 @@ class _NavBarItem extends StatefulWidget {
   final String title;
   final IconData icon;
   final VoidCallback onTap;
+  final bool isActive;
 
   const _NavBarItem({
     required this.title,
     required this.icon,
     required this.onTap,
+    this.isActive = false,
   });
 
   @override
@@ -278,20 +364,24 @@ class _NavBarItemState extends State<_NavBarItem> {
 
   @override
   Widget build(BuildContext context) {
+    final isHighlighted = _isHovered || widget.isActive;
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: widget.onTap,
+          onTap: widget.isActive ? null : widget.onTap,
           borderRadius: BorderRadius.circular(AppRadius.sm),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: _isHovered
-                  ? AppColors.primary.withValues(alpha: 0.08)
+              color: isHighlighted
+                  ? AppColors.primary.withValues(
+                      alpha: widget.isActive ? 0.12 : 0.08,
+                    )
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
@@ -301,7 +391,7 @@ class _NavBarItemState extends State<_NavBarItem> {
                 Icon(
                   widget.icon,
                   size: 16,
-                  color: _isHovered
+                  color: isHighlighted
                       ? AppColors.primary
                       : AppColors.textSecondary,
                 ),
@@ -309,10 +399,12 @@ class _NavBarItemState extends State<_NavBarItem> {
                 Text(
                   widget.title,
                   style: AppTextStyles.labelMedium.copyWith(
-                    color: _isHovered
+                    color: isHighlighted
                         ? AppColors.primary
                         : AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: widget.isActive
+                        ? FontWeight.w600
+                        : FontWeight.w500,
                   ),
                 ),
               ],
@@ -327,21 +419,29 @@ class _NavBarItemState extends State<_NavBarItem> {
 class _UserAvatar extends StatelessWidget {
   final String? photoUrl;
   final VoidCallback onTap;
+  final bool isActive;
 
-  const _UserAvatar({this.photoUrl, required this.onTap});
+  const _UserAvatar({
+    this.photoUrl,
+    required this.onTap,
+    this.isActive = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: isActive ? null : onTap,
         borderRadius: BorderRadius.circular(AppRadius.full),
         child: Container(
           padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.primary, width: 2),
+            border: Border.all(
+              color: isActive ? AppColors.accent : AppColors.primary,
+              width: isActive ? 3 : 2,
+            ),
           ),
           child: CircleAvatar(
             radius: 16,
@@ -359,31 +459,43 @@ class _UserAvatar extends StatelessWidget {
 
 class _SignInButton extends StatelessWidget {
   final VoidCallback onTap;
+  final bool isActive;
 
-  const _SignInButton({required this.onTap});
+  const _SignInButton({required this.onTap, this.isActive = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
+        gradient: isActive ? null : AppColors.primaryGradient,
+        color: isActive ? AppColors.primary.withValues(alpha: 0.15) : null,
         borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: isActive
+            ? Border.all(color: AppColors.primary, width: 2)
+            : null,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: isActive ? null : onTap,
           borderRadius: BorderRadius.circular(AppRadius.sm),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.login_rounded, size: 14, color: Colors.white),
+                Icon(
+                  Icons.login_rounded,
+                  size: 14,
+                  color: isActive ? AppColors.primary : Colors.white,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   'Sign In',
-                  style: AppTextStyles.labelSmall.copyWith(color: Colors.white),
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: isActive ? AppColors.primary : Colors.white,
+                    fontWeight: isActive ? FontWeight.w600 : null,
+                  ),
                 ),
               ],
             ),

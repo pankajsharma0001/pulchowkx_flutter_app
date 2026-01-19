@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:pulchowkx_app/auth/service/google_auth.dart';
 import 'package:pulchowkx_app/pages/dashboard.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
-import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
+import 'package:pulchowkx_app/widgets/custom_app_bar.dart'
+    show CustomAppBar, AppPage;
 import 'package:flutter_svg/flutter_svg.dart';
 
 class LoginPage extends StatefulWidget {
@@ -69,7 +70,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(),
+      appBar: const CustomAppBar(currentPage: AppPage.login),
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.heroGradient),
         child: Center(
