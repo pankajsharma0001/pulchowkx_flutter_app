@@ -8,8 +8,10 @@ class ApiService {
   // For local development: 'http://10.0.2.2:3000' (Android emulator)
   // For local development: 'http://localhost:3000' (iOS simulator/web)
   // For production: your deployed backend URL
-  static const String baseUrl = 'http://10.0.2.2:3000/api/event';
-  static const String apiBaseUrl = 'http://10.0.2.2:3000/api';
+  // static const String baseUrl = 'http://10.0.2.2:3000/api/event';
+  // static const String apiBaseUrl = 'http://10.0.2.2:3000/api';
+  static const String baseUrl = 'https://pulchowk-x.vercel.app/api/event';
+  static const String apiBaseUrl = 'https://pulchowk-x.vercel.app/api';
 
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();
