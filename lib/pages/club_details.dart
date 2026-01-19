@@ -212,22 +212,26 @@ class _ClubHeader extends StatelessWidget {
                 icon: Icons.event_available_rounded,
                 value: '${club.upcomingEvents ?? 0}',
                 label: 'Upcoming',
+                color: const Color(0xFF2196F3), // Blue
               ),
               _StatChip(
                 icon: Icons.event_note_rounded,
                 value: '${club.completedEvents ?? 0}',
                 label: 'Completed',
+                color: const Color(0xFF00C853), // Green
               ),
               _StatChip(
                 icon: Icons.people_rounded,
                 value: '${club.totalParticipants ?? 0}',
                 label: 'Participants',
+                color: const Color(0xFFAA00FF), // Purple
               ),
               if (club.createdAt != null)
                 _StatChip(
                   icon: Icons.calendar_month_rounded,
                   value: 'Est. ${club.createdAt!.year}',
                   label: '',
+                  color: AppColors.textSecondary,
                 ),
             ],
           ),
@@ -257,11 +261,13 @@ class _StatChip extends StatelessWidget {
   final IconData icon;
   final String value;
   final String label;
+  final Color color;
 
   const _StatChip({
     required this.icon,
     required this.value,
     required this.label,
+    required this.color,
   });
 
   @override
@@ -272,29 +278,32 @@ class _StatChip extends StatelessWidget {
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppRadius.full),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: AppColors.primary),
+          Icon(icon, size: 16, color: color),
           const SizedBox(width: 6),
           Text(
             value,
             style: AppTextStyles.labelMedium.copyWith(
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: color,
             ),
           ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: AppTextStyles.labelSmall.copyWith(
-              color: AppColors.textSecondary,
+          if (label.isNotEmpty) ...[
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: AppTextStyles.labelSmall.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -333,162 +342,61 @@ class _AboutTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Quick Info Section
-          if (profile?.establishedYear != null ||
-              profile?.totalEventHosted != null &&
-                  profile!.totalEventHosted > 0) ...[
-            Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              children: [
-                // if (profile?.establishedYear != null)
-                //   _QuickInfoChip(
-                //     icon: Icons.calendar_month_rounded,
-                //     label: 'Est. ${profile!.establishedYear}',
-                //   ),
-                if (profile?.totalEventHosted != null &&
-                    profile!.totalEventHosted > 0)
-                  _QuickInfoChip(
-                    icon: Icons.celebration_rounded,
-                    label: '${profile!.totalEventHosted} Events Hosted',
-                  ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-          ],
-          if (profile?.aboutClub != null) ...[
-            _SectionCard(
-              title: 'About',
-              icon: Icons.info_outline_rounded,
-              content: profile!.aboutClub!,
-            ),
-            const SizedBox(height: AppSpacing.md),
-          ],
-          // Contact Info
-          if (club.email != null ||
-              profile?.contactPhone != null ||
-              profile?.address != null ||
-              profile?.websiteUrl != null ||
-              (profile?.socialLinks != null &&
-                  profile!.socialLinks!.isNotEmpty)) ...[
-            _ContactCard(club: club, profile: profile),
-          ],
-          if (profile == null && club.description == null) ...[
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.info_outline_rounded,
-                      size: 48,
-                      color: AppColors.textSecondary.withValues(alpha: 0.5),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Text(
-                      'No additional information available',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickInfoChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _QuickInfoChip({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppRadius.full),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: AppColors.primary),
-          const SizedBox(width: 6),
+          // 1. Brief Intro / Template Text
           Text(
-            label,
-            style: AppTextStyles.labelMedium.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary,
+            'INTRODUCTION',
+            style: AppTextStyles.labelSmall.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionCard extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final String content;
-
-  const _SectionCard({
-    required this.title,
-    required this.icon,
-    required this.content,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: Icon(icon, size: 18, color: AppColors.primary),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                title,
-                style: AppTextStyles.h4.copyWith(
-                  fontSize: 16,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.xs),
           Text(
-            content,
+            'About ${club.name}',
+            style: AppTextStyles.h2.copyWith(color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            "Welcome to the official page of ${club.name}. Our club is a vibrant community where creativity, innovation, and collaboration come together. We host various events throughout the year, from workshops and seminars to social gatherings and competitions.\n\nMembers of ${club.name} gain access to a network of like minded individuals, hands on experience in various projects, and the opportunity to lead and organize campus wide events.",
             style: AppTextStyles.bodyMedium.copyWith(
               color: AppColors.textSecondary,
               height: 1.6,
             ),
           ),
+          const SizedBox(height: AppSpacing.xl),
+
+          // 2. Club Statistics
+          // if (profile?.establishedYear != null) ...[
+          //   Container(
+          //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          //     decoration: BoxDecoration(
+          //       border: Border.all(color: AppColors.border),
+          //       borderRadius: BorderRadius.circular(AppRadius.md),
+          //     ),
+          //     // child: Row(
+          //     //   mainAxisSize: MainAxisSize.min,
+          //     //   children: [
+          //     //     const Icon(
+          //     //       Icons.calendar_today_outlined,
+          //     //       size: 16,
+          //     //       color: AppColors.textSecondary,
+          //     //     ),
+          //     //     // const SizedBox(width: 8),
+          //     //     // Text(
+          //     //     //   'Est. ${profile!.establishedYear}',
+          //     //     //   style: AppTextStyles.labelMedium.copyWith(
+          //     //     //     fontWeight: FontWeight.bold,
+          //     //     //   ),
+          //     //     // ),
+          //     //   ],
+          //     // ),
+          //   ),
+          //   const SizedBox(height: AppSpacing.lg),
+          // ],
+
+          // 3. Contact Info
+          _ContactCard(club: club, profile: profile),
         ],
       ),
     );
@@ -528,7 +436,7 @@ class _ContactCard extends StatelessWidget {
     final hasSocialLinks = socialLinks != null && socialLinks.isNotEmpty;
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -537,34 +445,11 @@ class _ContactCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: const Icon(
-                  Icons.contact_mail_outlined,
-                  size: 18,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                'Contact',
-                style: AppTextStyles.h4.copyWith(
-                  fontSize: 16,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
+          Text('Contact Info', style: AppTextStyles.h3),
+          const SizedBox(height: AppSpacing.lg),
           if (club.email != null)
             _ContactItem(
-              icon: Icons.email_outlined,
+              icon: Icons.mail_outline_rounded,
               text: club.email!,
               onTap: () => _launchEmail(club.email!),
             ),
@@ -574,17 +459,13 @@ class _ContactCard extends StatelessWidget {
               text: profile!.contactPhone!,
               onTap: () => _launchPhone(profile!.contactPhone!),
             ),
-          if (profile?.address != null)
-            _ContactItem(
-              icon: Icons.location_on_outlined,
-              text: profile!.address!,
-            ),
-          if (profile?.websiteUrl != null)
-            _ContactItem(
-              icon: Icons.language_outlined,
-              text: profile!.websiteUrl!,
-              onTap: () => _launchUrl(profile!.websiteUrl!),
-            ),
+          // Always show location as IOE Pulchowk
+          const _ContactItem(
+            icon: Icons.location_on_outlined,
+            text: 'IOE Pulchowk Campus',
+          ),
+          // Remove specific website URL display as requested, assuming Location replaces it or takes priority
+
           // Social Links Section
           if (hasSocialLinks) ...[
             const SizedBox(height: AppSpacing.md),
