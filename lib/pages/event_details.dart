@@ -280,8 +280,8 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                   CachedNetworkImage(
                     imageUrl: event.bannerUrl!,
                     fit: BoxFit.cover,
-                    placeholder: (_, __) => _buildBannerPlaceholder(),
-                    errorWidget: (_, __, ___) => _buildBannerPlaceholder(),
+                    placeholder: (_, _) => _buildBannerPlaceholder(),
+                    errorWidget: (_, _, _) => _buildBannerPlaceholder(),
                   )
                 else
                   _buildBannerPlaceholder(),
