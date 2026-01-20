@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/pages/club_details.dart';
@@ -37,7 +38,22 @@ class _ClubsPageState extends State<ClubsPage> {
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.heroGradient),
         child: RefreshIndicator(
-          onRefresh: () async => _refreshClubs(),
+          onRefresh: () async {
+            _refreshClubs();
+            final connectivityResult = await Connectivity().checkConnectivity();
+            if (connectivityResult.first == ConnectivityResult.none) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'No internet connection. Showing cached data.',
+                    ),
+                    duration: Duration(seconds: 3),
+                  ),
+                );
+              }
+            }
+          },
           color: AppColors.primary,
           child: CustomScrollView(
             slivers: [
@@ -83,6 +99,48 @@ class _ClubsPageState extends State<ClubsPage> {
                 ),
               ),
 
+              // Offline Banner
+              FutureBuilder(
+                future: Connectivity().checkConnectivity(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData &&
+                      snapshot.data!.first == ConnectivityResult.none) {
+                    return SliverToBoxAdapter(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                          vertical: AppSpacing.sm,
+                        ),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          border: Border.all(color: AppColors.warning),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.wifi_off_rounded,
+                              size: 16,
+                              color: AppColors.warning,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Offline Mode: Showing cached data',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.warning,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  return const SliverToBoxAdapter(child: SizedBox.shrink());
+                },
+              ),
+
               // Clubs Grid
               FutureBuilder<List<Club>>(
                 future: _clubsFuture,
@@ -112,6 +170,18 @@ class _ClubsPageState extends State<ClubsPage> {
                   }
 
                   final clubs = snapshot.data ?? [];
+
+                  // Only check on initial load/rebuild
+                  WidgetsBinding.instance.addPostFrameCallback((_) async {
+                    final connectivityResult = await Connectivity()
+                        .checkConnectivity();
+                    if (connectivityResult.first == ConnectivityResult.none &&
+                        clubs.isNotEmpty) {
+                      if (mounted) {
+                        // Optional: Do something if cached data loaded
+                      }
+                    }
+                  });
 
                   if (clubs.isEmpty) {
                     return SliverFillRemaining(child: _buildEmptyState());

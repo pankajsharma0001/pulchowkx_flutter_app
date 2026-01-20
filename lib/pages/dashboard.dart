@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/auth/service/google_auth.dart';
 import 'package:pulchowkx_app/pages/clubs.dart';
 import 'package:pulchowkx_app/pages/home_page.dart';
@@ -162,7 +163,7 @@ class DashboardPage extends StatelessWidget {
                               radius: 36,
                               backgroundColor: AppColors.surface,
                               backgroundImage: photoUrl != null
-                                  ? NetworkImage(photoUrl)
+                                  ? CachedNetworkImageProvider(photoUrl)
                                   : null,
                               child: photoUrl == null
                                   ? const Icon(

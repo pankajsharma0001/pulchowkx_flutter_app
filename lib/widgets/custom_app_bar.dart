@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/cards/logo.dart';
 import 'package:pulchowkx_app/pages/home_page.dart';
 import 'package:pulchowkx_app/pages/clubs.dart';
@@ -490,7 +491,9 @@ class _UserAvatar extends StatelessWidget {
           child: CircleAvatar(
             radius: 16,
             backgroundColor: AppColors.primaryLight,
-            backgroundImage: photoUrl != null ? NetworkImage(photoUrl!) : null,
+            backgroundImage: photoUrl != null
+                ? CachedNetworkImageProvider(photoUrl!)
+                : null,
             child: photoUrl == null
                 ? const Icon(Icons.person, size: 16, color: Colors.white)
                 : null,

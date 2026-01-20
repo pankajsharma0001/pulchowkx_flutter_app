@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/models/event.dart';
@@ -53,6 +54,17 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
       body: FutureBuilder<Club?>(
         future: _clubFuture,
         builder: (context, clubSnapshot) {
+          // Check connectivity once data is loaded (or if error)
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            final connectivityResult = await Connectivity().checkConnectivity();
+            if (connectivityResult.first == ConnectivityResult.none) {
+              if (mounted) {
+                // Could show snackbar here, but might be annoying if navigating between details pages.
+                // Using a Banner/Warning inside the UI might be better for details page.
+              }
+            }
+          });
+
           if (clubSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(color: AppColors.primary),
@@ -70,6 +82,49 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
               headerSliverBuilder: (context, innerBoxIsScrolled) => [
                 // Club Header
                 SliverToBoxAdapter(child: _ClubHeader(club: club)),
+
+                // Offline Warning
+                FutureBuilder(
+                  future: Connectivity().checkConnectivity(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData &&
+                        snapshot.data!.first == ConnectivityResult.none) {
+                      return SliverToBoxAdapter(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                            vertical: AppSpacing.sm,
+                          ),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.warning.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            border: Border.all(color: AppColors.warning),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.wifi_off_rounded,
+                                size: 16,
+                                color: AppColors.warning,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Offline Mode',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.warning,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    return const SliverToBoxAdapter(child: SizedBox.shrink());
+                  },
+                ),
+
                 // Tab Bar
                 SliverPersistentHeader(
                   pinned: true,
