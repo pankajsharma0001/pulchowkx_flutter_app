@@ -8,6 +8,7 @@ import 'package:pulchowkx_app/pages/admin/create_event_page.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
+import 'package:pulchowkx_app/pages/admin/club_admin_tab.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -21,7 +22,7 @@ class ClubDetailsPage extends StatefulWidget {
 }
 
 class _ClubDetailsPageState extends State<ClubDetailsPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final ApiService _apiService = ApiService();
   late TabController _tabController;
 
@@ -53,8 +54,12 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
         widget.clubId,
         dbUserId,
       );
-      if (mounted) {
-        setState(() => _isAuthorized = isAuthorized);
+      if (mounted && isAuthorized && !_isAuthorized) {
+        _tabController.dispose();
+        setState(() {
+          _isAuthorized = true;
+          _tabController = TabController(length: 3, vsync: this);
+        });
       }
     }
   }
@@ -177,7 +182,7 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
                 // Tab Bar
                 SliverPersistentHeader(
                   pinned: true,
-                  delegate: _SliverTabBarDelegate(
+                  delegate: _ClubTabBarDelegate(
                     TabBar(
                       controller: _tabController,
                       labelColor: AppColors.primary,
@@ -187,9 +192,10 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
                       labelStyle: AppTextStyles.labelMedium.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
-                      tabs: const [
-                        Tab(text: 'About'),
-                        Tab(text: 'Events'),
+                      tabs: [
+                        const Tab(text: 'About'),
+                        const Tab(text: 'Events'),
+                        if (_isAuthorized) const Tab(text: 'Admin'),
                       ],
                     ),
                   ),
@@ -226,6 +232,26 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
                       return _EventsTab(events: snapshot.data ?? []);
                     },
                   ),
+                  // Admin Tab
+                  if (_isAuthorized)
+                    FutureBuilder<ClubProfile?>(
+                      future: _profileFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.primary,
+                            ),
+                          );
+                        }
+                        return ClubAdminTab(
+                          club: club,
+                          profile: snapshot.data,
+                          onInfoUpdated: () => setState(() => _loadData()),
+                        );
+                      },
+                    ),
                 ],
               ),
             ),
@@ -414,10 +440,10 @@ class _StatChip extends StatelessWidget {
   }
 }
 
-class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
+class _ClubTabBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
 
-  _SliverTabBarDelegate(this.tabBar);
+  _ClubTabBarDelegate(this.tabBar);
 
   @override
   double get minExtent => tabBar.preferredSize.height;
@@ -430,7 +456,7 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(covariant _SliverTabBarDelegate oldDelegate) => false;
+  bool shouldRebuild(covariant _ClubTabBarDelegate oldDelegate) => true;
 }
 
 class _AboutTab extends StatelessWidget {

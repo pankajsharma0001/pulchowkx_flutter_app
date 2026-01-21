@@ -585,9 +585,13 @@ class ApiService {
     String? bannerUrl,
   }) async {
     try {
+      final userId = await getDatabaseUserId();
       final response = await http.post(
         Uri.parse('$baseUrl/create-event'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (userId != null) 'Authorization': 'Bearer $userId',
+        },
         body: jsonEncode({
           'authId': authId,
           'clubId': clubId,
@@ -632,9 +636,13 @@ class ApiService {
     String? logoUrl,
   }) async {
     try {
+      final userId = await getDatabaseUserId();
       final response = await http.post(
         Uri.parse('$baseUrl/create-club'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (userId != null) 'Authorization': 'Bearer $userId',
+        },
         body: jsonEncode({
           'name': name,
           'email': email,
@@ -668,9 +676,13 @@ class ApiService {
     Map<String, dynamic> clubData,
   ) async {
     try {
+      final userId = await getDatabaseUserId();
       final response = await http.put(
         Uri.parse('$baseUrl/clubs/$clubId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (userId != null) 'Authorization': 'Bearer $userId',
+        },
         body: jsonEncode(clubData),
       );
 
@@ -695,9 +707,13 @@ class ApiService {
     Map<String, dynamic> profileData,
   ) async {
     try {
+      final userId = await getDatabaseUserId();
       final response = await http.put(
         Uri.parse('$apiBaseUrl/clubs/club-profile/$clubId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (userId != null) 'Authorization': 'Bearer $userId',
+        },
         body: jsonEncode(profileData),
       );
 
@@ -725,9 +741,13 @@ class ApiService {
   /// Get list of admins for a club
   Future<List<Map<String, dynamic>>> getClubAdmins(int clubId) async {
     try {
+      final userId = await getDatabaseUserId();
       final response = await http.get(
         Uri.parse('$baseUrl/club/admins/$clubId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (userId != null) 'Authorization': 'Bearer $userId',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -751,9 +771,26 @@ class ApiService {
     required String ownerId,
   }) async {
     try {
+      final userId = await getDatabaseUserId();
+      print('=== Add Club Admin Debug ===');
+      print('Database User ID: $userId');
+      print('Club ID: $clubId');
+      print('Owner ID (authClubId): $ownerId');
+      print('Email to add: $email');
+
+      if (userId == null) {
+        return {
+          'success': false,
+          'message': 'Not authenticated. Please sign out and sign in again.',
+        };
+      }
+
       final response = await http.post(
         Uri.parse('$baseUrl/club/add-admin'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
         body: jsonEncode({
           'clubId': clubId,
           'email': email,
@@ -761,15 +798,29 @@ class ApiService {
         }),
       );
 
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         final json = jsonDecode(response.body);
         final data = json['data'] ?? json;
         return {'success': data['success'] == true, 'message': data['message']};
       }
-      return {
-        'success': false,
-        'message': 'Server error: ${response.statusCode}',
-      };
+      // Parse error message from response if available
+      try {
+        final errorJson = jsonDecode(response.body);
+        final errorData = errorJson['data'] ?? errorJson;
+        return {
+          'success': false,
+          'message':
+              errorData['message'] ?? 'Server error: ${response.statusCode}',
+        };
+      } catch (_) {
+        return {
+          'success': false,
+          'message': 'Server error: ${response.statusCode}',
+        };
+      }
     } catch (e) {
       print('Error adding club admin: $e');
       return {'success': false, 'message': 'Network error: $e'};
@@ -783,9 +834,13 @@ class ApiService {
     required String ownerId,
   }) async {
     try {
+      final authUserId = await getDatabaseUserId();
       final response = await http.post(
         Uri.parse('$baseUrl/club/remove-admin'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (authUserId != null) 'Authorization': 'Bearer $authUserId',
+        },
         body: jsonEncode({
           'clubId': clubId,
           'userId': userId,

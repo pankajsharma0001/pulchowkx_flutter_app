@@ -9,6 +9,7 @@ import 'package:pulchowkx_app/cards/my_enrollments.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
+import 'package:pulchowkx_app/pages/admin/create_club_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -288,6 +289,21 @@ class _DashboardPageState extends State<DashboardPage> {
                 builder: (context, constraints) {
                   final isWide = constraints.maxWidth >= 600;
                   final cards = [
+                    if (_isAdmin)
+                      _QuickActionCard(
+                        icon: Icons.add_circle_outline,
+                        title: 'Create Club',
+                        description: 'Start a new club community.',
+                        color: Colors.purple,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CreateClubPage(),
+                            ),
+                          );
+                        },
+                      ),
                     _QuickActionCard(
                       icon: Icons.groups_rounded,
                       title: 'Campus Clubs',
