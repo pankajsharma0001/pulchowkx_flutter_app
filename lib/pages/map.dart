@@ -42,6 +42,7 @@ class _MapPageState extends State<MapPage> {
   bool _isCalculatingRoute = false;
   LatLng? _userLocation;
   bool _isLocating = false;
+  bool _isNavigationPanelExpanded = true;
 
   // Pulchowk Campus center and bounds
   static const LatLng _pulchowkCenter = LatLng(
@@ -879,6 +880,7 @@ class _MapPageState extends State<MapPage> {
 
     setState(() {
       _isNavigating = true;
+      _isNavigationPanelExpanded = true;
       _endPoint = {
         'coords': coords,
         'name': destination['title'] ?? 'Destination',
@@ -1091,6 +1093,7 @@ class _MapPageState extends State<MapPage> {
 
     setState(() {
       _isNavigating = true;
+      _isNavigationPanelExpanded = true;
       _startPoint = {
         'coords': startCoords,
         'name': startLocation['title'] ?? 'Start',
@@ -1653,7 +1656,7 @@ class _MapPageState extends State<MapPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Header with back button
+                    // Header with back button and collapsible toggle
                     Row(
                       children: [
                         IconButton(
@@ -1672,137 +1675,154 @@ class _MapPageState extends State<MapPage> {
                             color: Colors.grey[800],
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Start point
-                    Row(
-                      children: [
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.blue, width: 3),
+                        const Spacer(),
+                        IconButton(
+                          onPressed: () => setState(
+                            () => _isNavigationPanelExpanded =
+                                !_isNavigationPanelExpanded,
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            _startPoint?['name'] ?? 'Getting your location...',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: _startPoint != null
-                                  ? Colors.grey[800]
-                                  : Colors.grey[500],
-                            ),
+                          icon: Icon(
+                            _isNavigationPanelExpanded
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
                           ),
+                          color: Colors.grey[700],
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-
-                    // Dotted line connector
-                    Padding(
-                      padding: const EdgeInsets.only(left: 5),
-                      child: Column(
-                        children: List.generate(
-                          3,
-                          (i) => Container(
-                            width: 2,
-                            height: 4,
-                            margin: const EdgeInsets.symmetric(vertical: 1),
-                            color: Colors.grey[300],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // End point
-                    Row(
-                      children: [
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.red,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            _endPoint?['name'] ?? 'Destination',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey[800],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Route info
-                    if (_routeDistance.isNotEmpty &&
-                        _routeDuration.isNotEmpty) ...[
+                    if (_isNavigationPanelExpanded) ...[
                       const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withAlpha(25),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.directions_walk,
-                              color: Colors.blue[700],
-                              size: 20,
+                      // Start point
+                      Row(
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.blue, width: 3),
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '$_routeDuration • $_routeDistance',
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _startPoint?['name'] ??
+                                  'Getting your location...',
                               style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.blue[700],
+                                fontSize: 14,
+                                color: _startPoint != null
+                                    ? Colors.grey[800]
+                                    : Colors.grey[500],
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
+                      const SizedBox(height: 8),
 
-                    // Loading indicator
-                    if (_isCalculatingRoute)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                      // Dotted line connector
+                      Padding(
+                        padding: const EdgeInsets.only(left: 5),
+                        child: Column(
+                          children: List.generate(
+                            3,
+                            (i) => Container(
+                              width: 2,
+                              height: 4,
+                              margin: const EdgeInsets.symmetric(vertical: 1),
+                              color: Colors.grey[300],
                             ),
-                            SizedBox(width: 8),
-                            Text(
-                              'Calculating route...',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
+                      const SizedBox(height: 8),
+
+                      // End point
+                      Row(
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.red,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _endPoint?['name'] ?? 'Destination',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Route info
+                      if (_routeDistance.isNotEmpty &&
+                          _routeDuration.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withAlpha(25),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.directions_walk,
+                                color: Colors.blue[700],
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '$_routeDuration • $_routeDistance',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      // Loading indicator
+                      if (_isCalculatingRoute)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Calculating route...',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                   ],
                 ),
               ),
