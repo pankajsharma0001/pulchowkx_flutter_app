@@ -1,19 +1,22 @@
 {
     "version": 8,
     "sources": {
-        "osm": {
+        "arcgis-world-imagery": {
             "type": "raster",
             "tiles": [
-                "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             ],
-            "tileSize": 256
+            "tileSize": 256,
+            "attribution": "Source: Esri, Maxar, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community"
         }
     },
     "layers": [
         {
-            "id": "osm",
+            "id": "satellite",
             "type": "raster",
-            "source": "osm"
+            "source": "arcgis-world-imagery",
+            "minzoom": 0,
+            "maxzoom": 22
         }
     ]
 }
