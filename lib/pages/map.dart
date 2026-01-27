@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:pulchowkx_app/models/chatbot_response.dart';
 import 'package:pulchowkx_app/widgets/chat_bot_widget.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart'
@@ -30,6 +31,17 @@ class _MapPageState extends State<MapPage> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   bool _showSuggestions = false;
+
+  // Navigation state
+  bool _isNavigating = false;
+  Map<String, dynamic>? _startPoint; // {coords: [lng, lat], name: String}
+  Map<String, dynamic>? _endPoint;
+  List<LatLng>? _routeCoordinates;
+  String _routeDistance = '';
+  String _routeDuration = '';
+  bool _isCalculatingRoute = false;
+  LatLng? _userLocation;
+  bool _isLocating = false;
 
   // Pulchowk Campus center and bounds
   static const LatLng _pulchowkCenter = LatLng(
@@ -504,6 +516,7 @@ class _MapPageState extends State<MapPage> {
             'fountain-icon', 0.3,
             0.12, // default size
           ],
+          iconAnchor: 'bottom', // Anchor icons at bottom so tap area aligns
           iconAllowOverlap: false, // Hide icons when overlapping
           iconOptional: true, // Make icon optional when it would overlap
           // Text label settings
@@ -539,26 +552,64 @@ class _MapPageState extends State<MapPage> {
     _loadGeoJSON();
   }
 
-  void _onMapClick(Point<double> point, LatLng coordinates) {
-    // Find nearest location to tap
-    const double tapRadius = 0.0003; // ~30 meters
-    Map<String, dynamic>? nearestLocation;
-    double nearestDistance = double.infinity;
+  void _onMapClick(Point<double> point, LatLng coordinates) async {
+    if (_mapController == null) return;
 
-    for (var location in _locations) {
-      final coords = location['coordinates'] as List<double>;
-      final dx = coords[0] - coordinates.longitude;
-      final dy = coords[1] - coordinates.latitude;
-      final distance = dx * dx + dy * dy;
+    try {
+      // Create a rect around the tap point for icon/label hit detection
+      // Use a generous size to handle fat-finger taps
+      final tapRect = Rect.fromCenter(
+        center: Offset(point.x, point.y),
+        width: 50,
+        height: 50,
+      );
 
-      if (distance < nearestDistance && distance < tapRadius * tapRadius) {
-        nearestDistance = distance;
-        nearestLocation = location;
+      // Query rendered features in the rect area - only the markers-layer
+      final features = await _mapController!.queryRenderedFeaturesInRect(
+        tapRect,
+        ['markers-layer'],
+        null,
+      );
+
+      debugPrint('🔍 Queried features at point: ${features.length} found');
+
+      if (features.isNotEmpty) {
+        final feature = features.first;
+        debugPrint('📍 Feature type: ${feature.runtimeType}');
+        debugPrint('📍 Feature: $feature');
+
+        // Extract title from the feature
+        String? title;
+
+        if (feature is Map) {
+          // Try nested properties first (GeoJSON format)
+          final props = feature['properties'];
+          if (props is Map) {
+            title = props['title']?.toString();
+          }
+          // Fall back to root level
+          title ??= feature['title']?.toString();
+        }
+
+        debugPrint('📌 Title extracted: $title');
+
+        if (title != null && title.isNotEmpty) {
+          final location = _locations.firstWhere(
+            (loc) => loc['title'] == title,
+            orElse: () => <String, dynamic>{},
+          );
+
+          if (location.isNotEmpty) {
+            _showLocationDetails(location);
+            return;
+          }
+        }
       }
-    }
 
-    if (nearestLocation != null) {
-      _showLocationDetails(nearestLocation);
+      // No popup shown if the tap was not on an icon or label
+      debugPrint('📍 No marker found at tap point - popup not shown');
+    } catch (e) {
+      debugPrint('Error querying features: $e');
     }
   }
 
@@ -571,6 +622,10 @@ class _MapPageState extends State<MapPage> {
         title: location['title'] ?? 'Unknown Location',
         description: location['description'],
         images: location['images'],
+        onNavigate: () {
+          Navigator.pop(context); // Close the sheet
+          _startNavigation(location); // Start navigation
+        },
       ),
     );
   }
@@ -619,6 +674,627 @@ class _MapPageState extends State<MapPage> {
     );
 
     debugPrint('Chatbot action: $action at ${locations.length} locations');
+  }
+
+  /// Check if a location is within campus bounds
+  bool _isWithinCampus(LatLng location) {
+    return location.latitude >= _campusBounds.southwest.latitude &&
+        location.latitude <= _campusBounds.northeast.latitude &&
+        location.longitude >= _campusBounds.southwest.longitude &&
+        location.longitude <= _campusBounds.northeast.longitude;
+  }
+
+  /// Get current location and animate camera to it
+  Future<void> _goToCurrentLocation() async {
+    if (_mapController == null) return;
+
+    setState(() => _isLocating = true);
+
+    try {
+      // Check and request location permission
+      var status = await Permission.location.status;
+
+      if (status.isDenied) {
+        status = await Permission.location.request();
+      }
+
+      if (status.isPermanentlyDenied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Location permission denied. Please enable it in settings.',
+              ),
+              backgroundColor: Colors.orange[700],
+              behavior: SnackBarBehavior.floating,
+              action: SnackBarAction(
+                label: 'Settings',
+                textColor: Colors.white,
+                onPressed: () => openAppSettings(),
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (!status.isGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Location permission required'),
+              backgroundColor: Colors.orange[700],
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Check if location services are enabled
+      final serviceStatus = await Permission.location.serviceStatus;
+      if (!serviceStatus.isEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Please enable location services'),
+              backgroundColor: Colors.orange[700],
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Use MapLibre's built-in location tracking
+      final latLng = await _mapController!.requestMyLocationLatLng();
+      if (latLng != null) {
+        _userLocation = latLng;
+
+        // Check if within campus bounds
+        if (_isWithinCampus(latLng)) {
+          _mapController!.animateCamera(CameraUpdate.newLatLngZoom(latLng, 19));
+        } else {
+          // Show message if outside campus
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('You are outside the campus area'),
+                backgroundColor: Colors.orange[700],
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.all(16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error getting location: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Unable to get your location'),
+            backgroundColor: Colors.red[700],
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLocating = false);
+    }
+  }
+
+  /// Start navigation mode with a destination
+  void _startNavigation(Map<String, dynamic> destination) {
+    // Show dialog to choose start point
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const Text(
+              'Choose Starting Point',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Navigate to: ${destination['title']}',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 20),
+            // Use Current Location option
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.my_location, color: Colors.blue[600]),
+              ),
+              title: const Text(
+                'Use My Location',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: const Text('Get directions from your current position'),
+              onTap: () {
+                Navigator.pop(context);
+                _startNavigationWithLocation(destination);
+              },
+            ),
+            const Divider(),
+            // Choose from map option
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.place, color: Colors.green[600]),
+              ),
+              title: const Text(
+                'Choose Another Place',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: const Text('Select a location from the map as start'),
+              onTap: () {
+                Navigator.pop(context);
+                _showStartPointPicker(destination);
+              },
+            ),
+            SizedBox(height: MediaQuery.of(context).padding.bottom),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Start navigation using user's current location
+  void _startNavigationWithLocation(Map<String, dynamic> destination) async {
+    final coords = destination['coordinates'] as List<double>;
+
+    setState(() {
+      _isNavigating = true;
+      _endPoint = {
+        'coords': coords,
+        'name': destination['title'] ?? 'Destination',
+      };
+      _startPoint = null;
+      _routeCoordinates = null;
+      _routeDistance = '';
+      _routeDuration = '';
+    });
+
+    // Try to get user location as start point
+    try {
+      final latLng = await _mapController?.requestMyLocationLatLng();
+      if (latLng != null && _isWithinCampus(latLng)) {
+        _userLocation = latLng;
+        setState(() {
+          _startPoint = {
+            'coords': [latLng.longitude, latLng.latitude],
+            'name': 'Your Location',
+          };
+        });
+        _getDirections();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                latLng == null
+                    ? 'Unable to get your location'
+                    : 'You are outside the campus area',
+              ),
+              backgroundColor: Colors.orange[700],
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        setState(() => _isNavigating = false);
+      }
+    } catch (e) {
+      debugPrint('Error getting location: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Unable to get your location'),
+            backgroundColor: Colors.red[700],
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      setState(() => _isNavigating = false);
+    }
+  }
+
+  /// Show picker to select start point from available locations
+  void _showStartPointPicker(Map<String, dynamic> destination) async {
+    final destTitle = destination['title']?.toString() ?? '';
+    // Initial list of locations excluding the destination
+    final allLocations = _locations
+        .where((loc) => loc['title'] != destTitle)
+        .toList();
+
+    // Sort locations alphabetically
+    allLocations.sort(
+      (a, b) => (a['title'] as String).compareTo(b['title'] as String),
+    );
+
+    final searchController = TextEditingController();
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          // Filter locations based on search query
+          final query = searchController.text.toLowerCase();
+          final filteredLocations = allLocations.where((loc) {
+            final title = (loc['title'] as String).toLowerCase();
+            return title.contains(query);
+          }).toList();
+
+          return DraggableScrollableSheet(
+            initialChildSize: 0.7,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder: (context, scrollController) => Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  // Handle
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(top: 12, bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+
+                  // Search Bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: TextField(
+                      controller: searchController,
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                        hintText: 'Search start location...',
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Colors.grey,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                        ),
+                        suffixIcon: searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(
+                                  Icons.clear,
+                                  color: Colors.grey,
+                                ),
+                                onPressed: () {
+                                  searchController.clear();
+                                  setState(() {});
+                                },
+                              )
+                            : null,
+                      ),
+                    ),
+                  ),
+
+                  const Divider(height: 1),
+
+                  // Location list
+                  Expanded(
+                    child: filteredLocations.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No locations found',
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          )
+                        : ListView.builder(
+                            controller: scrollController,
+                            itemCount: filteredLocations.length,
+                            itemBuilder: (context, index) {
+                              final location = filteredLocations[index];
+                              final iconType =
+                                  location['icon'] as String? ?? 'marker';
+                              final color = _getMarkerColor(iconType);
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: color.withAlpha(50),
+                                  child: Icon(
+                                    Icons.place,
+                                    color: color,
+                                    size: 20,
+                                  ),
+                                ),
+                                title: Text(
+                                  location['title'] ?? 'Unknown',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  _startNavigationFromPlace(
+                                    location,
+                                    destination,
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    // Dispose resources after sheet closes
+    searchController.dispose();
+  }
+
+  /// Start navigation from a selected place
+  void _startNavigationFromPlace(
+    Map<String, dynamic> startLocation,
+    Map<String, dynamic> destination,
+  ) {
+    final startCoords = startLocation['coordinates'] as List<double>;
+    final endCoords = destination['coordinates'] as List<double>;
+
+    setState(() {
+      _isNavigating = true;
+      _startPoint = {
+        'coords': startCoords,
+        'name': startLocation['title'] ?? 'Start',
+      };
+      _endPoint = {
+        'coords': endCoords,
+        'name': destination['title'] ?? 'Destination',
+      };
+      _routeCoordinates = null;
+      _routeDistance = '';
+      _routeDuration = '';
+    });
+
+    _getDirections();
+  }
+
+  /// Calculate Haversine distance in meters
+  double _getHaversineDistance(List<double> coord1, List<double> coord2) {
+    const R = 6371e3; // Earth's radius in meters
+    final phi1 = coord1[1] * pi / 180;
+    final phi2 = coord2[1] * pi / 180;
+    final deltaPhi = (coord2[1] - coord1[1]) * pi / 180;
+    final deltaLambda = (coord2[0] - coord1[0]) * pi / 180;
+
+    final a =
+        sin(deltaPhi / 2) * sin(deltaPhi / 2) +
+        cos(phi1) * cos(phi2) * sin(deltaLambda / 2) * sin(deltaLambda / 2);
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
+    return R * c;
+  }
+
+  /// Get walking directions using OSRM
+  Future<void> _getDirections() async {
+    if (_startPoint == null || _endPoint == null) return;
+
+    setState(() => _isCalculatingRoute = true);
+
+    final startCoords = _startPoint!['coords'] as List<double>;
+    final endCoords = _endPoint!['coords'] as List<double>;
+    final straightDistance = _getHaversineDistance(startCoords, endCoords);
+
+    // If very close, just show straight line
+    if (straightDistance < 20) {
+      _createStraightLineRoute(startCoords, endCoords, straightDistance);
+      setState(() => _isCalculatingRoute = false);
+      return;
+    }
+
+    final query =
+        '${startCoords[0]},${startCoords[1]};${endCoords[0]},${endCoords[1]}';
+    final url =
+        'https://router.project-osrm.org/route/v1/foot/$query?overview=full&geometries=geojson&radiuses=200;200';
+
+    try {
+      final response = await http
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final routes = data['routes'] as List?;
+
+        if (routes != null && routes.isNotEmpty) {
+          final route = routes[0];
+          final geometry = route['geometry'];
+          final coordinates = (geometry['coordinates'] as List)
+              .map<LatLng>((c) => LatLng(c[1], c[0]))
+              .toList();
+
+          final distance = route['distance'] as num;
+
+          // Check if route is too long (likely goes outside campus)
+          if (distance > 2000 || distance > straightDistance * 3) {
+            _createStraightLineRoute(startCoords, endCoords, straightDistance);
+          } else {
+            setState(() {
+              _routeCoordinates = coordinates;
+              _routeDistance = distance < 1000
+                  ? '${distance.round()} m'
+                  : '${(distance / 1000).toStringAsFixed(1)} km';
+              final totalSeconds = distance / 1.2; // Walking speed
+              _routeDuration = totalSeconds < 60
+                  ? '${totalSeconds.round()} sec'
+                  : '${(totalSeconds / 60).round()} min';
+            });
+            _drawRouteOnMap();
+          }
+        } else {
+          _createStraightLineRoute(startCoords, endCoords, straightDistance);
+        }
+      } else {
+        _createStraightLineRoute(startCoords, endCoords, straightDistance);
+      }
+    } catch (e) {
+      debugPrint('Error fetching directions: $e');
+      _createStraightLineRoute(startCoords, endCoords, straightDistance);
+    } finally {
+      setState(() => _isCalculatingRoute = false);
+    }
+  }
+
+  /// Create a straight-line route as fallback
+  void _createStraightLineRoute(
+    List<double> start,
+    List<double> end,
+    double distance,
+  ) {
+    setState(() {
+      _routeCoordinates = [LatLng(start[1], start[0]), LatLng(end[1], end[0])];
+      _routeDistance = distance < 1000
+          ? '${distance.round()} m'
+          : '${(distance / 1000).toStringAsFixed(1)} km';
+      final totalSeconds = distance / 1.2;
+      _routeDuration = totalSeconds < 60
+          ? '${totalSeconds.round()} sec'
+          : '${(totalSeconds / 60).round()} min';
+    });
+    _drawRouteOnMap();
+  }
+
+  /// Draw route line on the map
+  Future<void> _drawRouteOnMap() async {
+    if (_mapController == null || _routeCoordinates == null) return;
+
+    // Remove existing route if any
+    try {
+      await _mapController!.removeLayer('route-layer');
+      await _mapController!.removeSource('route-source');
+    } catch (e) {
+      // Layer doesn't exist yet
+    }
+
+    // Create GeoJSON for route
+    final routeGeoJSON = {
+      'type': 'FeatureCollection',
+      'features': [
+        {
+          'type': 'Feature',
+          'geometry': {
+            'type': 'LineString',
+            'coordinates': _routeCoordinates!
+                .map((c) => [c.longitude, c.latitude])
+                .toList(),
+          },
+        },
+      ],
+    };
+
+    await _mapController!.addGeoJsonSource('route-source', routeGeoJSON);
+    await _mapController!.addLineLayer(
+      'route-source',
+      'route-layer',
+      LineLayerProperties(
+        lineColor: '#2563eb',
+        lineWidth: 5,
+        lineOpacity: 0.8,
+        lineCap: 'round',
+        lineJoin: 'round',
+      ),
+    );
+
+    // Fit camera to show full route
+    if (_routeCoordinates!.length >= 2) {
+      final bounds = LatLngBounds(
+        southwest: LatLng(
+          _routeCoordinates!.map((c) => c.latitude).reduce(min),
+          _routeCoordinates!.map((c) => c.longitude).reduce(min),
+        ),
+        northeast: LatLng(
+          _routeCoordinates!.map((c) => c.latitude).reduce(max),
+          _routeCoordinates!.map((c) => c.longitude).reduce(max),
+        ),
+      );
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLngBounds(
+          bounds,
+          left: 50,
+          top: 150,
+          right: 50,
+          bottom: 100,
+        ),
+      );
+    }
+  }
+
+  /// Exit navigation mode
+  void _exitNavigation() async {
+    // Remove route layer
+    try {
+      await _mapController?.removeLayer('route-layer');
+      await _mapController?.removeSource('route-source');
+    } catch (e) {
+      // Ignore
+    }
+
+    setState(() {
+      _isNavigating = false;
+      _startPoint = null;
+      _endPoint = null;
+      _routeCoordinates = null;
+      _routeDistance = '';
+      _routeDuration = '';
+    });
   }
 
   /// Toggle between map and satellite view
@@ -722,6 +1398,19 @@ class _MapPageState extends State<MapPage> {
                       setState(() {
                         _showSuggestions = _searchQuery.isNotEmpty;
                       });
+                    },
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (value) {
+                      if (value.isEmpty) return;
+
+                      setState(() {
+                        _searchQuery = value;
+                        _showSuggestions = value.isNotEmpty;
+                      });
+
+                      if (_filteredSuggestions.isNotEmpty) {
+                        _flyToLocation(_filteredSuggestions.first);
+                      }
                     },
                     decoration: InputDecoration(
                       hintText: 'Search classrooms, departments...',
@@ -844,7 +1533,7 @@ class _MapPageState extends State<MapPage> {
 
           // Map/Satellite Toggle
           Positioned(
-            bottom: 100,
+            bottom: 20,
             left: 16,
             child: Container(
               decoration: BoxDecoration(
@@ -919,6 +1608,205 @@ class _MapPageState extends State<MapPage> {
               ),
             ),
           ),
+
+          // Current Location Button
+          Positioned(
+            bottom: 100,
+            right: 16,
+            child: FloatingActionButton(
+              onPressed: _isLocating ? null : _goToCurrentLocation,
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.blue[700],
+              elevation: 4,
+              child: _isLocating
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.blue,
+                      ),
+                    )
+                  : const Icon(Icons.my_location),
+            ),
+          ),
+
+          // Navigation Panel (when navigating)
+          if (_isNavigating)
+            Positioned(
+              top: 16,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header with back button
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: _exitNavigation,
+                          icon: const Icon(Icons.arrow_back),
+                          color: Colors.grey[700],
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Directions',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Start point
+                    Row(
+                      children: [
+                        Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.blue, width: 3),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _startPoint?['name'] ?? 'Getting your location...',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: _startPoint != null
+                                  ? Colors.grey[800]
+                                  : Colors.grey[500],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Dotted line connector
+                    Padding(
+                      padding: const EdgeInsets.only(left: 5),
+                      child: Column(
+                        children: List.generate(
+                          3,
+                          (i) => Container(
+                            width: 2,
+                            height: 4,
+                            margin: const EdgeInsets.symmetric(vertical: 1),
+                            color: Colors.grey[300],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // End point
+                    Row(
+                      children: [
+                        Container(
+                          width: 12,
+                          height: 12,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.red,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _endPoint?['name'] ?? 'Destination',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Route info
+                    if (_routeDistance.isNotEmpty &&
+                        _routeDuration.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withAlpha(25),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.directions_walk,
+                              color: Colors.blue[700],
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '$_routeDuration • $_routeDistance',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.blue[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    // Loading indicator
+                    if (_isCalculatingRoute)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Calculating route...',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
 
           // Chatbot Widget Overlay
           ChatBotWidget(onLocationsReturned: _handleChatBotLocations),
