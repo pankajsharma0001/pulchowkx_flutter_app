@@ -432,7 +432,12 @@ class _MapPageState extends State<MapPage> {
             trackCameraPosition: true,
             compassEnabled: true,
             cameraTargetBounds: CameraTargetBounds(_campusBounds),
-            minMaxZoomPreference: const MinMaxZoomPreference(16, 20),
+            minMaxZoomPreference: MinMaxZoomPreference(
+              16,
+              _isSatellite
+                  ? 18.45
+                  : 20, // Restrict satellite to 18.5, map can go to 20
+            ),
             scrollGesturesEnabled: true,
             tiltGesturesEnabled: false,
             rotateGesturesEnabled: true,
