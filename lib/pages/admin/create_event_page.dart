@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 
@@ -26,6 +28,8 @@ class _CreateEventPageState extends State<CreateEventPage> {
   final _descriptionController = TextEditingController();
   final _venueController = TextEditingController();
   final _maxParticipantsController = TextEditingController();
+  final _picker = ImagePicker();
+  File? _imageFile;
   final _bannerUrlController = TextEditingController();
 
   // Form state
@@ -159,6 +163,22 @@ class _CreateEventPageState extends State<CreateEventPage> {
     }
   }
 
+  Future<void> _pickImage() async {
+    final XFile? pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1920,
+      maxHeight: 1080,
+      imageQuality: 85,
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+        _bannerUrlController.clear(); // Clear URL if file is picked
+      });
+    }
+  }
+
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -182,6 +202,17 @@ class _CreateEventPageState extends State<CreateEventPage> {
     });
 
     try {
+      String? bannerUrl = _bannerUrlController.text.trim();
+
+      // Upload image first if picked
+      if (_imageFile != null) {
+        final uploadResult = await _apiService.uploadEventBanner(_imageFile!);
+        if (uploadResult['success'] == true) {
+          bannerUrl = uploadResult['url'];
+        } else {
+          throw Exception(uploadResult['message'] ?? 'Image upload failed');
+        }
+      }
       final result = await _apiService.createEvent(
         authId: dbUserId,
         clubId: widget.clubId,
@@ -189,16 +220,16 @@ class _CreateEventPageState extends State<CreateEventPage> {
         description: _descriptionController.text.trim(),
         eventType: _selectedEventType,
         venue: _venueController.text.trim(),
-        maxParticipants: int.tryParse(_maxParticipantsController.text) ?? 50,
+        maxParticipants: _maxParticipantsController.text.trim().isEmpty
+            ? null
+            : int.tryParse(_maxParticipantsController.text.trim()),
         registrationDeadline: _formatDateTime(
           _registrationDeadline,
           _registrationTime,
         ),
         eventStartTime: _formatDateTime(_startDate, _startTime),
         eventEndTime: _formatDateTime(_endDate, _endTime),
-        bannerUrl: _bannerUrlController.text.trim().isNotEmpty
-            ? _bannerUrlController.text.trim()
-            : null,
+        bannerUrl: bannerUrl?.isNotEmpty == true ? bannerUrl : null,
       );
 
       if (result['success'] == true) {
@@ -448,7 +479,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
             _buildTextField(
               controller: _maxParticipantsController,
               label: 'Max Participants',
-              hint: 'e.g. 50',
+              hint: 'Leave empty for unlimited',
               icon: Icons.people,
               keyboardType: TextInputType.number,
             ),
@@ -456,15 +487,9 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
             // Media Section
             _buildSectionHeader('Media (Optional)'),
-            const SizedBox(height: 12),
-
-            _buildTextField(
-              controller: _bannerUrlController,
-              label: 'Banner Image URL',
-              hint: 'https://example.com/banner.jpg',
-              icon: Icons.image,
-            ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
+            _buildImagePickerSection(),
+            const SizedBox(height: 24),
 
             // Submit Button
             SizedBox(
@@ -522,6 +547,73 @@ class _CreateEventPageState extends State<CreateEventPage> {
     );
   }
 
+  Widget _buildImagePickerSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Banner Image',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(
+                controller: _bannerUrlController,
+                label: 'Banner Image URL',
+                hint: 'e.g. https://example.com/banner.jpg',
+                icon: Icons.image,
+                onChanged: (value) {
+                  if (value.isNotEmpty && _imageFile != null) {
+                    setState(() => _imageFile = null);
+                  }
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text('OR'),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: _pickImage,
+              icon: const Icon(Icons.file_upload),
+              label: const Text('Upload'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        if (_imageFile != null) ...[
+          const SizedBox(height: 12),
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(
+                  _imageFile!,
+                  height: 150,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Positioned(
+                right: 8,
+                top: 8,
+                child: IconButton(
+                  onPressed: () => setState(() => _imageFile = null),
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -530,12 +622,14 @@ class _CreateEventPageState extends State<CreateEventPage> {
     int maxLines = 1,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    Function(String)? onChanged,
   }) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
       validator: validator,
+      onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,

@@ -153,7 +153,6 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         });
       }
     } catch (e) {
-      print('Error loading registered students: $e');
       if (mounted) {
         setState(() => _loadingStudents = false);
       }

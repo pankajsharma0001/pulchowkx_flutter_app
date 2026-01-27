@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
@@ -26,6 +28,9 @@ class _ClubAdminTabState extends State<ClubAdminTab> {
   // Edit mode flags
   bool _isEditingClubInfo = false;
   bool _isEditingProfile = false;
+
+  final _picker = ImagePicker();
+  File? _clubLogoFile;
 
   // Edit Info State
   final _nameController = TextEditingController();
@@ -103,13 +108,43 @@ class _ClubAdminTabState extends State<ClubAdminTab> {
     }
   }
 
+  Future<void> _pickClubLogo() async {
+    final XFile? pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        _clubLogoFile = File(pickedFile.path);
+        _logoController.clear();
+      });
+    }
+  }
+
   Future<void> _saveClubInfo() async {
     setState(() => _isLoading = true);
     try {
+      String? logoUrl = _logoController.text.trim();
+
+      if (_clubLogoFile != null) {
+        final uploadResult = await _apiService.uploadClubLogo(
+          widget.club.id,
+          _clubLogoFile!,
+        );
+        if (uploadResult['success'] == true) {
+          logoUrl = uploadResult['url'];
+        } else {
+          throw Exception(uploadResult['message'] ?? 'Logo upload failed');
+        }
+      }
+
       final result = await _apiService.updateClubInfo(widget.club.id, {
         'name': _nameController.text.trim(),
         'description': _descController.text.trim(),
-        'logoUrl': _logoController.text.trim(),
+        'logoUrl': logoUrl,
       });
 
       if (result['success'] == true) {
@@ -181,7 +216,7 @@ class _ClubAdminTabState extends State<ClubAdminTab> {
     if (email.isEmpty) return;
 
     // Check if duplicate
-    if (_admins.any((a) => a['user'] != null && a['user']['email'] == email)) {
+    if (_admins.any((a) => a['email'] == email)) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('User is already an admin')));
@@ -273,7 +308,10 @@ class _ClubAdminTabState extends State<ClubAdminTab> {
     _nameController.text = widget.club.name;
     _descController.text = widget.club.description ?? '';
     _logoController.text = widget.club.logoUrl ?? '';
-    setState(() => _isEditingClubInfo = false);
+    setState(() {
+      _isEditingClubInfo = false;
+      _clubLogoFile = null;
+    });
   }
 
   void _cancelProfileEdit() {
@@ -452,7 +490,50 @@ class _ClubAdminTabState extends State<ClubAdminTab> {
       children: [
         _buildTextField('Club Name', _nameController),
         _buildTextField('Description', _descController, maxLines: 3),
-        _buildTextField('Logo URL', _logoController),
+        _buildImagePickerSection(),
+        if (_clubLogoFile != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.file(
+                _clubLogoFile!,
+                height: 100,
+                width: 100,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildImagePickerSection() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildTextField(
+            'Logo URL',
+            _logoController,
+            onChanged: (value) {
+              if (value.isNotEmpty && _clubLogoFile != null) {
+                setState(() => _clubLogoFile = null);
+              }
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        const Text('OR'),
+        const SizedBox(width: 8),
+        ElevatedButton.icon(
+          onPressed: _pickClubLogo,
+          icon: const Icon(Icons.file_upload),
+          label: const Text('Upload'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+          ),
+        ),
       ],
     );
   }
@@ -632,10 +713,7 @@ class _ClubAdminTabState extends State<ClubAdminTab> {
                   )
                 else
                   Column(
-                    children: _admins.map((admin) {
-                      final user = admin['user'];
-                      if (user == null) return const SizedBox.shrink();
-
+                    children: _admins.map((user) {
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
                         decoration: BoxDecoration(
@@ -720,6 +798,7 @@ class _ClubAdminTabState extends State<ClubAdminTab> {
     TextEditingController controller, {
     int maxLines = 1,
     TextInputType? keyboardType,
+    Function(String)? onChanged,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -727,6 +806,7 @@ class _ClubAdminTabState extends State<ClubAdminTab> {
         controller: controller,
         maxLines: maxLines,
         keyboardType: keyboardType,
+        onChanged: onChanged,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(

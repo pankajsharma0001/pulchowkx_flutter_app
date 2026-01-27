@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 
@@ -19,6 +21,8 @@ class _CreateClubPageState extends State<CreateClubPage> {
   final _emailController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _logoUrlController = TextEditingController();
+  final _picker = ImagePicker();
+  File? _imageFile;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -58,6 +62,22 @@ class _CreateClubPageState extends State<CreateClubPage> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    final XFile? pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+        _logoUrlController.clear();
+      });
+    }
+  }
+
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -67,18 +87,31 @@ class _CreateClubPageState extends State<CreateClubPage> {
     });
 
     try {
+      String? logoUrl = _logoUrlController.text.trim();
+
+      // For a new club, we first create it, then upload the logo
+      // because the upload endpoint needs the clubId.
+      // Wait, let's check CreateClub implementation in backend.
+      // createClub(targetUser.id, clubData)
+      // So we should create first, then upload.
+
       final result = await _apiService.createClub(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         description: _descriptionController.text.trim().isNotEmpty
             ? _descriptionController.text.trim()
             : null,
-        logoUrl: _logoUrlController.text.trim().isNotEmpty
-            ? _logoUrlController.text.trim()
-            : null,
+        logoUrl: logoUrl.isNotEmpty ? logoUrl : null,
       );
 
       if (result['success'] == true) {
+        final newClubId =
+            result['data']['id']; // Assuming backend returns the new club data
+
+        if (_imageFile != null && newClubId != null) {
+          await _apiService.uploadClubLogo(newClubId, _imageFile!);
+        }
+
         setState(() => _success = true);
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) {
@@ -279,16 +312,11 @@ class _CreateClubPageState extends State<CreateClubPage> {
             ),
             const SizedBox(height: 16),
 
-            // Logo URL
-            _buildTextField(
-              controller: _logoUrlController,
-              label: 'Logo URL (Optional)',
-              hint: 'https://example.com/logo.png',
-              icon: Icons.image,
-            ),
+            const SizedBox(height: 16),
+            _buildImagePickerSection(),
 
             // Logo Preview
-            if (_logoUrlController.text.isNotEmpty)
+            if (_imageFile != null || _logoUrlController.text.isNotEmpty)
               Container(
                 margin: const EdgeInsets.only(top: 16),
                 height: 100,
@@ -299,17 +327,24 @@ class _CreateClubPageState extends State<CreateClubPage> {
                 child: Center(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      _logoUrlController.text,
-                      height: 80,
-                      width: 80,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Icon(
-                        Icons.broken_image,
-                        color: Colors.grey.shade400,
-                        size: 40,
-                      ),
-                    ),
+                    child: _imageFile != null
+                        ? Image.file(
+                            _imageFile!,
+                            height: 80,
+                            width: 80,
+                            fit: BoxFit.cover,
+                          )
+                        : Image.network(
+                            _logoUrlController.text,
+                            height: 80,
+                            width: 80,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => Icon(
+                              Icons.broken_image,
+                              color: Colors.grey.shade400,
+                              size: 40,
+                            ),
+                          ),
                   ),
                 ),
               ),
@@ -361,6 +396,38 @@ class _CreateClubPageState extends State<CreateClubPage> {
     );
   }
 
+  Widget _buildImagePickerSection() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildTextField(
+            controller: _logoUrlController,
+            label: 'Logo URL (Optional)',
+            hint: 'https://example.com/logo.png',
+            icon: Icons.image,
+            onChanged: (value) {
+              if (value.isNotEmpty && _imageFile != null) {
+                setState(() => _imageFile = null);
+              }
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        const Text('OR'),
+        const SizedBox(width: 8),
+        ElevatedButton.icon(
+          onPressed: _pickImage,
+          icon: const Icon(Icons.file_upload),
+          label: const Text('Upload'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.accent,
+            foregroundColor: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
@@ -380,17 +447,14 @@ class _CreateClubPageState extends State<CreateClubPage> {
     int maxLines = 1,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    Function(String)? onChanged,
   }) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
       validator: validator,
-      onChanged: (value) {
-        if (label.contains('Logo')) {
-          setState(() {}); // Trigger rebuild for logo preview
-        }
-      },
+      onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,

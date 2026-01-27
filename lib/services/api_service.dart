@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:pulchowkx_app/models/chatbot_response.dart';
 import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/models/event.dart';
@@ -99,27 +101,17 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      print('Error syncing user: $e');
       return null;
     }
   }
 
   // ==================== CACHING & CONNECTIVITY ====================
 
-  /// Check for internet connectivity
-  /// Check for internet connectivity
   Future<bool> _hasInternetConnection() async {
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
-      print('Connectivity check: $connectivityResult');
       return connectivityResult.first != ConnectivityResult.none;
     } catch (e) {
-      print('Error checking connectivity: $e');
-      // If plugin is missing (hot restart issue) or other error,
-      // return false to safely fallback to cache or handle appropriately.
-      // Alternatively return true to attempt request anyway?
-      // Let's return false to avoid crashing on network calls if the environment is unstable,
-      // but usually MissingPluginException means we should just rebuild.
       return false;
     }
   }
@@ -430,9 +422,6 @@ class ApiService {
         body: jsonEncode({'authStudentId': authStudentId, 'eventId': eventId}),
       );
 
-      print('Register response status: ${response.statusCode}');
-      print('Register response body: ${response.body}');
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         final json = jsonDecode(response.body);
         // Handle both nested and direct response formats
@@ -443,7 +432,6 @@ class ApiService {
       }
       return false;
     } catch (e) {
-      print('Error registering for event: $e');
       return false;
     }
   }
@@ -457,9 +445,6 @@ class ApiService {
         body: jsonEncode({'authStudentId': authStudentId, 'eventId': eventId}),
       );
 
-      print('Cancel response status: ${response.statusCode}');
-      print('Cancel response body: ${response.body}');
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         final json = jsonDecode(response.body);
         // Handle both nested and direct response formats
@@ -470,7 +455,6 @@ class ApiService {
       }
       return false;
     } catch (e) {
-      print('Error cancelling registration: $e');
       return false;
     }
   }
@@ -535,7 +519,7 @@ class ApiService {
               .toList();
         }
       } catch (e) {
-        print('Error parsing cached enrollments: $e');
+        return [];
       }
     }
 
@@ -563,7 +547,6 @@ class ApiService {
         errorMessage: 'Server error: ${response.statusCode}',
       );
     } catch (e) {
-      print('Error calling chatbot: $e');
       return ChatBotResponse(success: false, errorMessage: 'Network error: $e');
     }
   }
@@ -578,7 +561,7 @@ class ApiService {
     required String description,
     required String eventType,
     required String venue,
-    required int maxParticipants,
+    int? maxParticipants,
     required String registrationDeadline,
     required String eventStartTime,
     required String eventEndTime,
@@ -621,7 +604,6 @@ class ApiService {
         'message': 'Server error: ${response.statusCode}',
       };
     } catch (e) {
-      print('Error creating event: $e');
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -665,7 +647,6 @@ class ApiService {
         'message': 'Server error: ${response.statusCode}',
       };
     } catch (e) {
-      print('Error creating club: $e');
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -696,7 +677,6 @@ class ApiService {
         'message': 'Server error: ${response.statusCode}',
       };
     } catch (e) {
-      print('Error updating club info: $e');
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -731,7 +711,6 @@ class ApiService {
         'message': 'Server error: ${response.statusCode}',
       };
     } catch (e) {
-      print('Error updating club profile: $e');
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -759,7 +738,6 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print('Error getting club admins: $e');
       return [];
     }
   }
@@ -772,12 +750,6 @@ class ApiService {
   }) async {
     try {
       final userId = await getDatabaseUserId();
-      print('=== Add Club Admin Debug ===');
-      print('Database User ID: $userId');
-      print('Club ID: $clubId');
-      print('Owner ID (authClubId): $ownerId');
-      print('Email to add: $email');
-
       if (userId == null) {
         return {
           'success': false,
@@ -797,9 +769,6 @@ class ApiService {
           'ownerId': ownerId,
         }),
       );
-
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final json = jsonDecode(response.body);
@@ -822,7 +791,6 @@ class ApiService {
         };
       }
     } catch (e) {
-      print('Error adding club admin: $e');
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -858,7 +826,6 @@ class ApiService {
         'message': 'Server error: ${response.statusCode}',
       };
     } catch (e) {
-      print('Error removing club admin: $e');
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -878,7 +845,6 @@ class ApiService {
       final admins = await getClubAdmins(clubId);
       return admins.any((admin) => admin['id'] == userId);
     } catch (e) {
-      print('Error checking admin status: $e');
       return false;
     }
   }
@@ -910,7 +876,6 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print('Error getting registered students: $e');
       return [];
     }
   }
@@ -931,7 +896,6 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      print('Error getting extra event details: $e');
       return null;
     }
   }
@@ -965,7 +929,6 @@ class ApiService {
         'message': 'Server error: ${response.statusCode}',
       };
     } catch (e) {
-      print('Error creating extra event details: $e');
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -999,8 +962,96 @@ class ApiService {
         'message': 'Server error: ${response.statusCode}',
       };
     } catch (e) {
-      print('Error updating extra event details: $e');
       return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // ==================== IMAGE UPLOADS ====================
+
+  /// Upload an image and return the URL
+  Future<Map<String, dynamic>> uploadClubLogo(
+    int clubId,
+    File imageFile,
+  ) async {
+    try {
+      final userId = await getDatabaseUserId();
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$apiBaseUrl/clubs/$clubId/upload-logo'),
+      );
+
+      if (userId != null) {
+        request.headers['Authorization'] = 'Bearer $userId';
+      }
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'logo',
+          imageFile.path,
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        return {
+          'success': true,
+          'url': data['data']['url'],
+          'message': 'Upload successful',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Upload failed: ${response.statusCode}',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Upload error: $e'};
+    }
+  }
+
+  /// Generic upload for event banners
+  Future<Map<String, dynamic>> uploadEventBanner(File imageFile) async {
+    try {
+      final userId = await getDatabaseUserId();
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$apiBaseUrl/events/upload-banner'),
+      );
+
+      if (userId != null) {
+        request.headers['Authorization'] = 'Bearer $userId';
+      }
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'banner',
+          imageFile.path,
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        return {
+          'success': true,
+          'url': data['data']?['url'] ?? data['url'],
+          'message': 'Upload successful',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Upload failed: ${response.statusCode}',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Upload error: $e'};
     }
   }
 }

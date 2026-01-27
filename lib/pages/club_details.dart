@@ -705,9 +705,7 @@ class _AboutTabState extends State<_AboutTab> {
             )
           else
             ..._admins.asMap().entries.map((entry) {
-              final admin = entry.value;
-              final user = admin['user'];
-              if (user == null) return const SizedBox.shrink();
+              final user = entry.value;
               return Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.sm),
                 child: _buildAdminTile(
@@ -831,17 +829,24 @@ class _ContactCard extends StatelessWidget {
     }
   }
 
-  Future<void> _launchEmail(String email) async {
-    final uri = Uri(scheme: 'mailto', path: email);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
-  }
-
   Future<void> _launchPhone(String phone) async {
     final uri = Uri(scheme: 'tel', path: phone);
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _launchEmail(String email) async {
+    final uri = Uri(scheme: 'mailto', path: email);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        // Fallback or secondary check
+        await launchUrl(uri);
+      }
+    } catch (e) {
+      debugPrint('Error launching email: $e');
     }
   }
 
