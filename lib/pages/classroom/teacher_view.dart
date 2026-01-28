@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:pulchowkx_app/models/classroom.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
+import 'package:pulchowkx_app/widgets/empty_states.dart';
 import 'shared_widgets.dart';
 
 class TeacherView extends StatelessWidget {
@@ -41,13 +44,29 @@ class TeacherView extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.md),
         if (subjects.isEmpty)
-          const EmptySubjects()
+          const EmptyStateWidget(
+            type: EmptyStateType.assignments,
+            title: 'No Subjects Assigned',
+            message:
+                'Add subjects to your workspace to start managing assignments.',
+          )
         else
-          ...subjects.map(
-            (subject) => TeacherSubjectCard(
-              subject: subject,
-              apiService: apiService,
-              onRefresh: onRefresh,
+          AnimationLimiter(
+            child: Column(
+              children: AnimationConfiguration.toStaggeredList(
+                duration: const Duration(milliseconds: 375),
+                childAnimationBuilder: (widget) =>
+                    ScaleAnimation(child: FadeInAnimation(child: widget)),
+                children: subjects
+                    .map(
+                      (subject) => TeacherSubjectCard(
+                        subject: subject,
+                        apiService: apiService,
+                        onRefresh: onRefresh,
+                      ),
+                    )
+                    .toList(),
+              ),
             ),
           ),
       ],
@@ -230,7 +249,10 @@ class _TeacherSubjectCardState extends State<TeacherSubjectCard> {
                       _isExpanded ? Icons.expand_less : Icons.expand_more,
                       color: AppColors.textMuted,
                     ),
-                    onPressed: () => setState(() => _isExpanded = !_isExpanded),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _isExpanded = !_isExpanded);
+                    },
                   ),
                 ],
               ],
@@ -368,7 +390,10 @@ class _AssignmentSubmissionsDialogState
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _submissions.isEmpty
-            ? const Center(child: Text('No submissions yet'))
+            ? const EmptyStateWidget(
+                type: EmptyStateType.submissions,
+                message: 'No submissions received yet for this assignment.',
+              )
             : ListView.builder(
                 itemCount: _submissions.length,
                 itemBuilder: (context, index) {

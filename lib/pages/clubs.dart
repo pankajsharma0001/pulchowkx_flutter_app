@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/pages/club_details.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart'
     show CustomAppBar, AppPage;
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
+import 'package:pulchowkx_app/widgets/empty_states.dart';
 
 class ClubsPage extends StatefulWidget {
   const ClubsPage({super.key});
@@ -39,6 +43,7 @@ class _ClubsPageState extends State<ClubsPage> {
         decoration: const BoxDecoration(gradient: AppColors.heroGradient),
         child: RefreshIndicator(
           onRefresh: () async {
+            HapticFeedback.mediumImpact();
             _refreshClubs();
             final connectivityResult = await Connectivity().checkConnectivity();
             if (connectivityResult.first == ConnectivityResult.none) {
@@ -146,19 +151,10 @@ class _ClubsPageState extends State<ClubsPage> {
                 future: _clubsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const SliverFillRemaining(
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircularProgressIndicator(color: AppColors.primary),
-                            SizedBox(height: AppSpacing.md),
-                            Text(
-                              'Discovering clubs...',
-                              style: AppTextStyles.bodyMedium,
-                            ),
-                          ],
-                        ),
+                    return const SliverPadding(
+                      padding: EdgeInsets.all(AppSpacing.lg),
+                      sliver: SliverToBoxAdapter(
+                        child: ShimmerLoader(child: GridShimmer()),
                       ),
                     );
                   }
@@ -184,25 +180,41 @@ class _ClubsPageState extends State<ClubsPage> {
                   });
 
                   if (clubs.isEmpty) {
-                    return SliverFillRemaining(child: _buildEmptyState());
+                    return const SliverFillRemaining(
+                      child: EmptyStateWidget(type: EmptyStateType.clubs),
+                    );
                   }
 
                   return SliverPadding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.lg,
                     ),
-                    sliver: SliverGrid(
-                      gridDelegate:
-                          const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 400,
-                            mainAxisSpacing: AppSpacing.md,
-                            crossAxisSpacing: AppSpacing.md,
-                            childAspectRatio: 0.85,
-                          ),
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) =>
-                            _ClubCard(club: clubs[index], index: index),
-                        childCount: clubs.length,
+                    sliver: AnimationLimiter(
+                      child: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: 400,
+                              mainAxisSpacing: AppSpacing.md,
+                              crossAxisSpacing: AppSpacing.md,
+                              childAspectRatio: 0.85,
+                            ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) =>
+                              AnimationConfiguration.staggeredGrid(
+                                position: index,
+                                duration: const Duration(milliseconds: 375),
+                                columnCount: 1,
+                                child: ScaleAnimation(
+                                  child: FadeInAnimation(
+                                    child: _ClubCard(
+                                      club: clubs[index],
+                                      index: index,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          childCount: clubs.length,
+                        ),
                       ),
                     ),
                   );
@@ -343,6 +355,7 @@ class _ClubCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
+          HapticFeedback.lightImpact();
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -373,20 +386,23 @@ class _ClubCard extends StatelessWidget {
                     fit: StackFit.expand,
                     children: [
                       if (club.logoUrl != null && club.logoUrl!.isNotEmpty)
-                        CachedNetworkImage(
-                          imageUrl: club.logoUrl!,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            decoration: BoxDecoration(gradient: _gradient),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
+                        Hero(
+                          tag: 'club_logo_${club.id}',
+                          child: CachedNetworkImage(
+                            imageUrl: club.logoUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              decoration: BoxDecoration(gradient: _gradient),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
                               ),
                             ),
+                            errorWidget: (context, url, error) =>
+                                _buildPlaceholder(),
                           ),
-                          errorWidget: (context, url, error) =>
-                              _buildPlaceholder(),
                         )
                       else
                         _buildPlaceholder(),

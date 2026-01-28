@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart'
     show CustomAppBar, AppPage;
-
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
+import 'package:pulchowkx_app/widgets/empty_states.dart';
 import 'package:pulchowkx_app/widgets/event_card.dart';
 
 class EventsPage extends StatefulWidget {
@@ -39,6 +42,7 @@ class _EventsPageState extends State<EventsPage> {
         decoration: const BoxDecoration(gradient: AppColors.heroGradient),
         child: RefreshIndicator(
           onRefresh: () async {
+            HapticFeedback.mediumImpact();
             _refreshEvents();
             // Check connectivity on refresh
             final connectivityResult = await Connectivity().checkConnectivity();
@@ -60,18 +64,15 @@ class _EventsPageState extends State<EventsPage> {
             future: _eventsFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(color: AppColors.primary),
-                      SizedBox(height: AppSpacing.md),
-                      Text(
-                        'Loading campus events...',
-                        style: AppTextStyles.bodyMedium,
+                return const CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(AppSpacing.lg),
+                        child: ShimmerLoader(child: GridShimmer()),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 );
               }
 
@@ -200,10 +201,9 @@ class _EventsPageState extends State<EventsPage> {
                     categorized['upcoming']!.length,
                   ),
                   if (categorized['upcoming']!.isEmpty)
-                    SliverToBoxAdapter(
-                      child: _buildEmptySection(
-                        'No upcoming events scheduled yet.',
-                      ),
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: EmptyStateWidget(type: EmptyStateType.events),
                     )
                   else
                     _buildEventsGrid(categorized['upcoming']!),
@@ -330,17 +330,30 @@ class _EventsPageState extends State<EventsPage> {
   }) {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 400,
-          mainAxisSpacing: AppSpacing.md,
-          crossAxisSpacing: AppSpacing.md,
-          childAspectRatio: 0.75,
-        ),
-        delegate: SliverChildBuilderDelegate(
-          (context, index) =>
-              EventCard(event: events[index], type: EventCardType.grid),
-          childCount: events.length,
+      sliver: AnimationLimiter(
+        child: SliverGrid(
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 400,
+            mainAxisSpacing: AppSpacing.md,
+            crossAxisSpacing: AppSpacing.md,
+            childAspectRatio: 0.75,
+          ),
+          delegate: SliverChildBuilderDelegate(
+            (context, index) => AnimationConfiguration.staggeredGrid(
+              position: index,
+              duration: const Duration(milliseconds: 375),
+              columnCount: 1,
+              child: ScaleAnimation(
+                child: FadeInAnimation(
+                  child: EventCard(
+                    event: events[index],
+                    type: EventCardType.grid,
+                  ),
+                ),
+              ),
+            ),
+            childCount: events.length,
+          ),
         ),
       ),
     );

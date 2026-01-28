@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:pulchowkx_app/models/book_listing.dart';
 import 'package:pulchowkx_app/pages/book_details.dart';
 import 'package:pulchowkx_app/pages/sell_book.dart';
@@ -7,6 +9,8 @@ import 'package:pulchowkx_app/pages/my_books.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
+import 'package:pulchowkx_app/widgets/empty_states.dart';
 
 class BookMarketplacePage extends StatefulWidget {
   const BookMarketplacePage({super.key});
@@ -147,6 +151,7 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
       appBar: const CustomAppBar(currentPage: AppPage.bookMarketplace),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
+          HapticFeedback.lightImpact();
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const SellBookPage()),
@@ -439,8 +444,9 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
 
   Widget _buildContent() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
+      return const Padding(
+        padding: EdgeInsets.all(AppSpacing.lg),
+        child: ShimmerLoader(child: GridShimmer()),
       );
     }
 
@@ -463,66 +469,64 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
     }
 
     if (_listings.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.menu_book_outlined,
-                size: 48,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text('No books found', style: AppTextStyles.h4),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Be the first to list a book for sale!',
-              style: AppTextStyles.bodyMedium,
-            ),
-          ],
-        ),
+      return EmptyStateWidget(
+        type: EmptyStateType.books,
+        onAction: () {
+          HapticFeedback.lightImpact();
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SellBookPage()),
+          ).then((_) => _loadListings());
+        },
+        actionLabel: 'Sell a Book',
       );
     }
 
     return RefreshIndicator(
-      onRefresh: _loadListings,
+      onRefresh: () async {
+        HapticFeedback.mediumImpact();
+        await _loadListings();
+      },
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
-        child: GridView.builder(
-          controller: _scrollController,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 0.65,
-            crossAxisSpacing: AppSpacing.md,
-            mainAxisSpacing: AppSpacing.md,
-          ),
-          itemCount: _listings.length + (_isLoadingMore ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (index >= _listings.length) {
-              return const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              );
-            }
-            return _BookCard(
-              listing: _listings[index],
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        BookDetailsPage(bookId: _listings[index].id),
+        child: AnimationLimiter(
+          child: GridView.builder(
+            controller: _scrollController,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.65,
+              crossAxisSpacing: AppSpacing.md,
+              mainAxisSpacing: AppSpacing.md,
+            ),
+            itemCount: _listings.length + (_isLoadingMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index >= _listings.length) {
+                return const Center(child: ShimmerLoader(child: CardShimmer()));
+              }
+              return AnimationConfiguration.staggeredGrid(
+                position: index,
+                duration: const Duration(milliseconds: 375),
+                columnCount: 2,
+                child: ScaleAnimation(
+                  child: FadeInAnimation(
+                    child: _BookCard(
+                      listing: _listings[index],
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                BookDetailsPage(bookId: _listings[index].id),
+                          ),
+                        ).then((_) => _loadListings());
+                      },
+                    ),
                   ),
-                ).then((_) => _loadListings());
-              },
-            );
-          },
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -598,38 +602,41 @@ class _BookCard extends StatelessWidget {
               ),
               child: AspectRatio(
                 aspectRatio: 1,
-                child: listing.primaryImageUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: listing.primaryImageUrl!,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
+                child: Hero(
+                  tag: 'book_image_${listing.id}',
+                  child: listing.primaryImageUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: listing.primaryImageUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: AppColors.backgroundSecondary,
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: AppColors.backgroundSecondary,
+                            child: const Icon(
+                              Icons.menu_book_rounded,
+                              size: 40,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        )
+                      : Container(
                           color: AppColors.backgroundSecondary,
                           child: const Center(
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.primary,
+                            child: Icon(
+                              Icons.menu_book_rounded,
+                              size: 40,
+                              color: AppColors.textMuted,
                             ),
                           ),
                         ),
-                        errorWidget: (context, url, error) => Container(
-                          color: AppColors.backgroundSecondary,
-                          child: const Icon(
-                            Icons.menu_book_rounded,
-                            size: 40,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      )
-                    : Container(
-                        color: AppColors.backgroundSecondary,
-                        child: const Center(
-                          child: Icon(
-                            Icons.menu_book_rounded,
-                            size: 40,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ),
+                ),
               ),
             ),
             // Content

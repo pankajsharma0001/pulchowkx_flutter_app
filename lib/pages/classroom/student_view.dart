@@ -2,9 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:pulchowkx_app/models/classroom.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
+import 'package:pulchowkx_app/widgets/empty_states.dart';
 import 'shared_widgets.dart';
 
 class StudentView extends StatelessWidget {
@@ -46,13 +49,29 @@ class StudentView extends StatelessWidget {
         Text('Your Subjects', style: AppTextStyles.h4),
         const SizedBox(height: AppSpacing.md),
         if (subjects.isEmpty)
-          const EmptySubjects()
+          const EmptyStateWidget(
+            type: EmptyStateType.assignments,
+            title: 'No Subjects Yet',
+            message:
+                'Enroll in subjects to start tracking your academic progress.',
+          )
         else
-          ...subjects.map(
-            (subject) => SubjectCard(
-              subject: subject,
-              apiService: apiService,
-              onRefresh: onRefresh,
+          AnimationLimiter(
+            child: Column(
+              children: AnimationConfiguration.toStaggeredList(
+                duration: const Duration(milliseconds: 375),
+                childAnimationBuilder: (widget) =>
+                    ScaleAnimation(child: FadeInAnimation(child: widget)),
+                children: subjects
+                    .map(
+                      (subject) => SubjectCard(
+                        subject: subject,
+                        apiService: apiService,
+                        onRefresh: onRefresh,
+                      ),
+                    )
+                    .toList(),
+              ),
             ),
           ),
       ],
@@ -169,7 +188,10 @@ class _SubjectCardState extends State<SubjectCard> {
         children: [
           InkWell(
             onTap: hasAssignments
-                ? () => setState(() => _isExpanded = !_isExpanded)
+                ? () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _isExpanded = !_isExpanded);
+                  }
                 : null,
             borderRadius: BorderRadius.circular(AppRadius.lg),
             child: Padding(
