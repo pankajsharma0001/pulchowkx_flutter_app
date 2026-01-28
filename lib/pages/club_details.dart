@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:pulchowkx_app/pages/event_details.dart';
 import 'package:pulchowkx_app/pages/admin/create_event_page.dart';
+import 'package:pulchowkx_app/services/analytics_service.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
+import 'package:pulchowkx_app/services/favorites_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
@@ -127,7 +130,10 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
           }
 
           // Cache the club for later use
-          _cachedClub = club;
+          if (_cachedClub == null) {
+            _cachedClub = club;
+            AnalyticsService.logClubView(club.id.toString(), club.name);
+          }
 
           return Container(
             decoration: const BoxDecoration(gradient: AppColors.heroGradient),
@@ -296,29 +302,76 @@ class _ClubHeader extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         children: [
-          // Club Logo
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadius.xl),
-              boxShadow: AppShadows.lg,
-              border: Border.all(color: Colors.white, width: 3),
-            ),
-            child: Hero(
-              tag: 'club_logo_${club.id}',
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.xl - 2),
-                child: club.logoUrl != null && club.logoUrl!.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: club.logoUrl!,
-                        fit: BoxFit.cover,
-                        placeholder: (_, _) => _buildPlaceholder(),
-                        errorWidget: (_, _, _) => _buildPlaceholder(),
-                      )
-                    : _buildPlaceholder(),
+          // Club Logo with Favorite Button
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  boxShadow: AppShadows.lg,
+                  border: Border.all(color: Colors.white, width: 3),
+                ),
+                child: Hero(
+                  tag: 'club_logo_${club.id}',
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.xl - 2),
+                    child: club.logoUrl != null && club.logoUrl!.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: club.logoUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (_, _) => _buildPlaceholder(),
+                            errorWidget: (_, _, _) => _buildPlaceholder(),
+                          )
+                        : _buildPlaceholder(),
+                  ),
+                ),
               ),
-            ),
+              // Favorite Button
+              Positioned(
+                top: -8,
+                right: -8,
+                child: ListenableBuilder(
+                  listenable: favoritesService,
+                  builder: (context, _) {
+                    final isFavorite = favoritesService.isClubFavorite(
+                      club.id.toString(),
+                    );
+                    return GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        favoritesService.toggleClubFavorite(club.id.toString());
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isFavorite
+                              ? AppColors.error
+                              : AppColors.surface,
+                          shape: BoxShape.circle,
+                          boxShadow: AppShadows.md,
+                        ),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: Icon(
+                            isFavorite
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_outline_rounded,
+                            key: ValueKey(isFavorite),
+                            color: isFavorite
+                                ? Colors.white
+                                : AppColors.textMuted,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.md),
           // Club Name

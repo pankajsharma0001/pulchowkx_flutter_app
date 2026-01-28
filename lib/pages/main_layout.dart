@@ -207,6 +207,7 @@ class _BottomNavBar extends StatelessWidget {
               children: [
                 _NavIcon(
                   icon: Icons.home_rounded,
+                  label: 'Home',
                   isActive: selectedIndex == 0,
                   onTap: () {
                     HapticFeedback.selectionClick();
@@ -215,6 +216,7 @@ class _BottomNavBar extends StatelessWidget {
                 ),
                 _NavIcon(
                   icon: Icons.map_rounded,
+                  label: 'Map',
                   isActive: selectedIndex == 1,
                   onTap: () {
                     HapticFeedback.selectionClick();
@@ -223,6 +225,7 @@ class _BottomNavBar extends StatelessWidget {
                 ),
                 _NavIcon(
                   icon: Icons.school_rounded,
+                  label: 'Class',
                   isActive: selectedIndex == 2,
                   onTap: () {
                     HapticFeedback.selectionClick();
@@ -231,6 +234,7 @@ class _BottomNavBar extends StatelessWidget {
                 ),
                 _NavIcon(
                   icon: Icons.menu_book_rounded,
+                  label: 'Books',
                   isActive: selectedIndex == 3,
                   onTap: () {
                     HapticFeedback.selectionClick();
@@ -239,6 +243,7 @@ class _BottomNavBar extends StatelessWidget {
                 ),
                 _NavIcon(
                   icon: Icons.person_rounded,
+                  label: 'Profile',
                   isActive: selectedIndex == 4,
                   onTap: () {
                     HapticFeedback.selectionClick();
@@ -256,11 +261,13 @@ class _BottomNavBar extends StatelessWidget {
 
 class _NavIcon extends StatelessWidget {
   final IconData icon;
+  final String label;
   final bool isActive;
   final VoidCallback onTap;
 
   const _NavIcon({
     required this.icon,
+    required this.label,
     required this.isActive,
     required this.onTap,
   });
@@ -272,46 +279,49 @@ class _NavIcon extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
         height: 65,
-        width: 45,
-        child: Stack(
-          alignment: Alignment.center,
+        width: 56,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutCubic,
-              width: isActive ? 42 : 0,
-              height: isActive ? 42 : 0,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-                boxShadow: isActive
-                    ? [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.2),
-                          blurRadius: 10,
-                          spreadRadius: 1,
-                        ),
-                      ]
-                    : null,
-              ),
-            ),
-            Icon(
-              icon,
-              color: isActive ? AppColors.primary : AppColors.textMuted,
-              size: 24,
-            ),
-            if (isActive)
-              Positioned(
-                bottom: 12,
-                child: Container(
-                  width: 4,
-                  height: 4,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary,
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  width: isActive ? 40 : 0,
+                  height: isActive ? 40 : 0,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
+                    boxShadow: isActive
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.2),
+                              blurRadius: 10,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                        : null,
                   ),
                 ),
+                Icon(
+                  icon,
+                  color: isActive ? AppColors.primary : AppColors.textMuted,
+                  size: 22,
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                color: isActive ? AppColors.primary : AppColors.textMuted,
               ),
+              child: Text(label),
+            ),
           ],
         ),
       ),

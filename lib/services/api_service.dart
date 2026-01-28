@@ -10,6 +10,7 @@ import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class ApiService {
   static const String baseUrl = 'https://pulchowk-x.vercel.app/api/events';
@@ -109,14 +110,23 @@ class ApiService {
 
   /// Get data from cache
   Future<String?> _getFromCache(String key) async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(key);
+    try {
+      final box = Hive.box('api_cache');
+      return box.get(key) as String?;
+    } catch (e) {
+      debugPrint('Error reading from Hive cache: $e');
+      return null;
+    }
   }
 
   /// Save data to cache
   Future<void> _saveToCache(String key, String json) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(key, json);
+    try {
+      final box = Hive.box('api_cache');
+      await box.put(key, json);
+    } catch (e) {
+      debugPrint('Error writing to Hive cache: $e');
+    }
   }
 
   // ==================== CLUBS ====================

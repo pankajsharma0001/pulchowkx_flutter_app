@@ -11,9 +11,9 @@ class ShimmerLoader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: AppColors.border.withValues(alpha: 0.4),
-      highlightColor: AppColors.surface.withValues(alpha: 0.6),
-      period: const Duration(milliseconds: 1500),
+      baseColor: AppColors.primary.withValues(alpha: 0.08),
+      highlightColor: AppColors.accent.withValues(alpha: 0.15),
+      period: const Duration(milliseconds: 1200),
       child: child,
     );
   }

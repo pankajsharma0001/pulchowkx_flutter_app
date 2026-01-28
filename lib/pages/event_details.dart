@@ -1,9 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import 'package:pulchowkx_app/models/event.dart';
+import 'package:pulchowkx_app/services/analytics_service.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
+import 'package:pulchowkx_app/services/favorites_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
@@ -72,6 +75,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
           _fullEvent = fullEvent;
           _isLoading = false;
         });
+        AnalyticsService.logEventView(fullEvent.id.toString(), fullEvent.title);
         _checkRegistrationStatus();
         _checkAdminStatus();
         _loadExtraDetails();
@@ -336,6 +340,10 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
       if (mounted) {
         if (success) {
           setState(() => _isRegistered = true);
+          AnalyticsService.logRegistration(
+            _fullEvent!.id.toString(),
+            _fullEvent!.title,
+          );
           _showSnackBar('Successfully registered for ${_fullEvent!.title}!');
         } else {
           _showSnackBar('Failed to register. Please try again.', isError: true);
@@ -515,6 +523,52 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                   top: 16,
                   left: 16,
                   child: EventStatusBadge(event: event),
+                ),
+
+                // Favorite Button
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: ListenableBuilder(
+                    listenable: favoritesService,
+                    builder: (context, _) {
+                      final isFavorite = favoritesService.isEventFavorite(
+                        event.id.toString(),
+                      );
+                      return GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          favoritesService.toggleEventFavorite(
+                            event.id.toString(),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isFavorite
+                                ? AppColors.error
+                                : Colors.black.withValues(alpha: 0.3),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              width: 1,
+                            ),
+                          ),
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            child: Icon(
+                              isFavorite
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_outline_rounded,
+                              key: ValueKey(isFavorite),
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
 
                 // Title at bottom

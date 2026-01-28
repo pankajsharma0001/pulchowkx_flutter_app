@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pulchowkx_app/pages/calendar_page.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:pulchowkx_app/models/event.dart';
@@ -134,6 +135,31 @@ class _EventsPageState extends State<EventsPage> {
                               color: AppColors.textSecondary,
                             ),
                             textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CalendarPage(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.calendar_month_rounded,
+                              size: 20,
+                            ),
+                            label: const Text('View Calendar'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              side: const BorderSide(color: AppColors.primary),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 10,
+                              ),
+                            ),
                           ),
                         ],
                       ),
