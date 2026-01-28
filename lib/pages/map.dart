@@ -43,6 +43,7 @@ class _MapPageState extends State<MapPage> {
   LatLng? _userLocation;
   bool _isLocating = false;
   bool _isNavigationPanelExpanded = true;
+  bool _isTogglingMapType = false; // Guard for map type toggle
 
   // Pulchowk Campus center and bounds
   static const LatLng _pulchowkCenter = LatLng(
@@ -524,7 +525,7 @@ class _MapPageState extends State<MapPage> {
           textField: ['get', 'title'],
           textSize: 10,
           textAnchor: 'top',
-          textOffset: [0, 1.5],
+          textOffset: [0, 0.75],
           textAllowOverlap: false, // Prevent label collision
           textOptional: true, // Hide text if it collides
           textColor: _isSatellite ? '#FFFFFF' : '#000000',
@@ -549,6 +550,7 @@ class _MapPageState extends State<MapPage> {
     debugPrint('🗺️  onStyleLoaded called - isSatellite: $_isSatellite');
     setState(() {
       _isStyleLoaded = true;
+      _isTogglingMapType = false;
     });
     _loadGeoJSON();
   }
@@ -557,12 +559,14 @@ class _MapPageState extends State<MapPage> {
     if (_mapController == null) return;
 
     try {
-      // Create a rect around the tap point for icon/label hit detection
-      // Use a generous size to handle fat-finger taps
-      final tapRect = Rect.fromCenter(
-        center: Offset(point.x, point.y),
-        width: 50,
-        height: 50,
+      // Create a rect for hit detection that extends upward from tap point
+      // since icons have iconAnchor: 'bottom' (icon renders above the point)
+      // and also extends below for labels (textAnchor: 'top')
+      final tapRect = Rect.fromLTRB(
+        point.x - 40, // left (extended more for label text)
+        point.y - 60, // top (extend more upward for icons)
+        point.x + 30, // right
+        point.y + 30, // bottom (for labels below)
       );
 
       // Query rendered features in the rect area - only the markers-layer
@@ -632,15 +636,15 @@ class _MapPageState extends State<MapPage> {
   }
 
   /// Fly to a location on the map
-  void _flyToLocation(Map<String, dynamic> location) {
+  void _flyToLocation(
+    Map<String, dynamic> location, {
+    bool showPopup = true,
+  }) async {
     if (_mapController == null) return;
 
     final coords = location['coordinates'] as List<double>;
-    _mapController!.animateCamera(
-      CameraUpdate.newLatLngZoom(LatLng(coords[1], coords[0]), 19),
-    );
 
-    // Close search suggestions
+    // Close search suggestions and unfocus first
     setState(() {
       _showSuggestions = false;
       _searchQuery = location['title'];
@@ -648,10 +652,20 @@ class _MapPageState extends State<MapPage> {
     });
     _searchFocusNode.unfocus();
 
-    // Show location details after animation
-    Future.delayed(const Duration(milliseconds: 500), () {
+    // Wait for keyboard to dismiss before animating
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // Now animate camera after UI has settled
+    if (_mapController != null && mounted) {
+      await _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(LatLng(coords[1], coords[0]), 19),
+      );
+    }
+
+    // Show location details after animation completes (only if requested)
+    if (showPopup && mounted) {
       _showLocationDetails(location);
-    });
+    }
   }
 
   /// Get filtered suggestions based on search query
@@ -688,6 +702,11 @@ class _MapPageState extends State<MapPage> {
   /// Get current location and animate camera to it
   Future<void> _goToCurrentLocation() async {
     if (_mapController == null) return;
+    // Prevent multiple concurrent location requests
+    if (_isLocating) {
+      debugPrint('📍 Already locating, ignoring request');
+      return;
+    }
 
     setState(() => _isLocating = true);
 
@@ -747,8 +766,23 @@ class _MapPageState extends State<MapPage> {
         return;
       }
 
-      // Use MapLibre's built-in location tracking
-      final latLng = await _mapController!.requestMyLocationLatLng();
+      // Use MapLibre's built-in location tracking with timeout
+      // On first launch, GPS may need time to acquire a fix, so we retry
+      LatLng? latLng;
+      for (int attempt = 0; attempt < 2; attempt++) {
+        latLng = await _mapController!.requestMyLocationLatLng().timeout(
+          Duration(
+            seconds: attempt == 0 ? 15 : 10,
+          ), // Longer timeout for first attempt
+          onTimeout: () => null,
+        );
+        if (latLng != null) break;
+        if (attempt == 0) {
+          debugPrint('📍 First location attempt failed, retrying...');
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
+      }
+
       if (latLng != null) {
         _userLocation = latLng;
 
@@ -770,6 +804,19 @@ class _MapPageState extends State<MapPage> {
               ),
             );
           }
+        }
+      } else {
+        // Location request returned null or timed out
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Could not determine your location. Please try again.',
+              ),
+              backgroundColor: Colors.orange[700],
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         }
       }
     } catch (e) {
@@ -1302,10 +1349,17 @@ class _MapPageState extends State<MapPage> {
 
   /// Toggle between map and satellite view
   void _toggleMapType() {
+    // Guard against rapid toggling and toggling while loading
+    if (_isTogglingMapType || !_isStyleLoaded) {
+      debugPrint('🚫 Toggle ignored - map is loading or already toggling');
+      return;
+    }
+
     debugPrint(
       '🔄 Toggling map type from ${_isSatellite ? "satellite" : "map"} to ${!_isSatellite ? "satellite" : "map"}',
     );
     setState(() {
+      _isTogglingMapType = true;
       _isSatellite = !_isSatellite;
       _isStyleLoaded = false;
     });
