@@ -11,8 +11,8 @@ class ShimmerLoader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: AppColors.border.withValues(alpha: 0.5),
-      highlightColor: AppColors.surface,
+      baseColor: AppColors.border.withValues(alpha: 0.4),
+      highlightColor: AppColors.surface.withValues(alpha: 0.6),
       period: const Duration(milliseconds: 1500),
       child: child,
     );
@@ -402,6 +402,93 @@ class ListTileShimmer extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class DetailsPageShimmer extends StatelessWidget {
+  const DetailsPageShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Banner Skeleton
+          ShimmerLoader(
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Container(color: Colors.white),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Info Cards Grid
+                const GridShimmer(
+                  itemShimmer: BoxShimmer(
+                    height: 80,
+                    borderRadius: AppRadius.md,
+                  ),
+                  itemCount: 4,
+                  childAspectRatio: 2.0,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                // Heading
+                ShimmerLoader(
+                  child: Container(height: 24, width: 200, color: Colors.white),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                // Content Block
+                ShimmerLoader(
+                  child: Container(
+                    height: 150,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                // List Items
+                const ListTileShimmer(),
+                const ListTileShimmer(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class BoxShimmer extends StatelessWidget {
+  final double height;
+  final double? width;
+  final double borderRadius;
+
+  const BoxShimmer({
+    super.key,
+    required this.height,
+    this.width,
+    this.borderRadius = AppRadius.md,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ShimmerLoader(
+      child: Container(
+        height: height,
+        width: width ?? double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(borderRadius),
         ),
       ),
     );

@@ -5,6 +5,7 @@ import 'package:pulchowkx_app/models/event.dart';
 import 'package:pulchowkx_app/pages/event_details.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/event_status_badge.dart';
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 
 enum EventCardType { grid, list }
 
@@ -75,11 +76,14 @@ class _EventCardState extends State<EventCard> {
                       fit: StackFit.expand,
                       children: [
                         if (widget.event.bannerUrl != null)
-                          CachedNetworkImage(
-                            imageUrl: widget.event.bannerUrl!,
-                            fit: BoxFit.cover,
-                            placeholder: (_, _) => _buildPlaceholder(),
-                            errorWidget: (_, _, _) => _buildPlaceholder(),
+                          Hero(
+                            tag: 'event_banner_${widget.event.id}',
+                            child: CachedNetworkImage(
+                              imageUrl: widget.event.bannerUrl!,
+                              fit: BoxFit.cover,
+                              placeholder: (_, _) => _buildPlaceholder(),
+                              errorWidget: (_, _, _) => _buildPlaceholder(),
+                            ),
                           )
                         else
                           _buildPlaceholder(),
@@ -375,12 +379,7 @@ class _EventCardState extends State<EventCard> {
   }
 
   Widget _buildPlaceholder() {
-    return Container(
-      decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
-      child: const Center(
-        child: Icon(Icons.event_rounded, color: Colors.white, size: 40),
-      ),
-    );
+    return const BoxShimmer(height: double.infinity, borderRadius: 0);
   }
 }
 

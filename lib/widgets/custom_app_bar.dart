@@ -1,9 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/cards/logo.dart';
-import 'package:pulchowkx_app/pages/book_marketplace.dart';
-import 'package:pulchowkx_app/pages/classroom.dart';
 import 'package:pulchowkx_app/pages/home_page.dart';
 import 'package:pulchowkx_app/pages/clubs.dart';
 import 'package:pulchowkx_app/pages/dashboard.dart';
@@ -36,6 +36,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 600;
+    final bool isMoreActive =
+        currentPage == AppPage.clubs || currentPage == AppPage.events;
 
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
@@ -66,11 +68,28 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
                   // Navigation Items - show based on screen size
                   if (isSmallScreen)
-                    // Mobile: Show menu button
-                    _MobileMenu(
-                      isLoggedIn: isLoggedIn,
-                      user: user,
-                      currentPage: currentPage,
+                    // Mobile: Show simplified actions (profile or login)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isLoggedIn)
+                          _UserAvatar(
+                            photoUrl: user?.photoURL,
+                            isActive: currentPage == AppPage.dashboard,
+                            onTap: () =>
+                                _navigateToDashboard(context, currentPage),
+                          )
+                        else
+                          _CompactSignInButton(
+                            onTap: () => _navigateToLogin(context, currentPage),
+                          ),
+                        const SizedBox(width: AppSpacing.xs),
+                        _MobileMoreMenu(
+                          isLoggedIn: isLoggedIn,
+                          currentPage: currentPage,
+                          isActive: isMoreActive,
+                        ),
+                      ],
                     )
                   else
                     // Desktop: Show full nav
@@ -133,14 +152,19 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     AppPage? currentPage,
   ) {
     if (currentPage == AppPage.clubs) return;
-    if (!isLoggedIn && currentPage == AppPage.login) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            isLoggedIn ? const ClubsPage() : const LoginPage(),
-      ),
-    );
+
+    final mainLayout = MainLayout.of(context);
+    if (mainLayout != null) {
+      mainLayout.setSelectedIndex(5);
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              isLoggedIn ? const ClubsPage() : const LoginPage(),
+        ),
+      );
+    }
   }
 
   static void _navigateToEvents(
@@ -149,38 +173,58 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     AppPage? currentPage,
   ) {
     if (currentPage == AppPage.events) return;
-    if (!isLoggedIn && currentPage == AppPage.login) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            isLoggedIn ? const EventsPage() : const LoginPage(),
-      ),
-    );
+
+    final mainLayout = MainLayout.of(context);
+    if (mainLayout != null) {
+      mainLayout.setSelectedIndex(6);
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              isLoggedIn ? const EventsPage() : const LoginPage(),
+        ),
+      );
+    }
   }
 
   static void _navigateToMap(BuildContext context, AppPage? currentPage) {
     if (currentPage == AppPage.map) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const MapPage()),
-    );
+    final mainLayout = MainLayout.of(context);
+    if (mainLayout != null) {
+      mainLayout.setSelectedIndex(1);
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const MapPage()),
+      );
+    }
   }
 
   static void _navigateToDashboard(BuildContext context, AppPage? currentPage) {
     if (currentPage == AppPage.dashboard) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const DashboardPage()),
-    );
+    final mainLayout = MainLayout.of(context);
+    if (mainLayout != null) {
+      mainLayout.setSelectedIndex(4);
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardPage()),
+      );
+    }
   }
 
   static void _navigateToLogin(BuildContext context, AppPage? currentPage) {
     if (currentPage == AppPage.login) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginPage()),
-    );
+    final mainLayout = MainLayout.of(context);
+    if (mainLayout != null) {
+      mainLayout.setSelectedIndex(7);
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+    }
   }
 }
 
@@ -195,12 +239,18 @@ class _BrandLogo extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
+          HapticFeedback.lightImpact();
           if (isHomePage) return;
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
-            (route) => false,
-          );
+          final mainLayout = MainLayout.of(context);
+          if (mainLayout != null) {
+            mainLayout.setSelectedIndex(0);
+          } else {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const HomePage()),
+              (route) => false,
+            );
+          }
         },
         borderRadius: BorderRadius.circular(AppRadius.md),
         child: Padding(
@@ -220,206 +270,6 @@ class _BrandLogo extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MobileMenu extends StatelessWidget {
-  final bool isLoggedIn;
-  final User? user;
-  final AppPage? currentPage;
-
-  const _MobileMenu({required this.isLoggedIn, this.user, this.currentPage});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (isLoggedIn)
-          _UserAvatar(
-            photoUrl: user?.photoURL,
-            isActive: currentPage == AppPage.dashboard,
-            onTap: () =>
-                CustomAppBar._navigateToDashboard(context, currentPage),
-          )
-        else
-          _CompactSignInButton(
-            onTap: () => CustomAppBar._navigateToLogin(context, currentPage),
-          ),
-        const SizedBox(width: 8),
-        Theme(
-          data: Theme.of(context).copyWith(
-            popupMenuTheme: PopupMenuThemeData(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                side: const BorderSide(color: AppColors.borderLight),
-              ),
-              elevation: 4,
-              color: AppColors.surface,
-              surfaceTintColor: Colors.transparent,
-            ),
-          ),
-          child: PopupMenuButton<String>(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                border: Border.all(color: AppColors.borderLight),
-              ),
-              child: const Icon(
-                Icons.menu_rounded,
-                color: AppColors.textPrimary,
-                size: 20,
-              ),
-            ),
-            padding: EdgeInsets.zero,
-            offset: const Offset(0, 50),
-            onSelected: (value) {
-              switch (value) {
-                case 'clubs':
-                  CustomAppBar._navigateToClubs(
-                    context,
-                    isLoggedIn,
-                    currentPage,
-                  );
-                  break;
-                case 'events':
-                  CustomAppBar._navigateToEvents(
-                    context,
-                    isLoggedIn,
-                    currentPage,
-                  );
-                  break;
-                case 'map':
-                  CustomAppBar._navigateToMap(context, currentPage);
-                  break;
-                case 'dashboard':
-                  CustomAppBar._navigateToDashboard(context, currentPage);
-                  break;
-                case 'marketplace':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const BookMarketplacePage(),
-                    ),
-                  );
-                  break;
-                case 'classroom':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ClassroomPage(),
-                    ),
-                  );
-                  break;
-                case 'login':
-                  CustomAppBar._navigateToLogin(context, currentPage);
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              _buildMenuItem(
-                'clubs',
-                Icons.groups_rounded,
-                'Clubs',
-                currentPage == AppPage.clubs,
-              ),
-              _buildMenuItem(
-                'events',
-                Icons.event_rounded,
-                'Events',
-                currentPage == AppPage.events,
-              ),
-              _buildMenuItem(
-                'map',
-                Icons.map_rounded,
-                'Map',
-                currentPage == AppPage.map,
-              ),
-              const PopupMenuDivider(height: 24),
-              if (isLoggedIn) ...[
-                _buildMenuItem(
-                  'dashboard',
-                  Icons.dashboard_rounded,
-                  'Dashboard',
-                  currentPage == AppPage.dashboard,
-                ),
-                _buildMenuItem(
-                  'marketplace',
-                  Icons.menu_book_rounded,
-                  'Marketplace',
-                  currentPage == AppPage.bookMarketplace,
-                ),
-                _buildMenuItem(
-                  'classroom',
-                  Icons.school_rounded,
-                  'Classroom',
-                  currentPage == AppPage.classroom,
-                ),
-              ] else
-                _buildMenuItem(
-                  'login',
-                  Icons.login_rounded,
-                  'Sign In',
-                  currentPage == AppPage.login,
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  PopupMenuItem<String> _buildMenuItem(
-    String value,
-    IconData icon,
-    String label,
-    bool isActive,
-  ) {
-    return PopupMenuItem<String>(
-      value: value,
-      enabled: !isActive, // Disable interaction if already on the page
-      height: 48,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive
-              ? AppColors.primary.withValues(alpha: 0.08)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: isActive ? AppColors.primary : AppColors.textSecondary,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: isActive ? AppColors.primary : AppColors.textPrimary,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                ),
-              ),
-            ),
-            if (isActive)
-              Container(
-                width: 6,
-                height: 6,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-          ],
         ),
       ),
     );
@@ -456,7 +306,12 @@ class _NavBarItemState extends State<_NavBarItem> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: widget.isActive ? null : widget.onTap,
+          onTap: widget.isActive
+              ? null
+              : () {
+                  HapticFeedback.selectionClick();
+                  widget.onTap();
+                },
           borderRadius: BorderRadius.circular(AppRadius.sm),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
@@ -516,7 +371,12 @@ class _UserAvatar extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: isActive ? null : onTap,
+        onTap: isActive
+            ? null
+            : () {
+                HapticFeedback.selectionClick();
+                onTap();
+              },
         borderRadius: BorderRadius.circular(AppRadius.full),
         child: Container(
           padding: const EdgeInsets.all(2),
@@ -563,7 +423,12 @@ class _SignInButton extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: isActive ? null : onTap,
+          onTap: isActive
+              ? null
+              : () {
+                  HapticFeedback.lightImpact();
+                  onTap();
+                },
           borderRadius: BorderRadius.circular(AppRadius.sm),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -607,7 +472,10 @@ class _CompactSignInButton extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onTap();
+          },
           borderRadius: BorderRadius.circular(AppRadius.full),
           child: const Padding(
             padding: EdgeInsets.all(8),
@@ -615,6 +483,111 @@ class _CompactSignInButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _MobileMoreMenu extends StatelessWidget {
+  final bool isLoggedIn;
+  final AppPage? currentPage;
+  final bool isActive;
+
+  const _MobileMoreMenu({
+    required this.isLoggedIn,
+    this.currentPage,
+    this.isActive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<AppPage>(
+      offset: const Offset(0, 45),
+      icon: Stack(
+        children: [
+          Icon(
+            Icons.more_vert_rounded,
+            color: isActive ? AppColors.primary : AppColors.textPrimary,
+          ),
+          if (isActive)
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.accent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+        ],
+      ),
+      onSelected: (page) {
+        HapticFeedback.selectionClick();
+        if (page == AppPage.clubs) {
+          CustomAppBar._navigateToClubs(context, isLoggedIn, currentPage);
+        } else if (page == AppPage.events) {
+          CustomAppBar._navigateToEvents(context, isLoggedIn, currentPage);
+        }
+      },
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: AppPage.clubs,
+          child: Row(
+            children: [
+              Icon(
+                Icons.groups_rounded,
+                size: 20,
+                color: currentPage == AppPage.clubs
+                    ? AppColors.primary
+                    : AppColors.textSecondary,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Campus Clubs',
+                style: TextStyle(
+                  color: currentPage == AppPage.clubs
+                      ? AppColors.primary
+                      : null,
+                  fontWeight: currentPage == AppPage.clubs
+                      ? FontWeight.bold
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: AppPage.events,
+          child: Row(
+            children: [
+              Icon(
+                Icons.event_rounded,
+                size: 20,
+                color: currentPage == AppPage.events
+                    ? AppColors.primary
+                    : AppColors.textSecondary,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Events',
+                style: TextStyle(
+                  color: currentPage == AppPage.events
+                      ? AppColors.primary
+                      : null,
+                  fontWeight: currentPage == AppPage.events
+                      ? FontWeight.bold
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

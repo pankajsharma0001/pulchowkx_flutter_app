@@ -1,8 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/pages/dashboard.dart';
 import 'package:pulchowkx_app/pages/login.dart';
 import 'package:pulchowkx_app/pages/map.dart';
+import 'package:pulchowkx_app/pages/clubs.dart';
+import 'package:pulchowkx_app/pages/events.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 
@@ -88,12 +91,17 @@ class HomePage extends StatelessWidget {
                         label: 'Launch Map',
                         icon: Icons.map_rounded,
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const MapPage(),
-                            ),
-                          );
+                          final mainLayout = MainLayout.of(context);
+                          if (mainLayout != null) {
+                            mainLayout.setSelectedIndex(1);
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MapPage(),
+                              ),
+                            );
+                          }
                         },
                       ),
 
@@ -108,14 +116,19 @@ class HomePage extends StatelessWidget {
                                 ? Icons.dashboard_rounded
                                 : Icons.arrow_forward_rounded,
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => isLoggedIn
-                                      ? const DashboardPage()
-                                      : const LoginPage(),
-                                ),
-                              );
+                              final mainLayout = MainLayout.of(context);
+                              if (isLoggedIn && mainLayout != null) {
+                                mainLayout.setSelectedIndex(4);
+                              } else {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => isLoggedIn
+                                        ? const DashboardPage()
+                                        : const LoginPage(),
+                                  ),
+                                );
+                              }
                             },
                           );
                         },
@@ -131,26 +144,55 @@ class HomePage extends StatelessWidget {
                       builder: (context, constraints) {
                         if (constraints.maxWidth < 400) {
                           // Stack vertically on very small screens
-                          return const Column(
+                          return Column(
                             children: [
                               _FeatureChip(
                                 icon: Icons.location_on_rounded,
                                 label: 'Interactive Map',
+                                onTap: () =>
+                                    MainLayout.of(context)?.setSelectedIndex(1),
                               ),
-                              SizedBox(height: AppSpacing.sm),
+                              const SizedBox(height: AppSpacing.sm),
                               _FeatureChip(
                                 icon: Icons.groups_rounded,
                                 label: 'Campus Clubs',
+                                onTap: () {
+                                  final mainLayout = MainLayout.of(context);
+                                  if (mainLayout != null) {
+                                    mainLayout.setSelectedIndex(5);
+                                  } else {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const ClubsPage(),
+                                      ),
+                                    );
+                                  }
+                                },
                               ),
-                              SizedBox(height: AppSpacing.sm),
+                              const SizedBox(height: AppSpacing.sm),
                               _FeatureChip(
                                 icon: Icons.event_rounded,
                                 label: 'Events',
+                                onTap: () {
+                                  final mainLayout = MainLayout.of(context);
+                                  if (mainLayout != null) {
+                                    mainLayout.setSelectedIndex(6);
+                                  } else {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const EventsPage(),
+                                      ),
+                                    );
+                                  }
+                                },
                               ),
                             ],
                           );
                         }
-                        return const Wrap(
+                        return Wrap(
                           alignment: WrapAlignment.center,
                           spacing: AppSpacing.sm,
                           runSpacing: AppSpacing.sm,
@@ -158,14 +200,42 @@ class HomePage extends StatelessWidget {
                             _FeatureChip(
                               icon: Icons.location_on_rounded,
                               label: 'Interactive Map',
+                              onTap: () =>
+                                  MainLayout.of(context)?.setSelectedIndex(1),
                             ),
                             _FeatureChip(
                               icon: Icons.groups_rounded,
                               label: 'Campus Clubs',
+                              onTap: () {
+                                final mainLayout = MainLayout.of(context);
+                                if (mainLayout != null) {
+                                  mainLayout.setSelectedIndex(5);
+                                } else {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const ClubsPage(),
+                                    ),
+                                  );
+                                }
+                              },
                             ),
                             _FeatureChip(
                               icon: Icons.event_rounded,
                               label: 'Events',
+                              onTap: () {
+                                final mainLayout = MainLayout.of(context);
+                                if (mainLayout != null) {
+                                  mainLayout.setSelectedIndex(6);
+                                } else {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const EventsPage(),
+                                    ),
+                                  );
+                                }
+                              },
                             ),
                           ],
                         );
@@ -276,30 +346,38 @@ class _SecondaryButton extends StatelessWidget {
 class _FeatureChip extends StatelessWidget {
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
 
-  const _FeatureChip({required this.icon, required this.label});
+  const _FeatureChip({required this.icon, required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.full),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: AppColors.primary),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: AppTextStyles.labelMedium.copyWith(
-              color: AppColors.textPrimary,
-            ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.full),
+            border: Border.all(color: AppColors.border),
           ),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: AppColors.primary),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 
 class ClubAdminTab extends StatefulWidget {
   final Club club;
@@ -353,7 +354,7 @@ class _ClubAdminTabState extends State<ClubAdminTab> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const DetailsPageShimmer();
     }
 
     return ListView(
@@ -671,11 +672,9 @@ class _ClubAdminTabState extends State<ClubAdminTab> {
 
                 // Admin list
                 if (_loadingAdmins)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(),
-                    ),
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: BoxShimmer(height: 100),
                   )
                 else if (_admins.isEmpty)
                   Container(

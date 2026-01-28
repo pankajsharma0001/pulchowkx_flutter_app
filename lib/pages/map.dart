@@ -11,6 +11,8 @@ import 'package:pulchowkx_app/widgets/chat_bot_widget.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart'
     show CustomAppBar, AppPage;
 import 'package:pulchowkx_app/widgets/location_details_sheet.dart';
+import 'package:pulchowkx_app/theme/app_theme.dart';
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -1474,16 +1476,20 @@ class _MapPageState extends State<MapPage> {
           // Loading indicator
           if (!_isStyleLoaded)
             Container(
-              color: Colors.white,
+              color: AppColors.background,
               child: const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: Colors.blue),
+                    BoxShimmer(width: 40, height: 40, borderRadius: 20),
                     SizedBox(height: 16),
                     Text(
                       'Loading map...',
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                      style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
@@ -1545,6 +1551,7 @@ class _MapPageState extends State<MapPage> {
                           ? IconButton(
                               icon: const Icon(Icons.clear, color: Colors.grey),
                               onPressed: () {
+                                HapticFeedback.selectionClick();
                                 setState(() {
                                   _searchController.clear();
                                   _searchQuery = '';
@@ -1604,7 +1611,10 @@ class _MapPageState extends State<MapPage> {
                               'Pulchowk Campus',
                               style: TextStyle(fontSize: 12),
                             ),
-                            onTap: () => _flyToLocation(location),
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              _flyToLocation(location);
+                            },
                           );
                         }).toList(),
                       ),
@@ -1678,7 +1688,12 @@ class _MapPageState extends State<MapPage> {
                 children: [
                   // Map button
                   GestureDetector(
-                    onTap: _isSatellite ? _toggleMapType : null,
+                    onTap: () {
+                      if (_isSatellite) {
+                        HapticFeedback.selectionClick();
+                        _toggleMapType();
+                      }
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -1705,7 +1720,12 @@ class _MapPageState extends State<MapPage> {
                   const SizedBox(width: 4),
                   // Satellite button
                   GestureDetector(
-                    onTap: !_isSatellite ? _toggleMapType : null,
+                    onTap: () {
+                      if (!_isSatellite) {
+                        HapticFeedback.selectionClick();
+                        _toggleMapType();
+                      }
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -1739,7 +1759,12 @@ class _MapPageState extends State<MapPage> {
             bottom: 100,
             right: 16,
             child: FloatingActionButton(
-              onPressed: _isLocating ? null : _goToCurrentLocation,
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                if (!_isLocating) {
+                  _goToCurrentLocation();
+                }
+              },
               backgroundColor: Colors.white,
               foregroundColor: Colors.blue[700],
               elevation: 4,
@@ -1782,7 +1807,10 @@ class _MapPageState extends State<MapPage> {
                     Row(
                       children: [
                         IconButton(
-                          onPressed: _exitNavigation,
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            _exitNavigation();
+                          },
                           icon: const Icon(Icons.arrow_back),
                           color: Colors.grey[700],
                           padding: EdgeInsets.zero,
@@ -1799,10 +1827,13 @@ class _MapPageState extends State<MapPage> {
                         ),
                         const Spacer(),
                         IconButton(
-                          onPressed: () => setState(
-                            () => _isNavigationPanelExpanded =
-                                !_isNavigationPanelExpanded,
-                          ),
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            setState(
+                              () => _isNavigationPanelExpanded =
+                                  !_isNavigationPanelExpanded,
+                            );
+                          },
                           icon: Icon(
                             _isNavigationPanelExpanded
                                 ? Icons.keyboard_arrow_up

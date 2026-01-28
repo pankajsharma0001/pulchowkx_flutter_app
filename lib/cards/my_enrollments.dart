@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pulchowkx_app/models/event.dart';
+import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/pages/event_details.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
@@ -106,10 +107,17 @@ class _MyEnrollmentsState extends State<MyEnrollments> {
                   .toList();
 
               if (activeEnrollments.isEmpty) {
-                return const EmptyStateWidget(
+                return EmptyStateWidget(
                   type: EmptyStateType.events,
                   title: 'No enrollments yet',
                   message: 'Browse events and register to see them here',
+                  actionLabel: 'Browse Events',
+                  onAction: () {
+                    final mainLayout = MainLayout.of(context);
+                    if (mainLayout != null) {
+                      mainLayout.setSelectedIndex(6);
+                    }
+                  },
                 );
               }
 

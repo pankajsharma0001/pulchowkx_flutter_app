@@ -300,19 +300,6 @@ class _ClubCard extends StatelessWidget {
 
   const _ClubCard({required this.club, required this.index});
 
-  static const List<LinearGradient> _gradients = [
-    LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF6366F1)]),
-    LinearGradient(colors: [Color(0xFFA855F7), Color(0xFFEC4899)]),
-    LinearGradient(colors: [Color(0xFF10B981), Color(0xFF14B8A6)]),
-    LinearGradient(colors: [Color(0xFFF97316), Color(0xFFEF4444)]),
-    LinearGradient(colors: [Color(0xFF06B6D4), Color(0xFF3B82F6)]),
-    LinearGradient(colors: [Color(0xFFF43F5E), Color(0xFFA855F7)]),
-    LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFF97316)]),
-    LinearGradient(colors: [Color(0xFF84CC16), Color(0xFF10B981)]),
-  ];
-
-  LinearGradient get _gradient => _gradients[index % _gradients.length];
-
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -355,14 +342,9 @@ class _ClubCard extends StatelessWidget {
                           child: CachedNetworkImage(
                             imageUrl: club.logoUrl!,
                             fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              decoration: BoxDecoration(gradient: _gradient),
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              ),
+                            placeholder: (context, url) => const BoxShimmer(
+                              height: double.infinity,
+                              borderRadius: 0,
                             ),
                             errorWidget: (context, url, error) =>
                                 _buildPlaceholder(),
@@ -473,19 +455,7 @@ class _ClubCard extends StatelessWidget {
   }
 
   Widget _buildPlaceholder() {
-    return Container(
-      decoration: BoxDecoration(gradient: _gradient),
-      child: Center(
-        child: Text(
-          club.name.isNotEmpty ? club.name[0].toUpperCase() : 'C',
-          style: const TextStyle(
-            fontSize: 48,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
-    );
+    return const BoxShimmer(height: double.infinity, borderRadius: 0);
   }
 
   Widget _buildStat(IconData icon, String value, String label) {

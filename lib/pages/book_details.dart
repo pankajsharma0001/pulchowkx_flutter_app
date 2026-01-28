@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/models/book_listing.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class BookDetailsPage extends StatefulWidget {
@@ -127,9 +128,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
+      return const DetailsPageShimmer();
     }
 
     if (_errorMessage != null || _book == null) {
@@ -212,20 +211,23 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
             itemCount: images.length,
             onPageChanged: (index) =>
                 setState(() => _currentImageIndex = index),
-            itemBuilder: (context, index) => CachedNetworkImage(
-              imageUrl: images[index].imageUrl,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: AppColors.backgroundSecondary,
-                child: const Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
+            itemBuilder: (context, index) {
+              final imageWidget = CachedNetworkImage(
+                imageUrl: images[index].imageUrl,
+                fit: BoxFit.cover,
+                placeholder: (context, url) =>
+                    const BoxShimmer(height: double.infinity, borderRadius: 0),
+                errorWidget: (context, url, error) => Container(
+                  color: AppColors.backgroundSecondary,
+                  child: const Icon(Icons.error, color: AppColors.error),
                 ),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: AppColors.backgroundSecondary,
-                child: const Icon(Icons.error, color: AppColors.error),
-              ),
-            ),
+              );
+
+              if (index == 0) {
+                return Hero(tag: 'book_image_${_book!.id}', child: imageWidget);
+              }
+              return imageWidget;
+            },
           ),
         ),
         if (images.length > 1) ...[

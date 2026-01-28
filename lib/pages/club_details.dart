@@ -8,6 +8,7 @@ import 'package:pulchowkx_app/pages/admin/create_event_page.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/pages/admin/club_admin_tab.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -117,9 +118,7 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
           });
 
           if (clubSnapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
+            return const DetailsPageShimmer();
           }
 
           final club = clubSnapshot.data;
@@ -151,7 +150,7 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
                           ),
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: AppColors.warning.withValues(alpha: 0.1),
+                            color: AppColors.warning.withAlpha(0x1A),
                             borderRadius: BorderRadius.circular(AppRadius.md),
                             border: Border.all(color: AppColors.warning),
                           ),
@@ -209,9 +208,14 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
                     future: _profileFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.primary,
+                        return const Padding(
+                          padding: EdgeInsets.all(AppSpacing.lg),
+                          child: Column(
+                            children: [
+                              BoxShimmer(height: 100),
+                              SizedBox(height: AppSpacing.md),
+                              BoxShimmer(height: 100),
+                            ],
                           ),
                         );
                       }
@@ -223,9 +227,11 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
                     future: _eventsFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.primary,
+                        return const Padding(
+                          padding: EdgeInsets.all(AppSpacing.lg),
+                          child: GridShimmer(
+                            itemShimmer: EventCardShimmer(),
+                            childAspectRatio: 0.85,
                           ),
                         );
                       }
@@ -239,10 +245,9 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.primary,
-                            ),
+                          return const Padding(
+                            padding: EdgeInsets.all(AppSpacing.lg),
+                            child: BoxShimmer(height: 200),
                           );
                         }
                         return ClubAdminTab(
@@ -300,16 +305,19 @@ class _ClubHeader extends StatelessWidget {
               boxShadow: AppShadows.lg,
               border: Border.all(color: Colors.white, width: 3),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.xl - 2),
-              child: club.logoUrl != null && club.logoUrl!.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: club.logoUrl!,
-                      fit: BoxFit.cover,
-                      placeholder: (_, _) => _buildPlaceholder(),
-                      errorWidget: (_, _, _) => _buildPlaceholder(),
-                    )
-                  : _buildPlaceholder(),
+            child: Hero(
+              tag: 'club_logo_${club.id}',
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.xl - 2),
+                child: club.logoUrl != null && club.logoUrl!.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: club.logoUrl!,
+                        fit: BoxFit.cover,
+                        placeholder: (_, _) => _buildPlaceholder(),
+                        errorWidget: (_, _, _) => _buildPlaceholder(),
+                      )
+                    : _buildPlaceholder(),
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -408,9 +416,9 @@ class _StatChip extends StatelessWidget {
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withAlpha(0x1A),
         borderRadius: BorderRadius.circular(AppRadius.full),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        border: Border.all(color: color.withAlpha(0x33)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -612,9 +620,9 @@ class _AboutTabState extends State<_AboutTab> {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.05),
+        color: color.withAlpha(0x0D),
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        border: Border.all(color: color.withAlpha(0x33)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

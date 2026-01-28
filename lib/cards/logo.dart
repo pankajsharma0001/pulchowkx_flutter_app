@@ -8,20 +8,23 @@ class LogoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        boxShadow: AppShadows.sm,
-      ),
-      child: Center(
-        child: Image.asset(
-          'assets/icons/foreground.png',
-          width: width,
-          height: height,
-          fit: BoxFit.contain,
+    return Hero(
+      tag: 'app_logo',
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          boxShadow: AppShadows.sm,
+        ),
+        child: Center(
+          child: Image.asset(
+            'assets/icons/foreground.png',
+            width: width,
+            height: height,
+            fit: BoxFit.contain,
+          ),
         ),
       ),
     );

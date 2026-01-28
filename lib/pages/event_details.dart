@@ -6,7 +6,7 @@ import 'package:pulchowkx_app/models/event.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
-
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/widgets/event_status_badge.dart';
 
 class EventDetailsPage extends StatefulWidget {
@@ -442,16 +442,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
   Widget _buildContent() {
     // Show loading state
     if (_isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(color: AppColors.primary),
-            SizedBox(height: AppSpacing.md),
-            Text('Loading event details...', style: AppTextStyles.bodyMedium),
-          ],
-        ),
-      );
+      return const DetailsPageShimmer();
     }
 
     // Show error state
@@ -495,11 +486,14 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
               fit: StackFit.expand,
               children: [
                 if (event.bannerUrl != null)
-                  CachedNetworkImage(
-                    imageUrl: event.bannerUrl!,
-                    fit: BoxFit.cover,
-                    placeholder: (_, _) => _buildBannerPlaceholder(),
-                    errorWidget: (_, _, _) => _buildBannerPlaceholder(),
+                  Hero(
+                    tag: 'event_banner_${event.id}',
+                    child: CachedNetworkImage(
+                      imageUrl: event.bannerUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (_, _) => _buildBannerPlaceholder(),
+                      errorWidget: (_, _, _) => _buildBannerPlaceholder(),
+                    ),
                   )
                 else
                   _buildBannerPlaceholder(),

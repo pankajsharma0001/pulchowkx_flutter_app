@@ -1,11 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/auth/service/google_auth.dart';
 import 'package:pulchowkx_app/pages/book_marketplace.dart';
 import 'package:pulchowkx_app/pages/classroom.dart';
 import 'package:pulchowkx_app/pages/clubs.dart';
-import 'package:pulchowkx_app/pages/home_page.dart';
 import 'package:pulchowkx_app/pages/map.dart';
 import 'package:pulchowkx_app/cards/my_enrollments.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
@@ -108,9 +108,8 @@ class _DashboardPageState extends State<DashboardPage> {
     final FirebaseServices firebaseServices = FirebaseServices();
     await firebaseServices.googleSignOut();
     if (context.mounted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const MainLayout()),
         (route) => false,
       );
     }
@@ -348,12 +347,19 @@ class _DashboardPageState extends State<DashboardPage> {
                                 'Explore clubs and discover upcoming events.',
                             color: AppColors.accent,
                             onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ClubsPage(),
-                                ),
-                              );
+                              final mainLayout = MainLayout.of(context);
+                              if (mainLayout != null) {
+                                mainLayout.setSelectedIndex(
+                                  5,
+                                ); // Clubs are at index 5
+                              } else {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const ClubsPage(),
+                                  ),
+                                );
+                              }
                             },
                           ),
                           _QuickActionCard(
@@ -363,12 +369,17 @@ class _DashboardPageState extends State<DashboardPage> {
                                 'Navigate the campus, find classrooms, and explore.',
                             color: AppColors.primary,
                             onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const MapPage(),
-                                ),
-                              );
+                              final mainLayout = MainLayout.of(context);
+                              if (mainLayout != null) {
+                                mainLayout.setSelectedIndex(1);
+                              } else {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const MapPage(),
+                                  ),
+                                );
+                              }
                             },
                           ),
                           _QuickActionCard(
@@ -378,13 +389,18 @@ class _DashboardPageState extends State<DashboardPage> {
                                 'Buy and sell textbooks with fellow students.',
                             color: Colors.teal,
                             onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const BookMarketplacePage(),
-                                ),
-                              );
+                              final mainLayout = MainLayout.of(context);
+                              if (mainLayout != null) {
+                                mainLayout.setSelectedIndex(3);
+                              } else {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const BookMarketplacePage(),
+                                  ),
+                                );
+                              }
                             },
                           ),
                           _QuickActionCard(
@@ -394,12 +410,17 @@ class _DashboardPageState extends State<DashboardPage> {
                                 'Track subjects, assignments, and submissions.',
                             color: Colors.indigo,
                             onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ClassroomPage(),
-                                ),
-                              );
+                              final mainLayout = MainLayout.of(context);
+                              if (mainLayout != null) {
+                                mainLayout.setSelectedIndex(2);
+                              } else {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const ClassroomPage(),
+                                  ),
+                                );
+                              }
                             },
                           ),
                           _QuickActionCard(

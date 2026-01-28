@@ -8,6 +8,7 @@ import 'package:pulchowkx_app/models/classroom.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/empty_states.dart';
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'shared_widgets.dart';
 
 class TeacherView extends StatelessWidget {
@@ -388,7 +389,10 @@ class _AssignmentSubmissionsDialogState
         width: double.maxFinite,
         height: 400,
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Padding(
+                padding: EdgeInsets.all(AppSpacing.md),
+                child: BoxShimmer(height: double.infinity),
+              )
             : _submissions.isEmpty
             ? const EmptyStateWidget(
                 type: EmptyStateType.submissions,

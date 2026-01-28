@@ -614,14 +614,9 @@ class _BookCard extends StatelessWidget {
                       ? CachedNetworkImage(
                           imageUrl: listing.primaryImageUrl!,
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: AppColors.backgroundSecondary,
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.primary,
-                              ),
-                            ),
+                          placeholder: (context, url) => const BoxShimmer(
+                            height: double.infinity,
+                            borderRadius: 0,
                           ),
                           errorWidget: (context, url, error) => Container(
                             color: AppColors.backgroundSecondary,

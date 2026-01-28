@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pulchowkx_app/pages/home_page.dart';
+import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
       title: 'PulchowkX',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const HomePage(),
+      home: const MainLayout(),
     );
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pulchowkx_app/auth/service/google_auth.dart';
-import 'package:pulchowkx_app/pages/dashboard.dart';
+import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart'
     show CustomAppBar, AppPage;
@@ -28,9 +28,11 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
 
       if (success) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const DashboardPage()),
+        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => const MainLayout(initialIndex: 4),
+          ),
+          (route) => false,
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
