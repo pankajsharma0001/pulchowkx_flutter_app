@@ -43,7 +43,7 @@ class _EventsPageState extends State<EventsPage> {
             // Check connectivity on refresh
             final connectivityResult = await Connectivity().checkConnectivity();
             if (connectivityResult.first == ConnectivityResult.none) {
-              if (mounted) {
+              if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text(

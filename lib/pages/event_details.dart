@@ -123,7 +123,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         }
       }
     } catch (e) {
-      print('Error checking admin status: $e');
+      debugPrint('Error checking admin status: $e');
     }
   }
 
@@ -136,7 +136,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         setState(() => _extraDetails = details);
       }
     } catch (e) {
-      print('Error loading extra details: $e');
+      debugPrint('Error loading extra details: $e');
     }
   }
 

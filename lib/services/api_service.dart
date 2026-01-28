@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:pulchowkx_app/models/chatbot_response.dart';
@@ -9,12 +10,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 class ApiService {
-  // Change this to your backend URL
-  // For local development: 'http://10.0.2.2:3000' (Android emulator)
-  // For local development: 'http://localhost:3000' (iOS simulator/web)
-  // For production: your deployed backend URL
-  // static const String baseUrl = 'http://10.0.2.2:3000/api/event';
-  // static const String apiBaseUrl = 'http://10.0.2.2:3000/api';
   static const String baseUrl = 'https://pulchowk-x.vercel.app/api/events';
   static const String apiBaseUrl = 'https://pulchowk-x.vercel.app/api';
 
@@ -27,9 +22,6 @@ class ApiService {
   ApiService._internal();
 
   // ==================== USER ID MANAGEMENT ====================
-
-  /// Get the database user ID (linked account ID)
-  /// Falls back to Firebase UID if not set
   Future<String?> getDatabaseUserId() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_dbUserIdKey);
@@ -66,9 +58,6 @@ class ApiService {
     await prefs.setString(_userRoleKey, role);
   }
 
-  /// Sync Firebase user to Postgres database
-  /// Call this after successful Firebase sign-in
-  /// Returns the database user ID (may differ from Firebase UID if account was linked)
   Future<String?> syncUser({
     required String authStudentId,
     required String email,
@@ -154,7 +143,7 @@ class ApiService {
           }
         }
       } catch (e) {
-        print('Error fetching clubs online: $e');
+        debugPrint('Error fetching clubs online: $e');
         // Fallback to cache if online request fails
       }
     }
@@ -170,7 +159,7 @@ class ApiService {
           return clubsJson.map((c) => Club.fromJson(c)).toList();
         }
       } catch (e) {
-        print('Error parsing cached clubs: $e');
+        debugPrint('Error parsing cached clubs: $e');
       }
     }
 
@@ -199,7 +188,7 @@ class ApiService {
           }
         }
       } catch (e) {
-        print('Error fetching club online: $e');
+        debugPrint('Error fetching club online: $e');
       }
     }
 
@@ -213,7 +202,7 @@ class ApiService {
           return Club.fromJson(data['clubData']);
         }
       } catch (e) {
-        print('Error parsing cached club: $e');
+        debugPrint('Error parsing cached club: $e');
       }
     }
 
@@ -248,7 +237,7 @@ class ApiService {
           }
         }
       } catch (e) {
-        print('Error fetching club profile online: $e');
+        debugPrint('Error fetching club profile online: $e');
       }
     }
 
@@ -267,7 +256,7 @@ class ApiService {
           return ClubProfile.fromJson(json['profile']);
         }
       } catch (e) {
-        print('Error parsing cached club profile: $e');
+        debugPrint('Error parsing cached club profile: $e');
       }
     }
 
@@ -299,7 +288,7 @@ class ApiService {
           }
         }
       } catch (e) {
-        print('Error fetching events online: $e');
+        debugPrint('Error fetching events online: $e');
       }
     }
 
@@ -314,7 +303,7 @@ class ApiService {
           return eventsJson.map((e) => ClubEvent.fromJson(e)).toList();
         }
       } catch (e) {
-        print('Error parsing cached events: $e');
+        debugPrint('Error parsing cached events: $e');
       }
     }
 
@@ -344,7 +333,7 @@ class ApiService {
           }
         }
       } catch (e) {
-        print('Error fetching upcoming events online: $e');
+        debugPrint('Error fetching upcoming events online: $e');
       }
     }
 
@@ -359,7 +348,7 @@ class ApiService {
           return eventsJson.map((e) => ClubEvent.fromJson(e)).toList();
         }
       } catch (e) {
-        print('Error parsing cached upcoming events: $e');
+        debugPrint('Error parsing cached upcoming events: $e');
       }
     }
 
@@ -389,7 +378,7 @@ class ApiService {
           }
         }
       } catch (e) {
-        print('Error fetching club events online: $e');
+        debugPrint('Error fetching club events online: $e');
       }
     }
 
@@ -404,7 +393,7 @@ class ApiService {
           return eventsJson.map((e) => ClubEvent.fromJson(e)).toList();
         }
       } catch (e) {
-        print('Error parsing cached club events: $e');
+        debugPrint('Error parsing cached club events: $e');
       }
     }
 
@@ -494,7 +483,7 @@ class ApiService {
           }
         }
       } catch (e) {
-        print('Error fetching enrollments online: $e');
+        debugPrint('Error fetching enrollments online: $e');
       }
     }
 

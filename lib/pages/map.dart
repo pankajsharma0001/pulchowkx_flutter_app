@@ -24,8 +24,8 @@ class _MapPageState extends State<MapPage> {
   bool _isStyleLoaded = false;
   bool _isSatellite = false; // Default to map view
   List<Map<String, dynamic>> _locations = [];
-  Map<String, Uint8List> _iconCache = {}; // Cache for icon images
-  Set<String> _failedIcons = {}; // Track icons that failed to load
+  final Map<String, Uint8List> _iconCache = {}; // Cache for icon images
+  final Set<String> _failedIcons = {}; // Track icons that failed to load
 
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -40,6 +40,7 @@ class _MapPageState extends State<MapPage> {
   String _routeDistance = '';
   String _routeDuration = '';
   bool _isCalculatingRoute = false;
+  // ignore: unused_field
   LatLng? _userLocation;
   bool _isLocating = false;
   bool _isNavigationPanelExpanded = true;
