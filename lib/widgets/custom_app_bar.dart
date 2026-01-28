@@ -352,13 +352,13 @@ class _MobileMenu extends StatelessWidget {
                   'marketplace',
                   Icons.menu_book_rounded,
                   'Marketplace',
-                  false,
+                  currentPage == AppPage.bookMarketplace,
                 ),
                 _buildMenuItem(
                   'classroom',
                   Icons.school_rounded,
                   'Classroom',
-                  false,
+                  currentPage == AppPage.classroom,
                 ),
               ] else
                 _buildMenuItem(

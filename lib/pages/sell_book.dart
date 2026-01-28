@@ -32,7 +32,7 @@ class _SellBookPageState extends State<SellBookPage> {
   BookCondition _condition = BookCondition.good;
   BookCategory? _selectedCategory;
   List<BookCategory> _categories = [];
-  List<File> _selectedImages = [];
+  final List<File> _selectedImages = [];
   bool _isLoading = false;
   bool _isSaving = false;
 

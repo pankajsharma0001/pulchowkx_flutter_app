@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:pulchowkx_app/models/classroom.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
@@ -23,6 +24,7 @@ class _ClassroomPageState extends State<ClassroomPage> {
   bool _isLoading = true;
   bool _isTeacher = false;
   String? _errorMessage;
+  bool _isEditingProfile = false;
 
   // Setup form state
   Faculty? _selectedFaculty;
@@ -51,6 +53,18 @@ class _ClassroomPageState extends State<ClassroomPage> {
         _profile = await _apiService.getStudentProfile();
         if (_profile != null) {
           _subjects = await _apiService.getMySubjects();
+
+          // Sync setup form state with profile
+          if (!_isEditingProfile) {
+            _selectedFaculty = _faculties.firstWhere(
+              (f) => f.id == _profile!.facultyId,
+              orElse: () => _faculties.isNotEmpty
+                  ? _faculties.first
+                  : _faculties.first, // Fallback if not found
+            );
+            _selectedSemester = _profile!.currentSemester;
+            _semesterStartDate = _profile!.semesterStartDate;
+          }
         }
       }
 
@@ -80,6 +94,9 @@ class _ClassroomPageState extends State<ClassroomPage> {
     );
 
     if (result['success'] == true) {
+      if (mounted) {
+        setState(() => _isEditingProfile = false);
+      }
       await _loadData();
     } else {
       if (mounted) {
@@ -135,7 +152,7 @@ class _ClassroomPageState extends State<ClassroomPage> {
           const SizedBox(height: AppSpacing.lg),
           if (_isTeacher)
             _buildTeacherView()
-          else if (_profile == null)
+          else if (_profile == null || _isEditingProfile)
             _buildSetupForm()
           else
             _buildStudentView(),
@@ -214,9 +231,16 @@ class _ClassroomPageState extends State<ClassroomPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Set Up Your Profile', style: AppTextStyles.h4),
                     Text(
-                      'Tell us about your semester to get started',
+                      _isEditingProfile
+                          ? 'Update Your Profile'
+                          : 'Set Up Your Profile',
+                      style: AppTextStyles.h4,
+                    ),
+                    Text(
+                      _isEditingProfile
+                          ? 'Modify your semester details below'
+                          : 'Tell us about your semester to get started',
                       style: AppTextStyles.bodySmall,
                     ),
                   ],
@@ -324,14 +348,34 @@ class _ClassroomPageState extends State<ClassroomPage> {
 
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _setupProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                ),
-                child: const Text('Save Profile'),
+              child: Column(
+                children: [
+                  ElevatedButton(
+                    onPressed: _setupProfile,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppSpacing.md,
+                      ),
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
+                    child: Text(
+                      _isEditingProfile ? 'Update Profile' : 'Save Profile',
+                    ),
+                  ),
+                  if (_isEditingProfile) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    TextButton(
+                      onPressed: () =>
+                          setState(() => _isEditingProfile = false),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                      child: const Text('Cancel'),
+                    ),
+                  ],
+                ],
               ),
             ),
           ],
@@ -344,6 +388,10 @@ class _ClassroomPageState extends State<ClassroomPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildStudentWorkspaceHeader(),
+        const SizedBox(height: AppSpacing.lg),
+        _buildStatsRow(),
+        const SizedBox(height: AppSpacing.xl),
         // Profile Card
         _buildProfileCard(),
         const SizedBox(height: AppSpacing.lg),
@@ -409,6 +457,32 @@ class _ClassroomPageState extends State<ClassroomPage> {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
+          // Edit Profile Button
+          GestureDetector(
+            onTap: () {
+              setState(() => _isEditingProfile = true);
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.edit,
+                  color: Colors.white.withValues(alpha: 0.8),
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Edit Profile',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    decoration: TextDecoration.underline,
+                    decorationColor: Colors.white.withValues(alpha: 0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
           ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.full),
             child: LinearProgressIndicator(
@@ -423,12 +497,12 @@ class _ClassroomPageState extends State<ClassroomPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                DateFormat('MMM yyyy').format(_profile!.semesterStartDate),
+                DateFormat('dd MMM yyyy').format(_profile!.semesterStartDate),
                 style: AppTextStyles.bodySmall.copyWith(color: Colors.white70),
               ),
               if (_profile!.semesterEndDate != null)
                 Text(
-                  DateFormat('MMM yyyy').format(_profile!.semesterEndDate!),
+                  DateFormat('dd MMM yyyy').format(_profile!.semesterEndDate!),
                   style: AppTextStyles.bodySmall.copyWith(
                     color: Colors.white70,
                   ),
@@ -469,32 +543,10 @@ class _ClassroomPageState extends State<ClassroomPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.accentLight,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.school, color: AppColors.accent),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Teacher Dashboard', style: AppTextStyles.labelLarge),
-                    Text(
-                      'Manage your subjects and create assignments',
-                      style: AppTextStyles.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+        _buildTeacherWorkspaceHeader(),
         const SizedBox(height: AppSpacing.lg),
+        _buildTeacherStatsGrid(),
+        const SizedBox(height: AppSpacing.xl),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -524,11 +576,175 @@ class _ClassroomPageState extends State<ClassroomPage> {
     );
   }
 
+  Widget _buildTeacherWorkspaceHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Teacher Workspace',
+          style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Post classwork, review submissions, and keep every subject on pace.',
+          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMuted),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTeacherStatsGrid() {
+    int subjectsCount = _subjects.length;
+    int assignmentsCount = 0;
+    int classworkCount = 0;
+    int homeworkCount = 0;
+
+    for (var subject in _subjects) {
+      if (subject.assignments != null) {
+        assignmentsCount += subject.assignments!.length;
+        for (var assignment in subject.assignments!) {
+          if (assignment.type == AssignmentType.classwork) {
+            classworkCount += 1;
+          } else if (assignment.type == AssignmentType.homework) {
+            homeworkCount += 1;
+          }
+        }
+      }
+    }
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard('SUBJECTS', subjectsCount.toString()),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: _buildStatCard('ASSIGNMENTS', assignmentsCount.toString()),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard('CLASSWORK', classworkCount.toString()),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: _buildStatCard('HOMEWORK', homeworkCount.toString()),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   void _showAddSubjectDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) =>
           _AddTeacherSubjectDialog(apiService: _apiService, onAdded: _loadData),
+    );
+  }
+
+  Widget _buildStudentWorkspaceHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Student Workspace',
+          style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Track your semester subjects, deadlines, and submissions in one place.',
+          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMuted),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatsRow() {
+    int subjectsCount = _subjects.length;
+    int assignmentsCount = 0;
+    int submittedCount = 0;
+    int overdueCount = 0;
+
+    for (var subject in _subjects) {
+      if (subject.assignments != null) {
+        assignmentsCount += subject.assignments!.length;
+        for (var assignment in subject.assignments!) {
+          if (assignment.submission != null) {
+            submittedCount += 1;
+          } else if (assignment.isOverdue) {
+            overdueCount += 1;
+          }
+        }
+      }
+    }
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard('SUBJECTS', subjectsCount.toString()),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: _buildStatCard('ASSIGNMENTS', assignmentsCount.toString()),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard('SUBMITTED', submittedCount.toString()),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(child: _buildStatCard('OVERDUE', overdueCount.toString())),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppTextStyles.labelSmall.copyWith(
+              color: AppColors.textMuted,
+              letterSpacing: 1.2,
+              fontSize: 10,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -578,7 +794,7 @@ class _SubjectCardState extends State<_SubjectCard> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
+                      color: const Color.fromARGB(255, 207, 225, 240),
                       borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                     child: Center(
@@ -713,7 +929,7 @@ class _AssignmentTile extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             Text(
-              DateFormat('MMM dd').format(assignment.dueAt!),
+              DateFormat('MMM dd, yyyy').format(assignment.dueAt!),
               style: AppTextStyles.bodySmall.copyWith(
                 color: isOverdue
                     ? AppColors.error
@@ -725,25 +941,10 @@ class _AssignmentTile extends StatelessWidget {
           ],
         ],
       ),
-      trailing: isSubmitted
-          ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.successLight,
-                borderRadius: BorderRadius.circular(AppRadius.xs),
-              ),
-              child: Text(
-                'Submitted',
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.success,
-                  fontSize: 10,
-                ),
-              ),
-            )
-          : TextButton(
-              onPressed: () => _showSubmitDialog(context),
-              child: const Text('Submit'),
-            ),
+      trailing: TextButton(
+        onPressed: () => _showSubmitDialog(context),
+        child: Text(isSubmitted ? 'Resubmit' : 'Submit'),
+      ),
     );
   }
 
@@ -782,12 +983,45 @@ class _SubmitAssignmentDialogState extends State<_SubmitAssignmentDialog> {
   bool _isSubmitting = false;
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles();
-    if (result != null && result.files.single.path != null) {
-      setState(() {
-        _selectedFile = File(result.files.single.path!);
-        _fileName = result.files.single.name;
-      });
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final file = result.files.single;
+        final ext =
+            file.extension?.toLowerCase() ??
+            file.name.split('.').last.toLowerCase();
+        final allowed = ['jpg', 'jpeg', 'png', 'pdf'];
+
+        if (!allowed.contains(ext)) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Only Image and PDF files are allowed'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+          return;
+        }
+
+        setState(() {
+          _selectedFile = File(file.path!);
+          _fileName = file.name;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking file: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -990,6 +1224,12 @@ class _TeacherSubjectCardState extends State<_TeacherSubjectCard> {
                         style: AppTextStyles.labelMedium,
                       ),
                       Text(
+                        'Semester ${widget.subject.semesterNumber}',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                      Text(
                         '$assignmentCount assignments',
                         style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.textMuted,
@@ -1071,7 +1311,7 @@ class _TeacherAssignmentTile extends StatelessWidget {
       title: Text(assignment.title, style: AppTextStyles.labelMedium),
       subtitle: Text(
         assignment.dueAt != null
-            ? 'Due: ${DateFormat('MMM dd').format(assignment.dueAt!)}'
+            ? 'Due: ${DateFormat('MMM dd, yyyy').format(assignment.dueAt!)}'
             : 'No due date',
         style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
       ),
@@ -1157,13 +1397,20 @@ class _AssignmentSubmissionsDialogState
                       backgroundColor: AppColors.primaryLight,
                       child: Icon(Icons.person, color: AppColors.primary),
                     ),
-                    title: Text('Student ID: ${submission.studentId}'),
-                    subtitle: Text(
-                      'Submitted: ${DateFormat('MMM dd, HH:mm').format(submission.submittedAt)}',
+                    title: Text(
+                      submission.student?.name ?? submission.studentId,
                     ),
-                    onTap: () {
-                      // Handle opening submission file
-                      // Not implemented fully as we need URL launching or similar
+                    subtitle: Text(
+                      'Submitted: ${DateFormat('MMM dd, yyyy HH:mm').format(submission.submittedAt.toLocal())}',
+                    ),
+                    onTap: () async {
+                      final uri = Uri.parse(submission.fileUrl);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(
+                          uri,
+                          mode: LaunchMode.externalApplication,
+                        );
+                      }
                     },
                   );
                 },
@@ -1458,14 +1705,18 @@ class _AddTeacherSubjectDialogState extends State<_AddTeacherSubjectDialog> {
               else ...[
                 // Faculty
                 DropdownButtonFormField<Faculty>(
-                  value: _selectedFaculty,
+                  initialValue: _selectedFaculty,
+                  isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Faculty',
                     border: OutlineInputBorder(),
                   ),
                   items: _faculties
                       .map(
-                        (f) => DropdownMenuItem(value: f, child: Text(f.name)),
+                        (f) => DropdownMenuItem(
+                          value: f,
+                          child: Text(f.name, overflow: TextOverflow.ellipsis),
+                        ),
                       )
                       .toList(),
                   onChanged: (value) {
@@ -1516,7 +1767,7 @@ class _AddTeacherSubjectDialogState extends State<_AddTeacherSubjectDialog> {
                 // Subject
                 if (_availableSubjects.isNotEmpty)
                   DropdownButtonFormField<Subject>(
-                    value: _selectedSubject,
+                    initialValue: _selectedSubject,
                     decoration: const InputDecoration(
                       labelText: 'Subject',
                       border: OutlineInputBorder(),

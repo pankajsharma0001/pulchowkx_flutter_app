@@ -1456,8 +1456,8 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
-        if (json['success'] == true && json['data'] != null) {
-          return (json['data'] as List)
+        if (json['success'] == true && json['faculties'] != null) {
+          return (json['faculties'] as List)
               .map((e) => Faculty.fromJson(e as Map<String, dynamic>))
               .toList();
         }
@@ -1488,8 +1488,8 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
-        if (json['success'] == true && json['data'] != null) {
-          return (json['data'] as List)
+        if (json['success'] == true && json['subjects'] != null) {
+          return (json['subjects'] as List)
               .map((e) => Subject.fromJson(e as Map<String, dynamic>))
               .toList();
         }
@@ -1517,8 +1517,10 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
-        if (json['success'] == true && json['data'] != null) {
-          return StudentProfile.fromJson(json['data'] as Map<String, dynamic>);
+        if (json['success'] == true && json['profile'] != null) {
+          return StudentProfile.fromJson(
+            json['profile'] as Map<String, dynamic>,
+          );
         }
       }
       return null;
@@ -1550,8 +1552,8 @@ class ApiService {
       final json = jsonDecode(response.body);
       return {
         'success': json['success'] == true,
-        'data': json['data'] != null
-            ? StudentProfile.fromJson(json['data'] as Map<String, dynamic>)
+        'profile': json['profile'] != null
+            ? StudentProfile.fromJson(json['profile'] as Map<String, dynamic>)
             : null,
         'message': json['message'],
       };
@@ -1567,7 +1569,7 @@ class ApiService {
       if (userId == null) return [];
 
       final response = await http.get(
-        Uri.parse('$apiBaseUrl/classroom/my-subjects'),
+        Uri.parse('$apiBaseUrl/classroom/me/subjects'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $userId',
@@ -1576,8 +1578,8 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
-        if (json['success'] == true && json['data'] != null) {
-          return (json['data'] as List)
+        if (json['success'] == true && json['subjects'] != null) {
+          return (json['subjects'] as List)
               .map((e) => Subject.fromJson(e as Map<String, dynamic>))
               .toList();
         }
@@ -1605,8 +1607,8 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
-        if (json['success'] == true && json['data'] != null) {
-          return (json['data'] as List)
+        if (json['success'] == true && json['subjects'] != null) {
+          return (json['subjects'] as List)
               .map((e) => Subject.fromJson(e as Map<String, dynamic>))
               .toList();
         }
@@ -1664,8 +1666,8 @@ class ApiService {
       final json = jsonDecode(response.body);
       return {
         'success': json['success'] == true,
-        'data': json['data'] != null
-            ? Assignment.fromJson(json['data'] as Map<String, dynamic>)
+        'assignment': json['assignment'] != null
+            ? Assignment.fromJson(json['assignment'] as Map<String, dynamic>)
             : null,
         'message': json['message'],
       };
@@ -1688,13 +1690,33 @@ class ApiService {
 
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('$apiBaseUrl/classroom/assignments/$assignmentId/submit'),
+        Uri.parse(
+          '$apiBaseUrl/classroom/assignments/$assignmentId/submissions',
+        ),
       );
       request.headers['Authorization'] = 'Bearer $userId';
       if (comment != null) {
         request.fields['comment'] = comment;
       }
-      request.files.add(await http.MultipartFile.fromPath('file', file.path));
+      final extension = file.path.split('.').last.toLowerCase();
+      MediaType contentType;
+      if (extension == 'pdf') {
+        contentType = MediaType('application', 'pdf');
+      } else if (extension == 'png') {
+        contentType = MediaType('image', 'png');
+      } else if (extension == 'webp') {
+        contentType = MediaType('image', 'webp');
+      } else {
+        contentType = MediaType('image', 'jpeg');
+      }
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          file.path,
+          contentType: contentType,
+        ),
+      );
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
@@ -1703,9 +1725,9 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return {
           'success': json['success'] == true,
-          'data': json['data'] != null
+          'submission': json['submission'] != null
               ? AssignmentSubmission.fromJson(
-                  json['data'] as Map<String, dynamic>,
+                  json['submission'] as Map<String, dynamic>,
                 )
               : null,
           'message': json['message'],
@@ -1740,8 +1762,8 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
-        if (json['success'] == true && json['data'] != null) {
-          return (json['data'] as List)
+        if (json['success'] == true && json['submissions'] != null) {
+          return (json['submissions'] as List)
               .map(
                 (e) => AssignmentSubmission.fromJson(e as Map<String, dynamic>),
               )

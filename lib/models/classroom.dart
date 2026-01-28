@@ -35,6 +35,14 @@ class Faculty {
     'semestersCount': semestersCount,
     'semesterDurationMonths': semesterDurationMonths,
   };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Faculty && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 /// Subject model - represents a course/subject
@@ -93,6 +101,14 @@ class Subject {
   /// Get the number of submitted assignments
   int get submittedCount =>
       assignments?.where((a) => a.submission != null).length ?? 0;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Subject && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 /// Student profile model
