@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:pulchowkx_app/models/book_listing.dart';
 import 'package:pulchowkx_app/models/chatbot_response.dart';
+import 'package:pulchowkx_app/models/classroom.dart';
 import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1042,5 +1044,720 @@ class ApiService {
     } catch (e) {
       return {'success': false, 'message': 'Upload error: $e'};
     }
+  }
+
+  // ==================== BOOKS API ====================
+
+  /// Get book listings with filters
+  Future<BookListingsResponse?> getBookListings([BookFilters? filters]) async {
+    try {
+      final userId = await getDatabaseUserId();
+      final queryParams =
+          filters?.toQueryParams() ?? {'page': '1', 'limit': '12'};
+      final uri = Uri.parse(
+        '$apiBaseUrl/books',
+      ).replace(queryParameters: queryParams);
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          if (userId != null) 'Authorization': 'Bearer $userId',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return BookListingsResponse.fromJson(
+            json['data'] as Map<String, dynamic>,
+          );
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching book listings: $e');
+      return null;
+    }
+  }
+
+  /// Get a single book listing by ID
+  Future<BookListing?> getBookListingById(int id) async {
+    try {
+      final userId = await getDatabaseUserId();
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/books/listings/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (userId != null) 'Authorization': 'Bearer $userId',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return BookListing.fromJson(json['data'] as Map<String, dynamic>);
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching book details: $e');
+      return null;
+    }
+  }
+
+  /// Create a new book listing
+  Future<Map<String, dynamic>> createBookListing({
+    required String title,
+    required String author,
+    required String condition,
+    required String price,
+    String? isbn,
+    String? edition,
+    String? publisher,
+    int? publicationYear,
+    String? description,
+    String? courseCode,
+    int? categoryId,
+  }) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/books'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode({
+          'title': title,
+          'author': author,
+          'condition': condition,
+          'price': price,
+          if (isbn != null) 'isbn': isbn,
+          if (edition != null) 'edition': edition,
+          if (publisher != null) 'publisher': publisher,
+          if (publicationYear != null) 'publicationYear': publicationYear,
+          if (description != null) 'description': description,
+          if (courseCode != null) 'courseCode': courseCode,
+          if (categoryId != null) 'categoryId': categoryId,
+        }),
+      );
+
+      final json = jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': json['success'] == true,
+          'data': json['data'] != null
+              ? BookListing.fromJson(json['data'] as Map<String, dynamic>)
+              : null,
+          'message': json['message'],
+        };
+      }
+      return {
+        'success': false,
+        'message': json['message'] ?? 'Failed to create listing',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Update an existing book listing
+  Future<Map<String, dynamic>> updateBookListing(
+    int id,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.put(
+        Uri.parse('$apiBaseUrl/books/listings/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode(data),
+      );
+
+      final json = jsonDecode(response.body);
+      return {
+        'success': json['success'] == true,
+        'data': json['data'] != null
+            ? BookListing.fromJson(json['data'] as Map<String, dynamic>)
+            : null,
+        'message': json['message'],
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Delete a book listing
+  Future<Map<String, dynamic>> deleteBookListing(int id) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.delete(
+        Uri.parse('$apiBaseUrl/books/listings/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      final json = jsonDecode(response.body);
+      return {'success': json['success'] == true, 'message': json['message']};
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Get current user's book listings
+  Future<List<BookListing>> getMyBookListings() async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) return [];
+
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/books/my-listings'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map((e) => BookListing.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching my listings: $e');
+      return [];
+    }
+  }
+
+  /// Mark a book as sold
+  Future<Map<String, dynamic>> markBookAsSold(int id) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.put(
+        Uri.parse('$apiBaseUrl/books/listings/$id/mark-sold'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      final json = jsonDecode(response.body);
+      return {'success': json['success'] == true, 'message': json['message']};
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Upload a book image
+  Future<Map<String, dynamic>> uploadBookImage(
+    int listingId,
+    File imageFile,
+  ) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$apiBaseUrl/books/listings/$listingId/images'),
+      );
+      request.headers['Authorization'] = 'Bearer $userId';
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'image',
+          imageFile.path,
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final json = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': json['success'] == true,
+          'data': json['data'] != null
+              ? BookImage.fromJson(json['data'] as Map<String, dynamic>)
+              : null,
+        };
+      }
+      return {'success': false, 'message': json['message'] ?? 'Upload failed'};
+    } catch (e) {
+      return {'success': false, 'message': 'Upload error: $e'};
+    }
+  }
+
+  /// Delete a book image
+  Future<Map<String, dynamic>> deleteBookImage(
+    int listingId,
+    int imageId,
+  ) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.delete(
+        Uri.parse('$apiBaseUrl/books/listings/$listingId/images/$imageId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      final json = jsonDecode(response.body);
+      return {'success': json['success'] == true, 'message': json['message']};
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Get saved books
+  Future<List<SavedBook>> getSavedBooks() async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) return [];
+
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/books/saved'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map((e) => SavedBook.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching saved books: $e');
+      return [];
+    }
+  }
+
+  /// Save a book
+  Future<Map<String, dynamic>> saveBook(int listingId, {String? notes}) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/books/listings/$listingId/save'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode({
+          'listingId': listingId,
+          if (notes != null) 'notes': notes,
+        }),
+      );
+
+      final json = jsonDecode(response.body);
+      return {'success': json['success'] == true, 'message': json['message']};
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Unsave a book
+  Future<Map<String, dynamic>> unsaveBook(int listingId) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.delete(
+        Uri.parse('$apiBaseUrl/books/listings/$listingId/save'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      final json = jsonDecode(response.body);
+      return {'success': json['success'] == true, 'message': json['message']};
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Get book categories
+  Future<List<BookCategory>> getBookCategories() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/books/categories'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map((e) => BookCategory.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching book categories: $e');
+      return [];
+    }
+  }
+
+  // ==================== CLASSROOM API ====================
+
+  /// Get all faculties
+  Future<List<Faculty>> getFaculties() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/classroom/faculties'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map((e) => Faculty.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching faculties: $e');
+      return [];
+    }
+  }
+
+  /// Get subjects by faculty and optional semester
+  Future<List<Subject>> getSubjects({
+    required int facultyId,
+    int? semester,
+  }) async {
+    try {
+      final queryParams = <String, String>{'facultyId': facultyId.toString()};
+      if (semester != null) queryParams['semester'] = semester.toString();
+
+      final uri = Uri.parse(
+        '$apiBaseUrl/classroom/subjects',
+      ).replace(queryParameters: queryParams);
+      final response = await http.get(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map((e) => Subject.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching subjects: $e');
+      return [];
+    }
+  }
+
+  /// Get current user's student profile
+  Future<StudentProfile?> getStudentProfile() async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) return null;
+
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/classroom/me'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return StudentProfile.fromJson(json['data'] as Map<String, dynamic>);
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching student profile: $e');
+      return null;
+    }
+  }
+
+  /// Create or update student profile
+  Future<Map<String, dynamic>> upsertStudentProfile(
+    StudentProfileRequest request,
+  ) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/classroom/me'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode(request.toJson()),
+      );
+
+      final json = jsonDecode(response.body);
+      return {
+        'success': json['success'] == true,
+        'data': json['data'] != null
+            ? StudentProfile.fromJson(json['data'] as Map<String, dynamic>)
+            : null,
+        'message': json['message'],
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Get current user's subjects with assignments
+  Future<List<Subject>> getMySubjects() async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) return [];
+
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/classroom/my-subjects'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map((e) => Subject.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching my subjects: $e');
+      return [];
+    }
+  }
+
+  /// Get teacher's assigned subjects
+  Future<List<Subject>> getTeacherSubjects() async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) return [];
+
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/classroom/teacher/subjects'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map((e) => Subject.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching teacher subjects: $e');
+      return [];
+    }
+  }
+
+  /// Add a subject for teacher
+  Future<Map<String, dynamic>> addTeacherSubject(int subjectId) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/classroom/teacher/subjects'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode({'subjectId': subjectId}),
+      );
+
+      final json = jsonDecode(response.body);
+      return {'success': json['success'] == true, 'message': json['message']};
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Create an assignment for a subject
+  Future<Map<String, dynamic>> createAssignment(
+    CreateAssignmentRequest request,
+  ) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/classroom/assignments'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode(request.toJson()),
+      );
+
+      final json = jsonDecode(response.body);
+      return {
+        'success': json['success'] == true,
+        'data': json['data'] != null
+            ? Assignment.fromJson(json['data'] as Map<String, dynamic>)
+            : null,
+        'message': json['message'],
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Submit an assignment
+  Future<Map<String, dynamic>> submitAssignment(
+    int assignmentId,
+    File file, {
+    String? comment,
+  }) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$apiBaseUrl/classroom/assignments/$assignmentId/submit'),
+      );
+      request.headers['Authorization'] = 'Bearer $userId';
+      if (comment != null) {
+        request.fields['comment'] = comment;
+      }
+      request.files.add(await http.MultipartFile.fromPath('file', file.path));
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final json = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': json['success'] == true,
+          'data': json['data'] != null
+              ? AssignmentSubmission.fromJson(
+                  json['data'] as Map<String, dynamic>,
+                )
+              : null,
+          'message': json['message'],
+        };
+      }
+      return {
+        'success': false,
+        'message': json['message'] ?? 'Submission failed',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Get submissions for an assignment (teacher only)
+  Future<List<AssignmentSubmission>> getAssignmentSubmissions(
+    int assignmentId,
+  ) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) return [];
+
+      final response = await http.get(
+        Uri.parse(
+          '$apiBaseUrl/classroom/assignments/$assignmentId/submissions',
+        ),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map(
+                (e) => AssignmentSubmission.fromJson(e as Map<String, dynamic>),
+              )
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching submissions: $e');
+      return [];
+    }
+  }
+
+  /// Check if user is a teacher
+  Future<bool> isTeacher() async {
+    final role = await getUserRole();
+    return role == 'teacher';
   }
 }

@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/cards/logo.dart';
+import 'package:pulchowkx_app/pages/book_marketplace.dart';
+import 'package:pulchowkx_app/pages/classroom.dart';
 import 'package:pulchowkx_app/pages/home_page.dart';
 import 'package:pulchowkx_app/pages/clubs.dart';
 import 'package:pulchowkx_app/pages/dashboard.dart';
@@ -10,7 +12,16 @@ import 'package:pulchowkx_app/pages/login.dart';
 import 'package:pulchowkx_app/pages/map.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 
-enum AppPage { home, clubs, events, map, dashboard, login }
+enum AppPage {
+  home,
+  clubs,
+  events,
+  map,
+  dashboard,
+  bookMarketplace,
+  classroom,
+  login,
+}
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool isHomePage;
@@ -289,6 +300,22 @@ class _MobileMenu extends StatelessWidget {
                 case 'dashboard':
                   CustomAppBar._navigateToDashboard(context, currentPage);
                   break;
+                case 'marketplace':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const BookMarketplacePage(),
+                    ),
+                  );
+                  break;
+                case 'classroom':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ClassroomPage(),
+                    ),
+                  );
+                  break;
                 case 'login':
                   CustomAppBar._navigateToLogin(context, currentPage);
                   break;
@@ -314,14 +341,26 @@ class _MobileMenu extends StatelessWidget {
                 currentPage == AppPage.map,
               ),
               const PopupMenuDivider(height: 24),
-              if (isLoggedIn)
+              if (isLoggedIn) ...[
                 _buildMenuItem(
                   'dashboard',
                   Icons.dashboard_rounded,
                   'Dashboard',
                   currentPage == AppPage.dashboard,
-                )
-              else
+                ),
+                _buildMenuItem(
+                  'marketplace',
+                  Icons.menu_book_rounded,
+                  'Marketplace',
+                  false,
+                ),
+                _buildMenuItem(
+                  'classroom',
+                  Icons.school_rounded,
+                  'Classroom',
+                  false,
+                ),
+              ] else
                 _buildMenuItem(
                   'login',
                   Icons.login_rounded,

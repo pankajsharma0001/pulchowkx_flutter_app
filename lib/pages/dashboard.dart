@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/auth/service/google_auth.dart';
+import 'package:pulchowkx_app/pages/book_marketplace.dart';
+import 'package:pulchowkx_app/pages/classroom.dart';
 import 'package:pulchowkx_app/pages/clubs.dart';
 import 'package:pulchowkx_app/pages/home_page.dart';
 import 'package:pulchowkx_app/pages/map.dart';
@@ -330,6 +332,36 @@ class _DashboardPageState extends State<DashboardPage> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => const MapPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    _QuickActionCard(
+                      icon: Icons.menu_book_rounded,
+                      title: 'Book Marketplace',
+                      description:
+                          'Buy and sell textbooks with fellow students.',
+                      color: Colors.teal,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const BookMarketplacePage(),
+                          ),
+                        );
+                      },
+                    ),
+                    _QuickActionCard(
+                      icon: Icons.school_rounded,
+                      title: 'Classroom',
+                      description:
+                          'Track subjects, assignments, and submissions.',
+                      color: Colors.indigo,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ClassroomPage(),
                           ),
                         );
                       },

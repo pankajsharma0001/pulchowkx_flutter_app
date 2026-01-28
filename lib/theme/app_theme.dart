@@ -13,6 +13,7 @@ class AppColors {
 
   // Background colors
   static const Color background = Color(0xFFFAFAFA);
+  static const Color backgroundSecondary = Color(0xFFF3F4F6);
   static const Color surface = Colors.white;
   static const Color cardBackground = Colors.white;
 
@@ -154,6 +155,7 @@ class AppSpacing {
 
 /// App border radius constants
 class AppRadius {
+  static const double xs = 4;
   static const double sm = 6;
   static const double md = 10;
   static const double lg = 14;
