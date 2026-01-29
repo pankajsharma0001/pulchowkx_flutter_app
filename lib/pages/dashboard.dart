@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/auth/service/google_auth.dart';
@@ -424,10 +423,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             title: 'Settings',
                             description: 'Account settings and preferences.',
                             color: AppColors.textSecondary,
-<<<<<<< HEAD
                             heroTag: 'hero-settings',
-=======
->>>>>>> 1005d0ff43211aacf0393ab9aa7dfa2f5d183376
                             onTap: () {
                               Navigator.push(
                                 context,

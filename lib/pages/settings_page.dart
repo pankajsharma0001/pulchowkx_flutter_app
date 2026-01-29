@@ -122,7 +122,6 @@ class _SettingsPageState extends State<SettingsPage> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : ListView(
-<<<<<<< HEAD
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.lg,
                   vertical: AppSpacing.md,
@@ -161,10 +160,6 @@ class _SettingsPageState extends State<SettingsPage> {
                       ],
                     ),
                   ),
-=======
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                children: [
->>>>>>> 1005d0ff43211aacf0393ab9aa7dfa2f5d183376
                   _buildSectionHeader('Appearance'),
                   _buildThemeSelector(),
                   const SizedBox(height: AppSpacing.xl),
@@ -357,7 +352,8 @@ class _SettingsPageState extends State<SettingsPage> {
       title: Text(title, style: AppTextStyles.labelLarge),
       subtitle: Text(subtitle, style: AppTextStyles.bodySmall),
       value: value,
-      activeColor: AppColors.primary,
+      activeTrackColor: AppColors.primary.withValues(alpha: 0.5),
+      activeThumbColor: AppColors.primary,
       onChanged: (v) {
         HapticFeedback.lightImpact();
         onChanged(v);

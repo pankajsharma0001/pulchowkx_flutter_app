@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:pulchowkx_app/models/chatbot_response.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
