@@ -122,6 +122,7 @@ class _SettingsPageState extends State<SettingsPage> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : ListView(
+<<<<<<< HEAD
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.lg,
                   vertical: AppSpacing.md,
@@ -160,6 +161,10 @@ class _SettingsPageState extends State<SettingsPage> {
                       ],
                     ),
                   ),
+=======
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                children: [
+>>>>>>> 1005d0ff43211aacf0393ab9aa7dfa2f5d183376
                   _buildSectionHeader('Appearance'),
                   _buildThemeSelector(),
                   const SizedBox(height: AppSpacing.xl),

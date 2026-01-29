@@ -424,7 +424,10 @@ class _DashboardPageState extends State<DashboardPage> {
                             title: 'Settings',
                             description: 'Account settings and preferences.',
                             color: AppColors.textSecondary,
+<<<<<<< HEAD
                             heroTag: 'hero-settings',
+=======
+>>>>>>> 1005d0ff43211aacf0393ab9aa7dfa2f5d183376
                             onTap: () {
                               Navigator.push(
                                 context,
