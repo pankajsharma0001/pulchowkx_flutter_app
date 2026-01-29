@@ -124,9 +124,9 @@ class _ClassroomPageState extends State<ClassroomPage> {
               : AppColors.heroGradientDark,
         ),
         child: _isLoading
-            ? const Padding(
-                padding: EdgeInsets.all(AppSpacing.lg),
-                child: ClassroomShimmer(),
+            ? Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: ClassroomShimmer(isTeacher: _isTeacher),
               )
             : _errorMessage != null
             ? _buildError()

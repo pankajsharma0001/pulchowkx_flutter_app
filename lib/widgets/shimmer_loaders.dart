@@ -259,18 +259,7 @@ class DashboardHeaderShimmer extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(height: 20, width: 140, color: Colors.white),
-                  const SizedBox(height: 8),
-                  Container(height: 14, width: 180, color: Colors.white),
-                  const SizedBox(height: 8),
-                  Container(
-                    height: 20,
-                    width: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(AppRadius.full),
-                    ),
-                  ),
+                  // Removed text shimmers
                 ],
               ),
             ),
@@ -299,7 +288,9 @@ class QuickActionShimmer extends StatelessWidget {
 }
 
 class ClassroomShimmer extends StatelessWidget {
-  const ClassroomShimmer({super.key});
+  final bool isTeacher;
+
+  const ClassroomShimmer({super.key, this.isTeacher = false});
 
   @override
   Widget build(BuildContext context) {
@@ -308,9 +299,54 @@ class ClassroomShimmer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const DashboardHeaderShimmer(),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: const Icon(
+                  Icons.school_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Classroom', style: AppTextStyles.h3),
+                    Text(
+                      isTeacher
+                          ? 'Manage your subjects and assignments'
+                          : 'Track your subjects and assignments',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: AppSpacing.lg),
-          Container(height: 20, width: 120, color: Colors.white),
+          Text(
+            isTeacher ? 'Your Subjects' : 'Student Workspace',
+            style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          if (!isTeacher)
+            Text(
+              'Track your semester subjects, deadlines, and submissions in one place.',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textMuted,
+              ),
+            ),
+          const SizedBox(height: AppSpacing.lg),
+          if (!isTeacher) Text('Your Subjects', style: AppTextStyles.h4),
           const SizedBox(height: AppSpacing.md),
           const CardShimmer(),
           const CardShimmer(),
