@@ -42,11 +42,18 @@ void main() async {
   NotificationService.initialize().catchError((e) {
     debugPrint('Failed to initialize notifications: $e');
   });
-  runApp(const MyApp());
+
+  // Load onboarding preference before running app
+  final prefs = await SharedPreferences.getInstance();
+  final hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
+
+  runApp(MyApp(hasSeenOnboarding: hasSeenOnboarding));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool hasSeenOnboarding;
+
+  const MyApp({super.key, required this.hasSeenOnboarding});
 
   @override
   Widget build(BuildContext context) {
@@ -60,24 +67,7 @@ class MyApp extends StatelessWidget {
           darkTheme: AppTheme.darkTheme,
           themeMode: themeProvider.themeMode,
           navigatorObservers: [AnalyticsService.observer],
-          home: FutureBuilder<bool>(
-            future: SharedPreferences.getInstance().then(
-              (prefs) => prefs.getBool('has_seen_onboarding') ?? false,
-            ),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                  backgroundColor: Color(0xFFB088F9),
-                  body: Center(
-                    child: CircularProgressIndicator(color: Colors.white),
-                  ),
-                );
-              }
-              return snapshot.data == true
-                  ? const MainLayout()
-                  : const OnboardingPage();
-            },
-          ),
+          home: hasSeenOnboarding ? const MainLayout() : const OnboardingPage(),
         );
       },
     );

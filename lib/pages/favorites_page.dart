@@ -5,7 +5,7 @@ import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/services/favorites_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/club_card.dart';
-import 'package:pulchowkx_app/widgets/empty_states.dart';
+
 import 'package:pulchowkx_app/widgets/event_card.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 
@@ -146,50 +146,79 @@ class _FavoritesPageState extends State<FavoritesPage>
       ),
       body: Column(
         children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Center(
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Colors.redAccent, Colors.pinkAccent],
-                      ),
-                      borderRadius: BorderRadius.circular(AppRadius.lg),
-                      boxShadow: AppShadows.colored(Colors.redAccent),
-                    ),
-                    child: const Hero(
-                      tag: 'hero-favorites',
-                      child: Icon(
-                        Icons.favorite_rounded,
-                        size: 32,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    'Your Favorites',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    'Quick access to your saved items',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [_buildEventsList(), _buildClubsList()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).dividerTheme.color!),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Colors.redAccent, Colors.pinkAccent],
+              ),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              boxShadow: AppShadows.colored(Colors.redAccent),
+            ),
+            child: const Icon(
+              Icons.favorite_rounded,
+              size: 24,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Your Favorites',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text('Access your saved items', style: AppTextStyles.bodySmall),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState({
+    required String title,
+    required String message,
+    required String assetPath,
+  }) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(assetPath, height: 180, fit: BoxFit.contain),
+          const SizedBox(height: AppSpacing.lg),
+          Text(title, style: Theme.of(context).textTheme.headlineMedium),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            message,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
             ),
           ),
         ],
@@ -205,29 +234,37 @@ class _FavoritesPageState extends State<FavoritesPage>
       );
     }
 
-    if (_favoriteEvents == null || _favoriteEvents!.isEmpty) {
-      return const EmptyStateWidget(
-        type: EmptyStateType.events,
-        title: 'No Favorite Events',
-        message: 'Events you save will appear here',
-      );
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 400,
-        mainAxisSpacing: AppSpacing.md,
-        crossAxisSpacing: AppSpacing.md,
-        childAspectRatio: 0.75, // Match events page grid ratio
-      ),
-      itemCount: _favoriteEvents!.length,
-      itemBuilder: (context, index) {
-        return EventCard(
-          event: _favoriteEvents![index],
-          type: EventCardType.grid,
-        );
-      },
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(child: _buildHeader()),
+        if (_favoriteEvents == null || _favoriteEvents!.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: _buildEmptyState(
+              title: 'No Favorite Events',
+              message: 'Events you save will appear here',
+              assetPath: 'assets/images/empty_events.png',
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 400,
+                mainAxisSpacing: AppSpacing.md,
+                crossAxisSpacing: AppSpacing.md,
+                childAspectRatio: 0.75, // Match events page grid ratio
+              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                return EventCard(
+                  event: _favoriteEvents![index],
+                  type: EventCardType.grid,
+                );
+              }, childCount: _favoriteEvents!.length),
+            ),
+          ),
+      ],
     );
   }
 
@@ -239,26 +276,34 @@ class _FavoritesPageState extends State<FavoritesPage>
       );
     }
 
-    if (_favoriteClubs == null || _favoriteClubs!.isEmpty) {
-      return const EmptyStateWidget(
-        type: EmptyStateType.clubs,
-        title: 'No Favorite Clubs',
-        message: 'Clubs you save will appear here',
-      );
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 400,
-        mainAxisSpacing: AppSpacing.md,
-        crossAxisSpacing: AppSpacing.md,
-        childAspectRatio: 0.85,
-      ),
-      itemCount: _favoriteClubs!.length,
-      itemBuilder: (context, index) {
-        return ClubCard(club: _favoriteClubs![index]);
-      },
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(child: _buildHeader()),
+        if (_favoriteClubs == null || _favoriteClubs!.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: _buildEmptyState(
+              title: 'No Favorite Clubs',
+              message: 'Clubs you save will appear here',
+              assetPath: 'assets/images/empty_clubs.png',
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 400,
+                mainAxisSpacing: AppSpacing.md,
+                crossAxisSpacing: AppSpacing.md,
+                childAspectRatio: 0.85,
+              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                return ClubCard(club: _favoriteClubs![index]);
+              }, childCount: _favoriteClubs!.length),
+            ),
+          ),
+      ],
     );
   }
 }

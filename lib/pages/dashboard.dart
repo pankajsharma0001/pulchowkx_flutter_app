@@ -69,13 +69,22 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ),
             const SizedBox(width: 12),
-            const Text('Sign Out'),
+            const SizedBox(width: 12),
+            Text(
+              'Sign Out',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
           ],
         ),
-        titleTextStyle: AppTextStyles.h4,
+        // removed titleTextStyle as we are styling the Text directly
         content: Text(
           'Are you sure you want to sign out?',
-          style: AppTextStyles.bodyMedium,
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         actions: [
           TextButton(
@@ -489,11 +498,15 @@ class _SignOutButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Use darker red for light mode to ensure visibility on light background
+    final color = isDark ? const Color(0xFFEF9A9A) : const Color(0xFFD32F2F);
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.errorLight,
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -505,12 +518,13 @@ class _SignOutButton extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.logout_rounded, size: 16, color: AppColors.error),
+                Icon(Icons.logout_rounded, size: 16, color: color),
                 const SizedBox(width: 6),
                 Text(
                   'Sign Out',
                   style: AppTextStyles.buttonSmall.copyWith(
-                    color: AppColors.error,
+                    color: color,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
