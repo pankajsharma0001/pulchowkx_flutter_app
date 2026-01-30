@@ -138,7 +138,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
     return Scaffold(
       appBar: const CustomAppBar(currentPage: AppPage.dashboard),
-      body: Container(
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
         decoration: BoxDecoration(
           gradient: Theme.of(context).brightness == Brightness.light
               ? AppColors.heroGradient

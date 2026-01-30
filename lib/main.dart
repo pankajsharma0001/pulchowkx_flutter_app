@@ -66,6 +66,8 @@ class MyApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: themeProvider.themeMode,
+          themeAnimationDuration: const Duration(milliseconds: 500),
+          themeAnimationCurve: Curves.easeInOut,
           navigatorObservers: [AnalyticsService.observer],
           home: hasSeenOnboarding ? const MainLayout() : const OnboardingPage(),
         );

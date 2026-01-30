@@ -113,7 +113,9 @@ class _SettingsPageState extends State<SettingsPage> {
         elevation: 0,
         backgroundColor: Colors.transparent,
       ),
-      body: Container(
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
         decoration: BoxDecoration(
           gradient: isDark
               ? AppColors.heroGradientDark

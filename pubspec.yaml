@@ -90,15 +90,21 @@ flutter_native_splash:
   android: true
   ios: true
 
-  color: "#E1BEE7"
-  color_dark: "#E1BEE7"
+  color: "#fefbea"
+  color_dark: "#1e1c46"
   image: "assets/icons/foreground.png"
+  image_dark: "assets/icons/foreground.png"
+  branding: "assets/icons/splash_branding_light.png"
+  branding_dark: "assets/icons/splash_branding_dark.png"
   # branding: "assets/icons/brandImage.png"
 
   android_12:
-    color: "#E1BEE7"
-    color_dark: "#E1BEE7"
+    color: "#fefbea"
+    color_dark: "#1e1c46"
     image: "assets/icons/foreground.png"
+    image_dark: "assets/icons/foreground.png"
+    branding: "assets/icons/splash_branding_light.png"
+    branding_dark: "assets/icons/splash_branding_dark.png"
     # branding: "assets/icons/brandImage.png"
 
 # The following section is specific to Flutter packages.
