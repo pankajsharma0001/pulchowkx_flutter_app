@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/services/notification_service.dart';
 import 'package:pulchowkx_app/main.dart' show themeProvider;
+import 'package:pulchowkx_app/widgets/theme_switcher.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -287,9 +288,9 @@ class _SettingsPageState extends State<SettingsPage> {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
-      onTap: () {
+      onTapDown: (details) {
         HapticFeedback.selectionClick();
-        onTap();
+        ThemeSwitcher.of(context)?.changeTheme(onTap, details.globalPosition);
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.sm),

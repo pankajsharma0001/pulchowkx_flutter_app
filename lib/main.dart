@@ -6,6 +6,7 @@ import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/services/theme_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:pulchowkx_app/widgets/theme_switcher.dart';
 import 'firebase_options.dart';
 
 import 'package:pulchowkx_app/services/analytics_service.dart';
@@ -60,16 +61,19 @@ class MyApp extends StatelessWidget {
     return ListenableBuilder(
       listenable: themeProvider,
       builder: (context, child) {
-        return MaterialApp(
-          title: 'PulchowkX',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: themeProvider.themeMode,
-          themeAnimationDuration: const Duration(milliseconds: 500),
-          themeAnimationCurve: Curves.easeInOut,
-          navigatorObservers: [AnalyticsService.observer],
-          home: hasSeenOnboarding ? const MainLayout() : const OnboardingPage(),
+        return ThemeSwitcher(
+          child: MaterialApp(
+            title: 'PulchowkX',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            themeAnimationDuration: Duration.zero,
+            navigatorObservers: [AnalyticsService.observer],
+            home: hasSeenOnboarding
+                ? const MainLayout()
+                : const OnboardingPage(),
+          ),
         );
       },
     );
