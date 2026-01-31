@@ -43,6 +43,7 @@ class FirebaseServices {
 
         // Sync user to Postgres database
         final fcmToken = await NotificationService.getToken();
+
         final dbUserId = await _apiService.syncUser(
           authStudentId: user.uid,
           email: user.email ?? '',

@@ -20,6 +20,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _upcomingEvents = true;
   bool _marketplaceAlerts = true;
   bool _universityAnnouncements = true;
+  bool _chatMessages = true;
   bool _isLoading = true;
 
   @override
@@ -39,6 +40,7 @@ class _SettingsPageState extends State<SettingsPage> {
           hasPermission && (prefs.getBool('notify_books') ?? true);
       _universityAnnouncements =
           hasPermission && (prefs.getBool('notify_announcements') ?? true);
+      _chatMessages = hasPermission && (prefs.getBool('notify_chat') ?? true);
       _isLoading = false;
     });
   }
@@ -64,18 +66,23 @@ class _SettingsPageState extends State<SettingsPage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(key, value);
 
-    // Sync with Firebase Topics
-    final topic = key.replaceFirst('notify_', '');
-    if (value) {
-      await NotificationService.subscribeToTopic(topic);
+    // Sync with Firebase Topics (for non-chat topics)
+    if (key != 'notify_chat') {
+      final topic = key.replaceFirst('notify_', '');
+      if (value) {
+        await NotificationService.subscribeToTopic(topic);
+      } else {
+        await NotificationService.unsubscribeFromTopic(topic);
+      }
     } else {
-      await NotificationService.unsubscribeFromTopic(topic);
+      // For chat, we only store locally since the backend check was removed
     }
 
     setState(() {
       if (key == 'notify_events') _upcomingEvents = value;
       if (key == 'notify_books') _marketplaceAlerts = value;
       if (key == 'notify_announcements') _universityAnnouncements = value;
+      if (key == 'notify_chat') _chatMessages = value;
     });
   }
 
@@ -291,6 +298,13 @@ class _SettingsPageState extends State<SettingsPage> {
                         onChanged: (v) =>
                             _toggleNotification('notify_announcements', v),
                         icon: Icons.campaign_rounded,
+                      ),
+                      _buildSettingTile(
+                        title: 'Chat Messages',
+                        subtitle: 'Direct notifications for new messages',
+                        value: _chatMessages,
+                        onChanged: (v) => _toggleNotification('notify_chat', v),
+                        icon: Icons.chat_bubble_rounded,
                       ),
                       const SizedBox(height: AppSpacing.xl),
 

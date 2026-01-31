@@ -26,7 +26,7 @@ class MarketplaceMessage {
       senderId: json['senderId'],
       content: json['content'],
       isRead: json['isRead'] == "true" || json['isRead'] == true,
-      createdAt: DateTime.parse(json['createdAt']),
+      createdAt: DateTime.parse(json['createdAt']).toLocal(),
       sender: json['sender'] != null
           ? BookSeller.fromJson(json['sender'])
           : null,
@@ -65,8 +65,8 @@ class MarketplaceConversation {
       listingId: json['listingId'],
       buyerId: json['buyerId'],
       sellerId: json['sellerId'],
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
+      createdAt: DateTime.parse(json['createdAt']).toLocal(),
+      updatedAt: DateTime.parse(json['updatedAt']).toLocal(),
       listing: json['listing'] != null
           ? BookListing.fromJson(json['listing'])
           : null,

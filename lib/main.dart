@@ -15,6 +15,9 @@ import 'package:pulchowkx_app/services/notification_service.dart';
 // Global ThemeProvider instance for easy access
 final themeProvider = ThemeProvider();
 
+// Global Navigator Key for context-less navigation (e.g., from NotificationService)
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
@@ -63,6 +66,7 @@ class MyApp extends StatelessWidget {
       builder: (context, child) {
         return ThemeSwitcher(
           child: MaterialApp(
+            navigatorKey: navigatorKey,
             title: 'PulchowkX',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,

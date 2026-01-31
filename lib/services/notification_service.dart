@@ -3,6 +3,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pulchowkx_app/main.dart' show navigatorKey;
+import 'package:pulchowkx_app/pages/marketplace/chat_room.dart';
+import 'dart:convert';
 
 class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
@@ -29,7 +33,32 @@ class NotificationService {
         initSettings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
           // Handle notification tap
-          debugPrint('Notification tapped: ${response.payload}');
+          if (response.payload != null) {
+            try {
+              // The payload is stored as a stringified map from message.data
+              final data = Map<String, dynamic>.from(
+                jsonDecode(
+                  response.payload!
+                      .replaceAll('{', '{"')
+                      .replaceAll(': ', '": "')
+                      .replaceAll(', ', '", "')
+                      .replaceAll('}', '"}'),
+                ),
+              );
+              _handleNotificationClick(data);
+            } catch (e) {
+              // Sometimes payload is just a simple string or already JSON
+              try {
+                final data =
+                    jsonDecode(response.payload!) as Map<String, dynamic>;
+                _handleNotificationClick(data);
+              } catch (_) {
+                debugPrint(
+                  'Could not parse notification payload: ${response.payload}',
+                );
+              }
+            }
+          }
         },
       );
 
@@ -49,9 +78,17 @@ class NotificationService {
             ?.createNotificationChannel(channel);
       }
 
-      // Auto-subscribe to default topics
-      await subscribeToTopic('events');
-      await subscribeToTopic('books');
+      // Auto-subscribe to default topics if enabled in settings
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool('notify_events') ?? true) {
+        await subscribeToTopic('events');
+      }
+      if (prefs.getBool('notify_books') ?? true) {
+        await subscribeToTopic('books');
+      }
+      if (prefs.getBool('notify_announcements') ?? true) {
+        await subscribeToTopic('announcements');
+      }
 
       // Sync FCM token if user is already logged in
       await syncToken();
@@ -97,6 +134,7 @@ class NotificationService {
       // Handle message open app
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         debugPrint('A new onMessageOpenedApp event was published!');
+        _handleNotificationClick(message.data);
       });
     } catch (e) {
       debugPrint('Notification service initialization failed: $e');
@@ -154,6 +192,31 @@ class NotificationService {
     final settings = await _messaging.getNotificationSettings();
     return settings.authorizationStatus == AuthorizationStatus.authorized ||
         settings.authorizationStatus == AuthorizationStatus.provisional;
+  }
+
+  static Future<void> _handleNotificationClick(
+    Map<String, dynamic> data,
+  ) async {
+    if (data['type'] == 'chat_message' && data['conversationId'] != null) {
+      final conversationId = int.tryParse(data['conversationId'].toString());
+      if (conversationId == null) return;
+
+      // Navigate to chat room
+      // Note: ChatRoomPage currently requires a MarketplaceConversation object.
+      // We'll refactor it or fetch it here.
+      final apiService = ApiService();
+      final conversations = await apiService.getConversations();
+      final conversation = conversations.firstWhere(
+        (c) => c.id == conversationId,
+        orElse: () => throw Exception('Conversation not found'),
+      );
+
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(
+          builder: (context) => ChatRoomPage(conversation: conversation),
+        ),
+      );
+    }
   }
 }
 
