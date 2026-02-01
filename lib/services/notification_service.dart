@@ -43,28 +43,11 @@ class NotificationService {
           // Handle notification tap
           if (response.payload != null) {
             try {
-              // The payload is stored as a stringified map from message.data
-              final data = Map<String, dynamic>.from(
-                jsonDecode(
-                  response.payload!
-                      .replaceAll('{', '{"')
-                      .replaceAll(': ', '": "')
-                      .replaceAll(', ', '", "')
-                      .replaceAll('}', '"}'),
-                ),
-              );
+              final data =
+                  jsonDecode(response.payload!) as Map<String, dynamic>;
               _handleNotificationClick(data);
             } catch (e) {
-              // Sometimes payload is just a simple string or already JSON
-              try {
-                final data =
-                    jsonDecode(response.payload!) as Map<String, dynamic>;
-                _handleNotificationClick(data);
-              } catch (_) {
-                debugPrint(
-                  'Could not parse notification payload: ${response.payload}',
-                );
-              }
+              debugPrint('Error parsing notification payload: $e');
             }
           }
         },
@@ -134,7 +117,7 @@ class NotificationService {
                 presentSound: true,
               ),
             ),
-            payload: message.data.toString(),
+            payload: jsonEncode(message.data),
           );
 
           // Show chat bubble if it's a chat message
@@ -218,17 +201,25 @@ class NotificationService {
       // Note: ChatRoomPage currently requires a MarketplaceConversation object.
       // We'll refactor it or fetch it here.
       final apiService = ApiService();
-      final conversations = await apiService.getConversations();
-      final conversation = conversations.firstWhere(
-        (c) => c.id == conversationId,
-        orElse: () => throw Exception('Conversation not found'),
-      );
+      try {
+        final conversations = await apiService.getConversations();
+        final conversationIndex = conversations.indexWhere(
+          (c) => c.id == conversationId,
+        );
 
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(
-          builder: (context) => ChatRoomPage(conversation: conversation),
-        ),
-      );
+        if (conversationIndex != -1) {
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (context) =>
+                  ChatRoomPage(conversation: conversations[conversationIndex]),
+            ),
+          );
+        } else {
+          debugPrint('Conversation $conversationId not found in user list');
+        }
+      } catch (e) {
+        debugPrint('Error navigating to chat: $e');
+      }
     }
   }
 

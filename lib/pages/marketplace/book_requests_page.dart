@@ -59,6 +59,10 @@ class _BookRequestsPageState extends State<BookRequestsPage>
       final received = requestsNested.expand((r) => r).toList();
 
       if (mounted) {
+        // Sort by latest first
+        sent.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        received.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
         setState(() {
           _sentRequests = sent;
           _receivedRequests = received;
@@ -145,6 +149,51 @@ class _BookRequestsPageState extends State<BookRequestsPage>
     }
   }
 
+  Future<void> _deleteAllRequests(bool isSent) async {
+    final requests = isSent ? _sentRequests : _receivedRequests;
+    if (requests.isEmpty) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete All ${isSent ? 'Sent' : 'Received'}?'),
+        content: Text(
+          'Are you sure you want to permanently remove all ${requests.length} requests from your ${isSent ? 'sent' : 'received'} history?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Delete All'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isLoading = true);
+      int successCount = 0;
+      for (var req in requests) {
+        final res = await _apiService.deletePurchaseRequest(req.id);
+        if (res['success'] == true) successCount++;
+      }
+
+      await _loadData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Deleted $successCount requests.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -198,27 +247,63 @@ class _BookRequestsPageState extends State<BookRequestsPage>
 
     return RefreshIndicator(
       onRefresh: _loadData,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        itemCount: _sentRequests.length,
-        itemBuilder: (context, index) {
-          final request = _sentRequests[index];
-          return _RequestCard(
-            request: request,
-            isSent: true,
-            onCancel: () => _cancelRequest(request),
-            onRemove: () => _deleteRequest(request),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      BookDetailsPage(bookId: request.listingId),
-                ),
-              ).then((_) => _loadData());
-            },
-          );
-        },
+      child: Column(
+        children: [
+          if (_sentRequests.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${_sentRequests.length} requests sent',
+                    style: AppTextStyles.bodySmall,
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _deleteAllRequests(true),
+                    icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+                    label: const Text('Delete All'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                0,
+                AppSpacing.md,
+                AppSpacing.md,
+              ),
+              itemCount: _sentRequests.length,
+              itemBuilder: (context, index) {
+                final request = _sentRequests[index];
+                return _RequestCard(
+                  request: request,
+                  isSent: true,
+                  onCancel: () => _cancelRequest(request),
+                  onRemove: () => _deleteRequest(request),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            BookDetailsPage(bookId: request.listingId),
+                      ),
+                    ).then((_) => _loadData());
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -242,28 +327,64 @@ class _BookRequestsPageState extends State<BookRequestsPage>
 
     return RefreshIndicator(
       onRefresh: _loadData,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        itemCount: _receivedRequests.length,
-        itemBuilder: (context, index) {
-          final request = _receivedRequests[index];
-          return _RequestCard(
-            request: request,
-            isSent: false,
-            onAccept: () => _respondToRequest(request, true),
-            onReject: () => _respondToRequest(request, false),
-            onRemove: () => _deleteRequest(request),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      BookDetailsPage(bookId: request.listingId),
-                ),
-              ).then((_) => _loadData());
-            },
-          );
-        },
+      child: Column(
+        children: [
+          if (_receivedRequests.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${_receivedRequests.length} requests received',
+                    style: AppTextStyles.bodySmall,
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _deleteAllRequests(false),
+                    icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+                    label: const Text('Delete All'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                0,
+                AppSpacing.md,
+                AppSpacing.md,
+              ),
+              itemCount: _receivedRequests.length,
+              itemBuilder: (context, index) {
+                final request = _receivedRequests[index];
+                return _RequestCard(
+                  request: request,
+                  isSent: false,
+                  onAccept: () => _respondToRequest(request, true),
+                  onReject: () => _respondToRequest(request, false),
+                  onRemove: () => _deleteRequest(request),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            BookDetailsPage(bookId: request.listingId),
+                      ),
+                    ).then((_) => _loadData());
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
