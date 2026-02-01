@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pulchowkx_app/main.dart' show navigatorKey;
 import 'package:pulchowkx_app/pages/marketplace/chat_room.dart';
 import 'dart:convert';
-import 'package:dash_bubble/dash_bubble.dart';
 
 class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
@@ -17,15 +16,6 @@ class NotificationService {
   static Future<void> initialize() async {
     try {
       await _messaging.requestPermission(alert: true, badge: true, sound: true);
-
-      // DashBubble permissions for Android 13+
-      if (Platform.isAndroid) {
-        final hasPermission = await DashBubble.instance
-            .hasPostNotificationsPermission();
-        if (!hasPermission) {
-          await DashBubble.instance.requestPostNotificationsPermission();
-        }
-      }
 
       // Initialize local notifications for foreground alerts
       const androidSettings = AndroidInitializationSettings(
@@ -119,11 +109,6 @@ class NotificationService {
             ),
             payload: jsonEncode(message.data),
           );
-
-          // Show chat bubble if it's a chat message
-          if (message.data['type'] == 'chat_message') {
-            await _showChatBubble(message.data);
-          }
         }
       });
 
@@ -253,28 +238,6 @@ class NotificationService {
       } catch (e) {
         debugPrint('Error navigating to chat: $e');
       }
-    }
-  }
-
-  static Future<void> _showChatBubble(Map<String, dynamic> data) async {
-    if (!Platform.isAndroid) return;
-
-    final hasPermission = await DashBubble.instance.hasOverlayPermission();
-    if (!hasPermission) {
-      await DashBubble.instance.requestOverlayPermission();
-    }
-
-    final isRunning = await DashBubble.instance.isRunning();
-    if (!isRunning) {
-      await DashBubble.instance.startBubble(
-        bubbleOptions: BubbleOptions(bubbleIcon: 'ic_launcher'),
-        notificationOptions: NotificationOptions(
-          title: data['senderName'] ?? 'New Message',
-          body: data['content'] ?? 'You have a new message',
-          icon: 'ic_launcher',
-        ),
-        onTap: () => _handleNotificationClick(data),
-      );
     }
   }
 }

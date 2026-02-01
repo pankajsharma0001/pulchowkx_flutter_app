@@ -20,6 +20,7 @@ class ThemeSwitcherState extends State<ThemeSwitcher>
   ui.Image? _image;
   final GlobalKey _boundaryKey = GlobalKey();
   late AnimationController _animationController;
+  Offset? _tapOffset;
   bool _isDarkToLight = false;
 
   @override
@@ -28,6 +29,7 @@ class ThemeSwitcherState extends State<ThemeSwitcher>
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
+      reverseDuration: const Duration(milliseconds: 400),
     );
     _animationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -70,6 +72,7 @@ class ThemeSwitcherState extends State<ThemeSwitcher>
 
       setState(() {
         _image = image;
+        _tapOffset = offset;
         _isDarkToLight = isCurrentlyDark;
       });
 
@@ -88,69 +91,94 @@ class ThemeSwitcherState extends State<ThemeSwitcher>
   Widget build(BuildContext context) {
     return RepaintBoundary(
       key: _boundaryKey,
-      child: Directionality(
+      child: Stack(
         textDirection: TextDirection.ltr,
-        child: Stack(
-          alignment: Alignment.topLeft,
-          children: [
-            widget.child,
-            if (_image != null)
-              AnimatedBuilder(
+        children: [
+          widget.child,
+          if (_image != null)
+            IgnorePointer(
+              child: AnimatedBuilder(
                 animation: _animationController,
                 builder: (context, child) {
-                  return CustomPaint(
-                    painter: _FadePainter(
-                      image: _image!,
+                  return ClipPath(
+                    clipper: _CircularRevealClipper(
                       fraction: _animationController.value,
+                      center:
+                          _tapOffset ??
+                          Offset(
+                            MediaQuery.of(context).size.width / 2,
+                            MediaQuery.of(context).size.height / 2,
+                          ),
                       isDarkToLight: _isDarkToLight,
                     ),
-                    size: Size.infinite,
+                    child: RawImage(
+                      image: _image,
+                      fit: BoxFit.cover,
+                      width: MediaQuery.of(context).size.width,
+                      height: MediaQuery.of(context).size.height,
+                    ),
                   );
                 },
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
 }
 
-class _FadePainter extends CustomPainter {
-  final ui.Image image;
+class _CircularRevealClipper extends CustomClipper<Path> {
   final double fraction;
+  final Offset center;
   final bool isDarkToLight;
 
-  _FadePainter({
-    required this.image,
+  _CircularRevealClipper({
     required this.fraction,
+    required this.center,
     required this.isDarkToLight,
   });
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint();
+  Path getClip(Size size) {
+    final Path path = Path();
+    // Calculate max radius from center to corners
+    final double maxRadius = _calcMaxRadius(size, center);
 
     if (isDarkToLight) {
-      // Dark -> Light: Requested Fade Out animation
-      paint.color = Colors.white.withValues(alpha: 1.0 - fraction);
+      // Dark -> Light (Grow): Old image is Dark (Top). New is Light (Bottom).
+      // We want Light to "Grow" from center.
+      // So Top Layer (Dark) must have a "Hole" that grows.
+      // Hole Radius: 0 -> Max
+      final double holeRadius = maxRadius * fraction;
+
+      path.addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+      path.addOval(Rect.fromCircle(center: center, radius: holeRadius));
+      path.fillType = PathFillType.evenOdd;
     } else {
-      // Light -> Dark: Requested Fade In animation
-      // We draw the OLD image (light) and fade it out to reveal the NEW (dark)
-      paint.color = Colors.white.withValues(alpha: 1.0 - fraction);
+      // Light -> Dark (Shrink): Old image is Light (Top). New is Dark (Bottom).
+      // We want Light to "Shrink" into center.
+      // So Top Layer (Light) is a circle that shrinks.
+      // Circle Radius: Max -> 0
+      final double radius = maxRadius * (1.0 - fraction);
+
+      path.addOval(Rect.fromCircle(center: center, radius: radius));
     }
 
-    canvas.saveLayer(Rect.fromLTWH(0, 0, size.width, size.height), paint);
-    paintImage(
-      canvas: canvas,
-      rect: Rect.fromLTWH(0, 0, size.width, size.height),
-      image: image,
-      fit: BoxFit.fill,
-    );
-    canvas.restore();
+    return path;
+  }
+
+  double _calcMaxRadius(Size size, Offset center) {
+    final double w = size.width;
+    final double h = size.height;
+    final double toTL = center.distance;
+    final double toTR = (Offset(w, 0) - center).distance;
+    final double toBL = (Offset(0, h) - center).distance;
+    final double toBR = (Offset(w, h) - center).distance;
+    return [toTL, toTR, toBL, toBR].reduce((a, b) => a > b ? a : b);
   }
 
   @override
-  bool shouldRepaint(_FadePainter oldDelegate) {
-    return oldDelegate.fraction != fraction;
+  bool shouldReclip(_CircularRevealClipper oldClipper) {
+    return oldClipper.fraction != fraction;
   }
 }

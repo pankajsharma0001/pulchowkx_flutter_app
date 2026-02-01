@@ -63,7 +63,6 @@ dependencies:
   hive_flutter: ^1.1.0
   path_provider: ^2.1.5
   confetti: ^0.8.0
-  dash_bubble: ^2.0.0
 
 dev_dependencies:
   flutter_test:

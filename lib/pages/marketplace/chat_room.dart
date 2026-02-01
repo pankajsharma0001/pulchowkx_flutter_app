@@ -54,7 +54,6 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     _userId = await _apiService.getDatabaseUserId();
     await _fetchMessages();
     setState(() => _isLoading = false);
-    _scrollToBottom();
   }
 
   void _startPolling() {
@@ -68,8 +67,8 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     final messages = await _apiService.getChatMessages(_conversationId);
     if (mounted && messages.isNotEmpty) {
       setState(() {
-        _messages = messages.reversed
-            .toList(); // API returns desc, we want asc for bubble list
+        _messages =
+            messages; // API returns desc (Newest first), which matches reverse ListView
       });
     }
   }
@@ -112,7 +111,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+          0, // Scroll to start (bottom) for reverse list
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -253,6 +252,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                 : _messages.isEmpty
                 ? _buildEmptyState()
                 : ListView.builder(
+                    reverse: true, // Start from bottom
                     controller: _scrollController,
                     padding: const EdgeInsets.all(AppSpacing.md),
                     itemCount: _messages.length,

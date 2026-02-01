@@ -355,24 +355,11 @@ class ClassroomShimmer extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(height: 18, width: 120, color: Colors.white),
-                    const SizedBox(height: 4),
-                    Container(height: 12, width: 200, color: Colors.white),
-                  ],
-                ),
+                child: Container(height: 18, width: 120, color: Colors.white),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          Container(height: 24, width: 180, color: Colors.white),
-          const SizedBox(height: 8),
-          Container(height: 14, width: double.infinity, color: Colors.white),
-          const SizedBox(height: 4),
-          Container(height: 14, width: 250, color: Colors.white),
-          const SizedBox(height: AppSpacing.xl),
           Row(
             children: [
               Expanded(
@@ -393,8 +380,6 @@ class ClassroomShimmer extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          Container(height: 20, width: 140, color: Colors.white),
-          const SizedBox(height: AppSpacing.md),
           const CardShimmer(),
           const CardShimmer(),
         ],
@@ -716,6 +701,73 @@ class RequestCardShimmer extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class SellBookShimmer extends StatelessWidget {
+  const SellBookShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      physics: const NeverScrollableScrollPhysics(),
+      child: ShimmerLoader(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Images
+            Container(height: 14, width: 80, color: Colors.white),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                BoxShimmer(height: 100, width: 100, borderRadius: AppRadius.md),
+                const SizedBox(width: AppSpacing.sm),
+                BoxShimmer(height: 100, width: 100, borderRadius: AppRadius.md),
+                const SizedBox(width: AppSpacing.sm),
+                BoxShimmer(height: 100, width: 100, borderRadius: AppRadius.md),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // Text Fields
+            _buildFieldShimmer(),
+            _buildFieldShimmer(),
+            _buildFieldShimmer(),
+
+            const SizedBox(height: AppSpacing.md),
+            Container(height: 14, width: 100, color: Colors.white),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                BoxShimmer(height: 32, width: 80, borderRadius: AppRadius.full),
+                const SizedBox(width: 8),
+                BoxShimmer(height: 32, width: 80, borderRadius: AppRadius.full),
+                const SizedBox(width: 8),
+                BoxShimmer(height: 32, width: 80, borderRadius: AppRadius.full),
+              ],
+            ),
+
+            const SizedBox(height: AppSpacing.lg),
+            _buildFieldShimmer(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFieldShimmer() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(height: 14, width: 120, color: Colors.white),
+          const SizedBox(height: 8),
+          BoxShimmer(height: 50, borderRadius: AppRadius.sm),
+        ],
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/models/book_listing.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 
 class SellBookPage extends StatefulWidget {
   final BookListing? existingBook; // For edit mode
@@ -255,7 +256,7 @@ class _SellBookPageState extends State<SellBookPage> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SellBookShimmer()
           : SingleChildScrollView(
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: Form(
