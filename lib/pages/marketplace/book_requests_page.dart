@@ -5,6 +5,8 @@ import 'package:pulchowkx_app/pages/book_details.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
+import 'package:pulchowkx_app/pages/marketplace/chat_room.dart';
+import 'package:pulchowkx_app/models/chat.dart';
 
 class BookRequestsPage extends StatefulWidget {
   const BookRequestsPage({super.key});
@@ -145,6 +147,50 @@ class _BookRequestsPageState extends State<BookRequestsPage>
             ),
           );
         }
+      }
+    }
+  }
+
+  Future<void> _openChatWithBuyer(BookPurchaseRequest request) async {
+    // Check if conversation exists.
+    final conversations = await _apiService.getConversations();
+    MarketplaceConversation? existingConvo;
+    try {
+      existingConvo = conversations.firstWhere(
+        (c) => c.listingId == request.listingId && c.buyerId == request.buyerId,
+      );
+    } catch (_) {
+      existingConvo = null;
+    }
+
+    if (mounted) {
+      if (existingConvo != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatRoomPage(conversation: existingConvo!),
+          ),
+        );
+      } else {
+        // Create dummy convo with buyer info
+        final dummyConvo = MarketplaceConversation(
+          id: 0,
+          listingId: request.listingId,
+          buyerId: request.buyerId,
+          sellerId: request.listing?.sellerId ?? '',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          listing: request.listing,
+          seller: request.listing?.seller,
+          buyer: request.buyer,
+        );
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatRoomPage(conversation: dummyConvo),
+          ),
+        );
       }
     }
   }
@@ -290,6 +336,7 @@ class _BookRequestsPageState extends State<BookRequestsPage>
                   isSent: true,
                   onCancel: () => _cancelRequest(request),
                   onRemove: () => _deleteRequest(request),
+                  onChat: () => _openChatWithBuyer(request),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -371,6 +418,7 @@ class _BookRequestsPageState extends State<BookRequestsPage>
                   onAccept: () => _respondToRequest(request, true),
                   onReject: () => _respondToRequest(request, false),
                   onRemove: () => _deleteRequest(request),
+                  onChat: () => _openChatWithBuyer(request),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -415,6 +463,7 @@ class _RequestCard extends StatelessWidget {
   final VoidCallback? onReject;
   final VoidCallback? onCancel;
   final VoidCallback onRemove;
+  final VoidCallback? onChat;
   final VoidCallback onTap;
 
   const _RequestCard({
@@ -424,6 +473,7 @@ class _RequestCard extends StatelessWidget {
     this.onReject,
     this.onCancel,
     required this.onRemove,
+    this.onChat,
     required this.onTap,
   });
 
@@ -564,21 +614,53 @@ class _RequestCard extends StatelessWidget {
               ] else if (!isSent &&
                   request.status == RequestStatus.accepted) ...[
                 const SizedBox(height: AppSpacing.md),
-                Text(
-                  'Contact information shared with buyer.',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.success,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Contact information shared with buyer.',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.success,
+                        ),
+                      ),
+                    ),
+                    if (onChat != null)
+                      TextButton.icon(
+                        onPressed: onChat,
+                        icon: const Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          size: 18,
+                        ),
+                        label: const Text('Message'),
+                      ),
+                  ],
                 ),
               ] else if (isSent &&
                   request.status == RequestStatus.accepted) ...[
                 const SizedBox(height: AppSpacing.md),
-                Text(
-                  'Seller contact shared! Tap for details.',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.success,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Seller contact shared! Tap for details.',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.success,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    if (onChat != null)
+                      TextButton.icon(
+                        onPressed: onChat,
+                        icon: const Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          size: 18,
+                        ),
+                        label: const Text('Message'),
+                      ),
+                  ],
                 ),
               ],
             ],

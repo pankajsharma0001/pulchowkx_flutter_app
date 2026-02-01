@@ -2078,12 +2078,21 @@ class ApiService {
   /// Send a message for a listing
   Future<Map<String, dynamic>> sendMessage(
     int listingId,
-    String content,
-  ) async {
+    String content, {
+    String? buyerId,
+  }) async {
     try {
       final userId = await getDatabaseUserId();
       if (userId == null) {
         return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final Map<String, dynamic> body = {
+        'listingId': listingId,
+        'content': content,
+      };
+      if (buyerId != null) {
+        body['buyerId'] = buyerId;
       }
 
       final response = await http.post(
@@ -2092,7 +2101,7 @@ class ApiService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $userId',
         },
-        body: jsonEncode({'listingId': listingId, 'content': content}),
+        body: jsonEncode(body),
       );
 
       final json = jsonDecode(response.body);
@@ -2105,6 +2114,40 @@ class ApiService {
       };
     } catch (e) {
       debugPrint('Error sending message: $e');
+      return {'success': false, 'message': ' Error: $e'};
+    }
+  }
+
+  /// Send a message to a specific conversation
+  Future<Map<String, dynamic>> sendMessageToConversation(
+    int conversationId,
+    String content,
+  ) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/chat/conversations/$conversationId/messages'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode({'content': content}),
+      );
+
+      final json = jsonDecode(response.body);
+      return {
+        'success': json['success'] == true,
+        'data': json['data'] != null
+            ? MarketplaceMessage.fromJson(json['data'] as Map<String, dynamic>)
+            : null,
+        'message': json['message'],
+      };
+    } catch (e) {
+      debugPrint('Error sending message to conversation: $e');
       return {'success': false, 'message': ' Error: $e'};
     }
   }

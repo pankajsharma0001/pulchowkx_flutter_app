@@ -132,6 +132,29 @@ class NotificationService {
         debugPrint('A new onMessageOpenedApp event was published!');
         _handleNotificationClick(message.data);
       });
+
+      // Handle terminated state
+      final initialMessage = await _messaging.getInitialMessage();
+      if (initialMessage != null) {
+        debugPrint('App opened from terminated state via FCM');
+        _handleNotificationClick(initialMessage.data);
+      }
+
+      final launchDetails = await _localNotifications
+          .getNotificationAppLaunchDetails();
+      if (launchDetails != null && launchDetails.didNotificationLaunchApp) {
+        if (launchDetails.notificationResponse?.payload != null) {
+          debugPrint('App opened from terminated state via local notification');
+          try {
+            final data =
+                jsonDecode(launchDetails.notificationResponse!.payload!)
+                    as Map<String, dynamic>;
+            _handleNotificationClick(data);
+          } catch (e) {
+            debugPrint('Error parsing launch notification: $e');
+          }
+        }
+      }
     } catch (e) {
       debugPrint('Notification service initialization failed: $e');
     }
@@ -197,9 +220,19 @@ class NotificationService {
       final conversationId = int.tryParse(data['conversationId'].toString());
       if (conversationId == null) return;
 
-      // Navigate to chat room
-      // Note: ChatRoomPage currently requires a MarketplaceConversation object.
-      // We'll refactor it or fetch it here.
+      // Ensure navigator is ready, especially on terminated launch
+      int retries = 0;
+      while (navigatorKey.currentState == null && retries < 10) {
+        debugPrint('Waiting for navigator state... (retry $retries)');
+        await Future.delayed(const Duration(milliseconds: 500));
+        retries++;
+      }
+
+      if (navigatorKey.currentState == null) {
+        debugPrint('Navigator state is still null after retries');
+        return;
+      }
+
       final apiService = ApiService();
       try {
         final conversations = await apiService.getConversations();

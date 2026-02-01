@@ -22,18 +22,19 @@ class ChatRoomPage extends StatefulWidget {
 
 class _ChatRoomPageState extends State<ChatRoomPage> {
   final ApiService _apiService = ApiService();
-  final TextEditingController _messageController = TextEditingController();
+  late int _conversationId;
   final ScrollController _scrollController = ScrollController();
-
+  final TextEditingController _messageController = TextEditingController();
   List<MarketplaceMessage> _messages = [];
   bool _isLoading = true;
   bool _isSending = false;
-  String? _userId;
   Timer? _pollingTimer;
+  String? _userId;
 
   @override
   void initState() {
     super.initState();
+    _conversationId = widget.conversation.id;
     if (widget.initialMessage != null) {
       _messageController.text = widget.initialMessage!;
     }
@@ -63,7 +64,8 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   }
 
   Future<void> _fetchMessages() async {
-    final messages = await _apiService.getChatMessages(widget.conversation.id);
+    if (_conversationId == 0) return;
+    final messages = await _apiService.getChatMessages(_conversationId);
     if (mounted && messages.isNotEmpty) {
       setState(() {
         _messages = messages.reversed
@@ -79,12 +81,21 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     setState(() => _isSending = true);
     _messageController.clear();
 
-    final result = await _apiService.sendMessage(
-      widget.conversation.listingId,
-      text,
-    );
+    final result = _conversationId != 0
+        ? await _apiService.sendMessageToConversation(_conversationId, text)
+        : await _apiService.sendMessage(
+            widget.conversation.listingId,
+            text,
+            buyerId: widget.conversation.buyerId,
+          );
 
     if (mounted) {
+      if (result['success'] == true &&
+          _conversationId == 0 &&
+          result['data'] != null) {
+        final msg = result['data'] as MarketplaceMessage;
+        _conversationId = msg.conversationId;
+      }
       setState(() => _isSending = false);
       if (result['success'] == true) {
         await _fetchMessages();
@@ -135,9 +146,11 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     );
 
     if (confirmed == true) {
-      final result = await _apiService.deleteConversation(
-        widget.conversation.id,
-      );
+      if (_conversationId == 0) {
+        Navigator.pop(context);
+        return;
+      }
+      final result = await _apiService.deleteConversation(_conversationId);
       if (mounted) {
         if (result['success'] == true) {
           ScaffoldMessenger.of(
