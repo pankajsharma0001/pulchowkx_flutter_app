@@ -123,76 +123,82 @@ class _ClassroomPageState extends State<ClassroomPage> {
               ? AppColors.heroGradient
               : AppColors.heroGradientDark,
         ),
-        child: _isLoading
-            ? Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: ClassroomShimmer(isTeacher: _isTeacher),
-              )
-            : _errorMessage != null
-            ? _buildError()
-            : _buildContent(),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
+              const SizedBox(height: AppSpacing.lg),
+              if (_isLoading)
+                ClassroomShimmer(isTeacher: _isTeacher)
+              else if (_errorMessage != null)
+                _buildError()
+              else
+                _buildBodyContent(),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildError() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 48, color: AppColors.error),
-          const SizedBox(height: AppSpacing.md),
-          Text(_errorMessage!, style: AppTextStyles.bodyMedium),
-          const SizedBox(height: AppSpacing.md),
-          ElevatedButton(onPressed: _loadData, child: const Text('Retry')),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            const SizedBox(height: AppSpacing.md),
+            Text(_errorMessage!, style: AppTextStyles.bodyMedium),
+            const SizedBox(height: AppSpacing.md),
+            ElevatedButton(onPressed: _loadData, child: const Text('Retry')),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildContent() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          const SizedBox(height: AppSpacing.lg),
-          if (_isTeacher)
-            TeacherView(
-              subjects: _subjects,
-              apiService: _apiService,
-              onRefresh: _loadData,
-            )
-          else if (_profile == null || _isEditingProfile)
-            SetupForm(
-              faculties: _faculties,
-              selectedFaculty: _selectedFaculty,
-              selectedSemester: _selectedSemester,
-              semesterStartDate: _semesterStartDate,
-              isEditingProfile: _isEditingProfile,
-              onFacultyChanged: (value) => setState(() {
-                _selectedFaculty = value;
-                _selectedSemester = 1;
-              }),
-              onSemesterChanged: (value) =>
-                  setState(() => _selectedSemester = value),
-              onStartDateChanged: (value) =>
-                  setState(() => _semesterStartDate = value),
-              onSubmit: _setupProfile,
-              onCancel: () => setState(() => _isEditingProfile = false),
-            )
-          else
-            StudentView(
-              profile: _profile!,
-              subjects: _subjects,
-              apiService: _apiService,
-              isEditingProfile: _isEditingProfile,
-              onRefresh: _loadData,
-              onEditProfile: () => setState(() => _isEditingProfile = true),
-            ),
-        ],
-      ),
+  Widget _buildBodyContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_isTeacher)
+          TeacherView(
+            subjects: _subjects,
+            apiService: _apiService,
+            onRefresh: _loadData,
+          )
+        else if (_profile == null || _isEditingProfile)
+          SetupForm(
+            faculties: _faculties,
+            selectedFaculty: _selectedFaculty,
+            selectedSemester: _selectedSemester,
+            semesterStartDate: _semesterStartDate,
+            isEditingProfile: _isEditingProfile,
+            onFacultyChanged: (value) => setState(() {
+              _selectedFaculty = value;
+              _selectedSemester = 1;
+            }),
+            onSemesterChanged: (value) =>
+                setState(() => _selectedSemester = value),
+            onStartDateChanged: (value) =>
+                setState(() => _semesterStartDate = value),
+            onSubmit: _setupProfile,
+            onCancel: () => setState(() => _isEditingProfile = false),
+          )
+        else
+          StudentView(
+            profile: _profile!,
+            subjects: _subjects,
+            apiService: _apiService,
+            isEditingProfile: _isEditingProfile,
+            onRefresh: _loadData,
+            onEditProfile: () => setState(() => _isEditingProfile = true),
+          ),
+      ],
     );
   }
 

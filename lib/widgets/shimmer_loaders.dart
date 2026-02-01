@@ -334,56 +334,28 @@ class ClassroomShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      physics: const NeverScrollableScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: const Icon(
-                  Icons.school_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Container(height: 18, width: 120, color: Colors.white),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: BoxShimmer(height: 80, borderRadius: AppRadius.lg),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: BoxShimmer(height: 80, borderRadius: AppRadius.lg),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: BoxShimmer(height: 140, borderRadius: AppRadius.lg),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          const CardShimmer(),
-          const CardShimmer(),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(child: BoxShimmer(height: 80, borderRadius: AppRadius.lg)),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(child: BoxShimmer(height: 80, borderRadius: AppRadius.lg)),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: BoxShimmer(height: 140, borderRadius: AppRadius.lg),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        const CardShimmer(),
+        const CardShimmer(),
+      ],
     );
   }
 }

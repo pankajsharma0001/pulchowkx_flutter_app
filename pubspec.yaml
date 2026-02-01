@@ -88,13 +88,13 @@ flutter_native_splash:
   android: true
   ios: true
 
-  color: "#fefbea"
+  color: "#f0f9ff"
   color_dark: "#1e1c46"
   image: "assets/icons/foreground.png"
   image_dark: "assets/icons/foreground.png"
 
   android_12:
-    color: "#fefbea"
+    color: "#f0f9ff"
     color_dark: "#1e1c46"
     image: "assets/icons/foreground.png"
     image_dark: "assets/icons/foreground.png"
