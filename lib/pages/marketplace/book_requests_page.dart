@@ -98,11 +98,49 @@ class _BookRequestsPageState extends State<BookRequestsPage>
       await _loadData();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Request cancelled.'),
-            backgroundColor: Theme.of(context).colorScheme.secondary,
+          const SnackBar(
+            content: Text('Request cancelled.'),
+            backgroundColor: AppColors.error,
           ),
         );
+      }
+    }
+  }
+
+  Future<void> _deleteRequest(BookPurchaseRequest request) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Request?'),
+        content: const Text(
+          'Are you sure you want to remove this request from your history?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final result = await _apiService.deletePurchaseRequest(request.id);
+      if (result['success'] == true) {
+        await _loadData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Request deleted.'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
       }
     }
   }
@@ -169,6 +207,7 @@ class _BookRequestsPageState extends State<BookRequestsPage>
             request: request,
             isSent: true,
             onCancel: () => _cancelRequest(request),
+            onRemove: () => _deleteRequest(request),
             onTap: () {
               Navigator.push(
                 context,
@@ -213,6 +252,7 @@ class _BookRequestsPageState extends State<BookRequestsPage>
             isSent: false,
             onAccept: () => _respondToRequest(request, true),
             onReject: () => _respondToRequest(request, false),
+            onRemove: () => _deleteRequest(request),
             onTap: () {
               Navigator.push(
                 context,
@@ -253,6 +293,7 @@ class _RequestCard extends StatelessWidget {
   final VoidCallback? onAccept;
   final VoidCallback? onReject;
   final VoidCallback? onCancel;
+  final VoidCallback onRemove;
   final VoidCallback onTap;
 
   const _RequestCard({
@@ -261,6 +302,7 @@ class _RequestCard extends StatelessWidget {
     this.onAccept,
     this.onReject,
     this.onCancel,
+    required this.onRemove,
     required this.onTap,
   });
 
@@ -319,6 +361,15 @@ class _RequestCard extends StatelessWidget {
                       ],
                     ),
                   ),
+                  IconButton(
+                    onPressed: onRemove,
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    color: AppColors.error,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    tooltip: 'Delete Request',
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,

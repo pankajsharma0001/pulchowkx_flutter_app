@@ -1627,7 +1627,7 @@ class ApiService {
     }
   }
 
-  /// Cancel a purchase request
+  /// Cancel a purchase request (seller/buyer depending on status)
   Future<Map<String, dynamic>> cancelPurchaseRequest(int requestId) async {
     try {
       final userId = await getDatabaseUserId();
@@ -1637,6 +1637,28 @@ class ApiService {
 
       final response = await http.delete(
         Uri.parse('$apiBaseUrl/books/requests/$requestId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Permanently delete a purchase request from history
+  Future<Map<String, dynamic>> deletePurchaseRequest(int requestId) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.delete(
+        Uri.parse('$apiBaseUrl/books/requests/$requestId/delete'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $userId',
