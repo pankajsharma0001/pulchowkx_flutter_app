@@ -13,6 +13,7 @@ import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/pages/admin/club_admin_tab.dart';
+import 'package:pulchowkx_app/widgets/offline_banner.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -147,46 +148,7 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
                 SliverToBoxAdapter(child: _ClubHeader(club: club)),
 
                 // Offline Warning
-                FutureBuilder(
-                  future: Connectivity().checkConnectivity(),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData &&
-                        snapshot.data!.first == ConnectivityResult.none) {
-                      return SliverToBoxAdapter(
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
-                            vertical: AppSpacing.sm,
-                          ),
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.warning.withAlpha(0x1A),
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                            border: Border.all(color: AppColors.warning),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.wifi_off_rounded,
-                                size: 16,
-                                color: AppColors.warning,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Offline Mode',
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  color: AppColors.warning,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-                    return const SliverToBoxAdapter(child: SizedBox.shrink());
-                  },
-                ),
+                const SliverOfflineBanner(message: 'Offline Mode'),
 
                 // Tab Bar
                 SliverPersistentHeader(

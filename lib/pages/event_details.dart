@@ -343,13 +343,10 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
     try {
       final userId = await _apiService.getDatabaseUserId() ?? user.uid;
-      final success = await _apiService.registerForEvent(
-        userId,
-        _fullEvent!.id,
-      );
+      final result = await _apiService.registerForEvent(userId, _fullEvent!.id);
 
       if (mounted) {
-        if (success) {
+        if (result.success) {
           setState(() => _isRegistered = true);
           AnalyticsService.logRegistration(
             _fullEvent!.id.toString(),
@@ -357,7 +354,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
           );
           _showSnackBar('Successfully registered for ${_fullEvent!.title}!');
         } else {
-          _showSnackBar('Failed to register. Please try again.', isError: true);
+          _showSnackBar(result.message ?? 'Failed to register.', isError: true);
         }
       }
     } catch (e) {
@@ -412,17 +409,20 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
     try {
       final userId = await _apiService.getDatabaseUserId() ?? user.uid;
-      final success = await _apiService.cancelRegistration(
+      final result = await _apiService.cancelRegistration(
         userId,
         _fullEvent!.id,
       );
 
       if (mounted) {
-        if (success) {
+        if (result.success) {
           setState(() => _isRegistered = false);
           _showSnackBar('Registration cancelled successfully.');
         } else {
-          _showSnackBar('Failed to cancel registration.', isError: true);
+          _showSnackBar(
+            result.message ?? 'Failed to cancel registration.',
+            isError: true,
+          );
         }
       }
     } catch (e) {

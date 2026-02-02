@@ -41,6 +41,9 @@ class FirebaseServices {
         debugPrint("UID: ${user.uid}");
         debugPrint("=======================================");
 
+        // Get Firebase ID token for API authentication
+        final firebaseIdToken = await user.getIdToken();
+
         // Sync user to Postgres database
         final fcmToken = await NotificationService.getToken();
 
@@ -48,6 +51,7 @@ class FirebaseServices {
           authStudentId: user.uid,
           email: user.email ?? '',
           name: user.displayName ?? 'Unknown User',
+          firebaseIdToken: firebaseIdToken ?? '',
           image: user.photoURL,
           fcmToken: fcmToken,
         );
@@ -62,8 +66,11 @@ class FirebaseServices {
   }
 
   Future<void> googleSignOut() async {
+    // Get Firebase ID token before signing out (needed for API authentication)
+    final firebaseIdToken = await auth.currentUser?.getIdToken();
+
     // Clear FCM token from server before signing out
-    await _apiService.clearFcmToken();
+    await _apiService.clearFcmToken(firebaseIdToken);
 
     // Clear stored user data
     await _apiService.clearStoredUserId();

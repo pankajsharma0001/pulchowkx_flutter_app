@@ -12,6 +12,35 @@ import 'package:pulchowkx_app/models/chat.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+/// Result class for API operations that provides success status and error messages
+class ApiResult<T> {
+  final bool success;
+  final String? message;
+  final T? data;
+
+  ApiResult({required this.success, this.message, this.data});
+
+  factory ApiResult.success({String? message, T? data}) =>
+      ApiResult(success: true, message: message, data: data);
+
+  factory ApiResult.failure(String message) =>
+      ApiResult(success: false, message: message);
+
+  factory ApiResult.networkError() => ApiResult(
+    success: false,
+    message: 'No internet connection. Please check your network.',
+  );
+
+  factory ApiResult.serverError() => ApiResult(
+    success: false,
+    message: 'Server error. Please try again later.',
+  );
+
+  factory ApiResult.unauthorized() =>
+      ApiResult(success: false, message: 'Please sign in to continue.');
+}
 
 class ApiService {
   static const String baseUrl = 'https://pulchowk-x.vercel.app/api/events';
@@ -20,6 +49,12 @@ class ApiService {
   static const String _dbUserIdKey = 'database_user_id';
   static const String _userRoleKey = 'user_role';
 
+  // Secure storage for sensitive data
+  static const _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+  );
+
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
@@ -27,34 +62,50 @@ class ApiService {
 
   // ==================== USER ID MANAGEMENT ====================
   Future<String?> getDatabaseUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_dbUserIdKey);
+    try {
+      return await _secureStorage.read(key: _dbUserIdKey);
+    } catch (e) {
+      // Fallback to SharedPreferences for migration
+      final prefs = await SharedPreferences.getInstance();
+      final legacyId = prefs.getString(_dbUserIdKey);
+      if (legacyId != null) {
+        // Migrate to secure storage
+        await _storeDatabaseUserId(legacyId);
+        await prefs.remove(_dbUserIdKey);
+      }
+      return legacyId;
+    }
   }
 
-  /// Store the database user ID
+  /// Store the database user ID securely
   Future<void> _storeDatabaseUserId(String id) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_dbUserIdKey, id);
+    await _secureStorage.write(key: _dbUserIdKey, value: id);
   }
 
   /// Clear stored user ID on logout
   Future<void> clearStoredUserId() async {
+    await _secureStorage.delete(key: _dbUserIdKey);
+    await _secureStorage.delete(key: _userRoleKey);
+    // Also clear from SharedPreferences (migration cleanup)
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_dbUserIdKey);
     await prefs.remove(_userRoleKey);
   }
 
   /// Clear FCM token from server on logout to prevent duplicate notifications
-  Future<void> clearFcmToken() async {
+  /// Requires Firebase ID token for authentication
+  Future<void> clearFcmToken(String? firebaseIdToken) async {
     try {
-      final userId = await getDatabaseUserId();
-      if (userId == null) return;
+      if (firebaseIdToken == null) {
+        debugPrint('Cannot clear FCM token: No Firebase ID token');
+        return;
+      }
 
       await http.post(
         Uri.parse('$apiBaseUrl/users/clear-fcm-token'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
+          'Authorization': 'Bearer $firebaseIdToken',
         },
       );
       debugPrint('FCM token cleared from server');
@@ -63,10 +114,52 @@ class ApiService {
     }
   }
 
+  /// Update FCM token on server when token refreshes
+  /// Requires Firebase ID token for authentication
+  Future<void> updateFcmToken(String? firebaseIdToken, String fcmToken) async {
+    try {
+      if (firebaseIdToken == null) {
+        debugPrint('Cannot update FCM token: No Firebase ID token');
+        return;
+      }
+
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/users/update-fcm-token'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $firebaseIdToken',
+        },
+        body: jsonEncode({'fcmToken': fcmToken}),
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint('FCM token updated on server');
+      } else {
+        debugPrint('Failed to update FCM token: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error updating FCM token: $e');
+    }
+  }
+
   /// Get the user's role (student, admin, etc.)
   Future<String> getUserRole() async {
+    try {
+      final role = await _secureStorage.read(key: _userRoleKey);
+      if (role != null) return role;
+    } catch (e) {
+      debugPrint('Error reading role from secure storage: $e');
+    }
+    // Fallback to SharedPreferences for migration
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_userRoleKey) ?? 'student';
+    final legacyRole = prefs.getString(_userRoleKey);
+    if (legacyRole != null) {
+      // Migrate to secure storage
+      await _storeUserRole(legacyRole);
+      await prefs.remove(_userRoleKey);
+      return legacyRole;
+    }
+    return 'student';
   }
 
   /// Check if user is admin
@@ -75,23 +168,26 @@ class ApiService {
     return role == 'admin';
   }
 
-  /// Store the user role
+  /// Store the user role securely
   Future<void> _storeUserRole(String role) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_userRoleKey, role);
+    await _secureStorage.write(key: _userRoleKey, value: role);
   }
 
   Future<String?> syncUser({
     required String authStudentId,
     required String email,
     required String name,
+    required String firebaseIdToken,
     String? image,
     String? fcmToken,
   }) async {
     try {
       final response = await http.post(
         Uri.parse('$apiBaseUrl/users/sync-user'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $firebaseIdToken',
+        },
         body: jsonEncode({
           'authStudentId': authStudentId,
           'email': email,
@@ -436,49 +532,83 @@ class ApiService {
 
   // ==================== REGISTRATION ====================
 
-  /// Register for an event
-  Future<bool> registerForEvent(String authStudentId, int eventId) async {
+  /// Register for an event - returns ApiResult with error message if failed
+  Future<ApiResult> registerForEvent(String authStudentId, int eventId) async {
     try {
+      final isOnline = await _hasInternetConnection();
+      if (!isOnline) {
+        return ApiResult.networkError();
+      }
+
       final response = await http.post(
         Uri.parse('$baseUrl/register-event'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'authStudentId': authStudentId, 'eventId': eventId}),
       );
 
+      final json = jsonDecode(response.body);
+      final data = json['data'] ?? json;
+      final message = data['message'] as String? ?? 'Unknown error';
+
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final json = jsonDecode(response.body);
-        // Handle both nested and direct response formats
-        if (json['data'] != null) {
-          return json['data']['success'] == true;
+        if (data['success'] == true) {
+          return ApiResult.success(message: message);
         }
-        return json['success'] == true;
+        return ApiResult.failure(message);
+      } else if (response.statusCode == 400) {
+        // Already registered, event full, registration closed, etc.
+        return ApiResult.failure(message);
+      } else if (response.statusCode == 401) {
+        return ApiResult.unauthorized();
+      } else if (response.statusCode == 404) {
+        return ApiResult.failure('Event not found.');
+      } else {
+        return ApiResult.serverError();
       }
-      return false;
     } catch (e) {
-      return false;
+      debugPrint('Error registering for event: $e');
+      return ApiResult.failure('Failed to register. Please try again.');
     }
   }
 
-  /// Cancel event registration
-  Future<bool> cancelRegistration(String authStudentId, int eventId) async {
+  /// Cancel event registration - returns ApiResult with error message if failed
+  Future<ApiResult> cancelRegistration(
+    String authStudentId,
+    int eventId,
+  ) async {
     try {
+      final isOnline = await _hasInternetConnection();
+      if (!isOnline) {
+        return ApiResult.networkError();
+      }
+
       final response = await http.post(
         Uri.parse('$baseUrl/cancel-registration'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'authStudentId': authStudentId, 'eventId': eventId}),
       );
 
+      final json = jsonDecode(response.body);
+      final data = json['data'] ?? json;
+      final message = data['message'] as String? ?? 'Unknown error';
+
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final json = jsonDecode(response.body);
-        // Handle both nested and direct response formats
-        if (json['data'] != null) {
-          return json['data']['success'] == true;
+        if (data['success'] == true) {
+          return ApiResult.success(message: message);
         }
-        return json['success'] == true;
+        return ApiResult.failure(message);
+      } else if (response.statusCode == 400) {
+        return ApiResult.failure(message);
+      } else if (response.statusCode == 401) {
+        return ApiResult.unauthorized();
+      } else if (response.statusCode == 404) {
+        return ApiResult.failure('Registration not found.');
+      } else {
+        return ApiResult.serverError();
       }
-      return false;
     } catch (e) {
-      return false;
+      debugPrint('Error cancelling registration: $e');
+      return ApiResult.failure('Failed to cancel. Please try again.');
     }
   }
 

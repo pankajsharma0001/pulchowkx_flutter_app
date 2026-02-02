@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -186,18 +187,38 @@ class NotificationService {
       final apiService = ApiService();
       final dbUserId = await apiService.getDatabaseUserId();
 
-      // We only sync if we have a stored database user ID
-      // If not logged in yet, the sync will happen during login
+      // We only sync if we have a stored database user ID (logged in)
       if (dbUserId != null) {
-        // Fetch current user details from profile or use dummy if only token update is needed
-        // Assuming sync-user handles partial updates or we can just send the ID and token
-        // For now, we'll rely on the login sync, but this is good for token refreshes
+        // Set up token refresh listener
         _messaging.onTokenRefresh.listen((newToken) async {
-          // Handle token refresh
+          debugPrint('FCM token refreshed, syncing to server...');
+          await _syncTokenToServer(newToken);
         });
       }
     } catch (e) {
-      debugPrint('Error syncing token: $e');
+      debugPrint('Error setting up token sync: $e');
+    }
+  }
+
+  /// Sync FCM token to server when it refreshes
+  static Future<void> _syncTokenToServer(String fcmToken) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        debugPrint('Cannot sync FCM token: User not logged in');
+        return;
+      }
+
+      final firebaseIdToken = await user.getIdToken();
+      if (firebaseIdToken == null) {
+        debugPrint('Cannot sync FCM token: Could not get Firebase ID token');
+        return;
+      }
+
+      final apiService = ApiService();
+      await apiService.updateFcmToken(firebaseIdToken, fcmToken);
+    } catch (e) {
+      debugPrint('Error syncing FCM token to server: $e');
     }
   }
 

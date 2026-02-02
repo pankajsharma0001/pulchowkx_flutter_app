@@ -48,6 +48,11 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  Future<void> _handleRefresh() async {
+    setState(() => _isLoading = true);
+    await _checkAdminStatus();
+  }
+
   Future<void> _handleSignOut(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -147,344 +152,356 @@ class _DashboardPageState extends State<DashboardPage> {
               ? AppColors.heroGradient
               : AppColors.heroGradientDark,
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Section
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                gradient: AppColors.primaryGradient,
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.md,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.dashboard_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Text(
-                              'Dashboard',
-                              style: Theme.of(context).textTheme.displaySmall,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          'Manage your account and view your enrollments',
-                          style: AppTextStyles.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                  _SignOutButton(onPressed: () => _handleSignOut(context)),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.lg),
-
-              // Profile Card
-              _isLoading
-                  ? const DashboardHeaderShimmer()
-                  : Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardTheme.color,
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                        border: Border.all(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? AppColors.borderDark
-                              : AppColors.border,
-                        ),
-                        boxShadow:
-                            Theme.of(context).brightness == Brightness.light
-                            ? AppShadows.sm
-                            : null,
-                      ),
+        child: RefreshIndicator(
+          onRefresh: _handleRefresh,
+          color: AppColors.primary,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Section
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.all(AppSpacing.lg),
-                            child: Row(
-                              children: [
-                                // Avatar with gradient border
-                                Container(
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: BoxDecoration(
-                                    gradient: AppColors.primaryGradient,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: CircleAvatar(
-                                    radius: 36,
-                                    backgroundColor: Theme.of(
-                                      context,
-                                    ).cardTheme.color,
-                                    backgroundImage: photoUrl != null
-                                        ? CachedNetworkImageProvider(photoUrl)
-                                        : null,
-                                    child: photoUrl == null
-                                        ? const Icon(
-                                            Icons.person_rounded,
-                                            size: 36,
-                                            color: AppColors.primary,
-                                          )
-                                        : null,
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  gradient: AppColors.primaryGradient,
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.md,
                                   ),
                                 ),
-                                const SizedBox(width: AppSpacing.md),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        displayName,
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.headlineMedium,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        email,
-                                        style: AppTextStyles.bodySmall,
-                                      ),
-                                      const SizedBox(height: AppSpacing.sm),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: _isAdmin
-                                              ? (Theme.of(context).brightness ==
-                                                        Brightness.dark
-                                                    ? AppColors.accent
-                                                          .withValues(
-                                                            alpha: 0.15,
-                                                          )
-                                                    : AppColors.accentLight)
-                                              : (Theme.of(context).brightness ==
-                                                        Brightness.dark
-                                                    ? AppColors.success
-                                                          .withValues(
-                                                            alpha: 0.15,
-                                                          )
-                                                    : AppColors.successLight),
-                                          borderRadius: BorderRadius.circular(
-                                            AppRadius.full,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              _isAdmin
-                                                  ? Icons.admin_panel_settings
-                                                  : Icons.verified_rounded,
-                                              size: 12,
-                                              color: _isAdmin
-                                                  ? AppColors.accent
-                                                  : AppColors.success,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              _isAdmin
-                                                  ? 'Admin'
-                                                  : 'Active Student',
-                                              style: AppTextStyles.labelSmall
-                                                  .copyWith(
-                                                    color: _isAdmin
-                                                        ? AppColors.accent
-                                                        : AppColors.success,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                child: const Icon(
+                                  Icons.dashboard_rounded,
+                                  color: Colors.white,
+                                  size: 20,
                                 ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              Text(
+                                'Dashboard',
+                                style: Theme.of(context).textTheme.displaySmall,
+                              ),
+                            ],
                           ),
-                          Container(
-                            height: 1,
-                            color: Theme.of(context).dividerTheme.color,
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.lg,
-                              vertical: AppSpacing.md,
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.calendar_today_rounded,
-                                  size: 14,
-                                  color: AppColors.textMuted,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Member since ${user?.metadata.creationTime?.year ?? 2026}',
-                                  style: AppTextStyles.bodySmall,
-                                ),
-                              ],
-                            ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'Manage your account and view your enrollments',
+                            style: AppTextStyles.bodyMedium,
                           ),
                         ],
                       ),
                     ),
-              const SizedBox(height: AppSpacing.xl),
+                    _SignOutButton(onPressed: () => _handleSignOut(context)),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.lg),
 
-              // Event Enrollments Section
-              const MyEnrollments(),
+                // Profile Card
+                _isLoading
+                    ? const DashboardHeaderShimmer()
+                    : Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardTheme.color,
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          border: Border.all(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.borderDark
+                                : AppColors.border,
+                          ),
+                          boxShadow:
+                              Theme.of(context).brightness == Brightness.light
+                              ? AppShadows.sm
+                              : null,
+                        ),
+                        child: Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(AppSpacing.lg),
+                              child: Row(
+                                children: [
+                                  // Avatar with gradient border
+                                  Container(
+                                    padding: const EdgeInsets.all(3),
+                                    decoration: BoxDecoration(
+                                      gradient: AppColors.primaryGradient,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: CircleAvatar(
+                                      radius: 36,
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).cardTheme.color,
+                                      backgroundImage: photoUrl != null
+                                          ? CachedNetworkImageProvider(photoUrl)
+                                          : null,
+                                      child: photoUrl == null
+                                          ? const Icon(
+                                              Icons.person_rounded,
+                                              size: 36,
+                                              color: AppColors.primary,
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpacing.md),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          displayName,
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.headlineMedium,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          email,
+                                          style: AppTextStyles.bodySmall,
+                                        ),
+                                        const SizedBox(height: AppSpacing.sm),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: _isAdmin
+                                                ? (Theme.of(
+                                                            context,
+                                                          ).brightness ==
+                                                          Brightness.dark
+                                                      ? AppColors.accent
+                                                            .withValues(
+                                                              alpha: 0.15,
+                                                            )
+                                                      : AppColors.accentLight)
+                                                : (Theme.of(
+                                                            context,
+                                                          ).brightness ==
+                                                          Brightness.dark
+                                                      ? AppColors.success
+                                                            .withValues(
+                                                              alpha: 0.15,
+                                                            )
+                                                      : AppColors.successLight),
+                                            borderRadius: BorderRadius.circular(
+                                              AppRadius.full,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                _isAdmin
+                                                    ? Icons.admin_panel_settings
+                                                    : Icons.verified_rounded,
+                                                size: 12,
+                                                color: _isAdmin
+                                                    ? AppColors.accent
+                                                    : AppColors.success,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                _isAdmin
+                                                    ? 'Admin'
+                                                    : 'Active Student',
+                                                style: AppTextStyles.labelSmall
+                                                    .copyWith(
+                                                      color: _isAdmin
+                                                          ? AppColors.accent
+                                                          : AppColors.success,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              height: 1,
+                              color: Theme.of(context).dividerTheme.color,
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.lg,
+                                vertical: AppSpacing.md,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today_rounded,
+                                    size: 14,
+                                    color: AppColors.textMuted,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Member since ${user?.metadata.creationTime?.year ?? 2026}',
+                                    style: AppTextStyles.bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                const SizedBox(height: AppSpacing.xl),
 
-              const SizedBox(height: AppSpacing.xl),
+                // Event Enrollments Section
+                const MyEnrollments(),
 
-              // Next Up Section
-              _buildNextUpSection(),
+                const SizedBox(height: AppSpacing.xl),
 
-              const SizedBox(height: AppSpacing.xl),
+                // Next Up Section
+                _buildNextUpSection(),
 
-              _isLoading
-                  ? GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 2,
-                      mainAxisSpacing: AppSpacing.md,
-                      crossAxisSpacing: AppSpacing.md,
-                      childAspectRatio: 1.5,
-                      children: const [
-                        QuickActionShimmer(),
-                        QuickActionShimmer(),
-                        QuickActionShimmer(),
-                        QuickActionShimmer(),
-                      ],
-                    )
-                  : LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isWide = constraints.maxWidth >= 600;
-                        final cards = [
-                          if (_isAdmin)
+                const SizedBox(height: AppSpacing.xl),
+
+                _isLoading
+                    ? GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: 2,
+                        mainAxisSpacing: AppSpacing.md,
+                        crossAxisSpacing: AppSpacing.md,
+                        childAspectRatio: 1.5,
+                        children: const [
+                          QuickActionShimmer(),
+                          QuickActionShimmer(),
+                          QuickActionShimmer(),
+                          QuickActionShimmer(),
+                        ],
+                      )
+                    : LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isWide = constraints.maxWidth >= 600;
+                          final cards = [
+                            if (_isAdmin)
+                              _QuickActionCard(
+                                icon: Icons.add_circle_outline,
+                                title: 'Create Club',
+                                description: 'Start a new club community.',
+                                color: Colors.purple,
+                                heroTag: 'hero-create-club',
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const CreateClubPage(),
+                                    ),
+                                  );
+                                },
+                              ),
                             _QuickActionCard(
-                              icon: Icons.add_circle_outline,
-                              title: 'Create Club',
-                              description: 'Start a new club community.',
-                              color: Colors.purple,
-                              heroTag: 'hero-create-club',
+                              icon: Icons.chat_outlined,
+                              title: 'Messages',
+                              description:
+                                  'View your marketplace conversations.',
+                              color: Colors.blue,
+                              heroTag: 'hero-messages',
                               onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        const CreateClubPage(),
+                                        const ConversationsPage(),
                                   ),
                                 );
                               },
                             ),
-                          _QuickActionCard(
-                            icon: Icons.chat_outlined,
-                            title: 'Messages',
-                            description: 'View your marketplace conversations.',
-                            color: Colors.blue,
-                            heroTag: 'hero-messages',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const ConversationsPage(),
-                                ),
-                              );
-                            },
-                          ),
-                          _QuickActionCard(
-                            icon: Icons.favorite_rounded,
-                            title: 'My Favorites',
-                            description:
-                                'Quickly access your saved clubs and events.',
-                            color: Colors.redAccent,
-                            heroTag: 'hero-favorites',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const FavoritesPage(),
-                                ),
-                              );
-                            },
-                          ),
-                          _QuickActionCard(
-                            icon: Icons.settings_rounded,
-                            title: 'Settings',
-                            description: 'Account settings and preferences.',
-                            color: AppColors.textSecondary,
-                            heroTag: 'hero-settings',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const SettingsPage(),
-                                ),
-                              );
-                            },
-                          ),
-                        ];
+                            _QuickActionCard(
+                              icon: Icons.favorite_rounded,
+                              title: 'My Favorites',
+                              description:
+                                  'Quickly access your saved clubs and events.',
+                              color: Colors.redAccent,
+                              heroTag: 'hero-favorites',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const FavoritesPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _QuickActionCard(
+                              icon: Icons.settings_rounded,
+                              title: 'Settings',
+                              description: 'Account settings and preferences.',
+                              color: AppColors.textSecondary,
+                              heroTag: 'hero-settings',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const SettingsPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ];
 
-                        if (isWide) {
-                          return Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: cards
-                                .asMap()
-                                .entries
-                                .map(
-                                  (entry) => Expanded(
-                                    child: Padding(
-                                      padding: EdgeInsets.only(
-                                        right: entry.key < cards.length - 1
-                                            ? AppSpacing.md
-                                            : 0,
+                          if (isWide) {
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: cards
+                                  .asMap()
+                                  .entries
+                                  .map(
+                                    (entry) => Expanded(
+                                      child: Padding(
+                                        padding: EdgeInsets.only(
+                                          right: entry.key < cards.length - 1
+                                              ? AppSpacing.md
+                                              : 0,
+                                        ),
+                                        child: entry.value,
                                       ),
-                                      child: entry.value,
+                                    ),
+                                  )
+                                  .toList(),
+                            );
+                          }
+
+                          return Column(
+                            children: cards
+                                .map(
+                                  (card) => Padding(
+                                    padding: const EdgeInsets.only(
+                                      bottom: AppSpacing.md,
+                                    ),
+                                    child: SizedBox(
+                                      width: double.infinity,
+                                      child: card,
                                     ),
                                   ),
                                 )
                                 .toList(),
                           );
-                        }
-
-                        return Column(
-                          children: cards
-                              .map(
-                                (card) => Padding(
-                                  padding: const EdgeInsets.only(
-                                    bottom: AppSpacing.md,
-                                  ),
-                                  child: SizedBox(
-                                    width: double.infinity,
-                                    child: card,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        );
-                      },
-                    ),
-            ],
+                        },
+                      ),
+              ],
+            ),
           ),
         ),
       ),

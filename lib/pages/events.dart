@@ -11,6 +11,7 @@ import 'package:pulchowkx_app/widgets/custom_app_bar.dart'
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/widgets/empty_states.dart';
 import 'package:pulchowkx_app/widgets/event_card.dart';
+import 'package:pulchowkx_app/widgets/offline_banner.dart';
 
 class EventsPage extends StatefulWidget {
   const EventsPage({super.key});
@@ -171,47 +172,8 @@ class _EventsPageState extends State<EventsPage> {
                     ),
                   ),
 
-                  // Offline Banner if needed (Optional, or just SnackBar)
-                  FutureBuilder(
-                    future: Connectivity().checkConnectivity(),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData &&
-                          snapshot.data!.first == ConnectivityResult.none) {
-                        return SliverToBoxAdapter(
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.lg,
-                              vertical: AppSpacing.sm,
-                            ),
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppColors.warning.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(AppRadius.md),
-                              border: Border.all(color: AppColors.warning),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.wifi_off_rounded,
-                                  size: 16,
-                                  color: AppColors.warning,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Offline Mode: Showing cached data',
-                                  style: AppTextStyles.bodySmall.copyWith(
-                                    color: AppColors.warning,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-                      return const SliverToBoxAdapter(child: SizedBox.shrink());
-                    },
-                  ),
+                  // Offline Banner
+                  const SliverOfflineBanner(),
 
                   // Ongoing Events
                   if (categorized['ongoing']!.isNotEmpty) ...[
