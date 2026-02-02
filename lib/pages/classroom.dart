@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pulchowkx_app/models/classroom.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
@@ -8,7 +9,6 @@ import 'classroom/shared_widgets.dart';
 import 'classroom/student_view.dart';
 import 'classroom/teacher_view.dart';
 import 'package:pulchowkx_app/services/notification_service.dart';
-import 'package:pulchowkx_app/mixins/auto_refresh_mixin.dart';
 
 class ClassroomPage extends StatefulWidget {
   const ClassroomPage({super.key});
@@ -17,7 +17,7 @@ class ClassroomPage extends StatefulWidget {
   State<ClassroomPage> createState() => _ClassroomPageState();
 }
 
-class _ClassroomPageState extends State<ClassroomPage> with AutoRefreshMixin {
+class _ClassroomPageState extends State<ClassroomPage> {
   final ApiService _apiService = ApiService();
 
   StudentProfile? _profile;
@@ -32,14 +32,6 @@ class _ClassroomPageState extends State<ClassroomPage> with AutoRefreshMixin {
   Faculty? _selectedFaculty;
   int _selectedSemester = 1;
   DateTime _semesterStartDate = DateTime.now();
-
-  @override
-  int get tabIndex => 2; // Classroom tab index in MainLayout
-
-  @override
-  void onBecameVisible() {
-    _loadData();
-  }
 
   @override
   void initState() {
@@ -124,7 +116,6 @@ class _ClassroomPageState extends State<ClassroomPage> with AutoRefreshMixin {
 
   @override
   Widget build(BuildContext context) {
-    checkForRefresh(); // Check if we need to refresh on tab change
     return Scaffold(
       appBar: const CustomAppBar(currentPage: AppPage.classroom),
       body: Container(
@@ -133,20 +124,28 @@ class _ClassroomPageState extends State<ClassroomPage> with AutoRefreshMixin {
               ? AppColors.heroGradient
               : AppColors.heroGradientDark,
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: AppSpacing.lg),
-              if (_isLoading)
-                ClassroomShimmer(isTeacher: _isTeacher)
-              else if (_errorMessage != null)
-                _buildError()
-              else
-                _buildBodyContent(),
-            ],
+        child: RefreshIndicator(
+          onRefresh: () async {
+            HapticFeedback.mediumImpact();
+            await _loadData();
+          },
+          color: AppColors.primary,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: AppSpacing.lg),
+                if (_isLoading)
+                  ClassroomShimmer(isTeacher: _isTeacher)
+                else if (_errorMessage != null)
+                  _buildError()
+                else
+                  _buildBodyContent(),
+              ],
+            ),
           ),
         ),
       ),

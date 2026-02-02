@@ -176,7 +176,7 @@ class _MyBooksPageState extends State<MyBooksPage>
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const SellBookPage()),
-          ).then((_) => _loadData());
+          );
         },
         icon: const Icon(Icons.add),
         label: const Text('Sell Book'),
@@ -196,7 +196,7 @@ class _MyBooksPageState extends State<MyBooksPage>
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const SellBookPage()),
-          ).then((_) => _loadData());
+          );
         },
       );
     }
@@ -218,7 +218,7 @@ class _MyBooksPageState extends State<MyBooksPage>
                   builder: (context) =>
                       SellBookPage(existingBook: _myListings[index]),
                 ),
-              ).then((_) => _loadData());
+              );
             },
             onTap: () {
               Navigator.push(
@@ -227,7 +227,7 @@ class _MyBooksPageState extends State<MyBooksPage>
                   builder: (context) =>
                       BookDetailsPage(bookId: _myListings[index].id),
                 ),
-              ).then((_) => _loadData());
+              );
             },
           );
         },
@@ -259,7 +259,7 @@ class _MyBooksPageState extends State<MyBooksPage>
                 builder: (context) =>
                     BookDetailsPage(bookId: _savedBooks[index].listingId),
               ),
-            ).then((_) => _loadData());
+            );
           },
         );
       },

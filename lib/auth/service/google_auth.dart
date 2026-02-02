@@ -3,7 +3,6 @@ import "package:flutter/foundation.dart";
 import "package:google_sign_in/google_sign_in.dart";
 import "package:pulchowkx_app/services/api_service.dart";
 import "package:pulchowkx_app/services/notification_service.dart";
-import "package:pulchowkx_app/services/socket_service.dart";
 
 class FirebaseServices {
   final FirebaseAuth auth = FirebaseAuth.instance;
@@ -72,9 +71,6 @@ class FirebaseServices {
 
     // Clear FCM token from server before signing out
     await _apiService.clearFcmToken(firebaseIdToken);
-
-    // Disconnect WebSocket
-    await SocketService().disconnect();
 
     // Clear stored user data
     await _apiService.clearStoredUserId();

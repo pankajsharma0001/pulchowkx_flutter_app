@@ -13,7 +13,6 @@ import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/pages/settings_page.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:pulchowkx_app/pages/marketplace/conversations_page.dart';
-import 'package:pulchowkx_app/mixins/auto_refresh_mixin.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -22,18 +21,10 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> with AutoRefreshMixin {
+class _DashboardPageState extends State<DashboardPage> {
   final ApiService _apiService = ApiService();
   bool _isAdmin = false;
   bool _isLoading = true;
-
-  @override
-  int get tabIndex => 4; // Dashboard tab index in MainLayout
-
-  @override
-  void onBecameVisible() {
-    _handleRefresh();
-  }
 
   @override
   void initState() {
@@ -140,7 +131,6 @@ class _DashboardPageState extends State<DashboardPage> with AutoRefreshMixin {
 
   @override
   Widget build(BuildContext context) {
-    checkForRefresh(); // Check if we need to refresh on tab change
     User? user;
     try {
       user = FirebaseAuth.instance.currentUser;

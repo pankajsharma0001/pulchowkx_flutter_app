@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pulchowkx_app/models/chat.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
-import 'package:pulchowkx_app/services/socket_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -24,7 +23,6 @@ class ChatRoomPage extends StatefulWidget {
 class _ChatRoomPageState extends State<ChatRoomPage>
     with WidgetsBindingObserver {
   final ApiService _apiService = ApiService();
-  final SocketService _socketService = SocketService();
   late int _conversationId;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _messageController = TextEditingController();
@@ -32,11 +30,7 @@ class _ChatRoomPageState extends State<ChatRoomPage>
   bool _isLoading = true;
   bool _isSending = false;
   String? _userId;
-  bool _isOtherUserTyping = false;
-  Timer? _typingDebounce;
-  StreamSubscription? _messageSubscription;
-  StreamSubscription? _typingSubscription;
-  StreamSubscription? _connectionSubscription;
+  Timer? _pollingTimer;
 
   @override
   void initState() {
@@ -47,24 +41,14 @@ class _ChatRoomPageState extends State<ChatRoomPage>
       _messageController.text = widget.initialMessage!;
     }
     _loadInitialData();
-    _messageController.addListener(_onTypingChanged);
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _pollingTimer?.cancel(); // Cancel polling fallback if active
-    _messageSubscription?.cancel();
-    _typingSubscription?.cancel();
-    _connectionSubscription?.cancel();
-    _typingDebounce?.cancel();
-    _messageController.removeListener(_onTypingChanged);
+    _pollingTimer?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
-    // Leave the conversation but don't disconnect socket (reuse for other chats)
-    if (_conversationId != 0) {
-      _socketService.leaveConversation(_conversationId);
-    }
     super.dispose();
   }
 
@@ -92,79 +76,13 @@ class _ChatRoomPageState extends State<ChatRoomPage>
     await _fetchMessages();
     setState(() => _isLoading = false);
 
-    // Connect to WebSocket and join conversation
-    await _connectWebSocket();
+    // Start polling for new messages
+    _startPolling();
   }
 
-  Future<void> _connectWebSocket() async {
-    if (_userId == null) return;
-
-    try {
-      await _socketService.connect(_userId!);
-
-      // Listen for new messages
-      _messageSubscription = _socketService.newMessageStream.listen((message) {
-        if (mounted && message.conversationId == _conversationId) {
-          setState(() {
-            // Add message at the beginning (newest first for reverse list)
-            if (!_messages.any((m) => m.id == message.id)) {
-              _messages.insert(0, message);
-            }
-          });
-          _scrollToBottom();
-        }
-      });
-
-      // Listen for typing indicators
-      _typingSubscription = _socketService.typingStream.listen((data) {
-        if (mounted &&
-            data['conversationId'] == _conversationId &&
-            data['userId'] != _userId) {
-          setState(() {
-            _isOtherUserTyping = data['isTyping'] == true;
-          });
-        }
-      });
-
-      // Listen for connection status
-      _connectionSubscription = _socketService.connectionStream.listen((
-        isConnected,
-      ) {
-        debugPrint('WebSocket connected: $isConnected');
-        if (isConnected && _conversationId != 0) {
-          _socketService.joinConversation(_conversationId);
-        }
-      });
-
-      // Join the conversation if we have a valid ID
-      if (_conversationId != 0) {
-        _socketService.joinConversation(_conversationId);
-      }
-    } catch (e) {
-      debugPrint('Failed to connect WebSocket: $e');
-      // Fallback to polling if WebSocket fails
-      _startPollingFallback();
-    }
-  }
-
-  Timer? _pollingTimer;
-
-  void _startPollingFallback() {
-    debugPrint('Using polling fallback for chat');
-    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+  void _startPolling() {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (mounted) _fetchMessages();
-    });
-  }
-
-  void _onTypingChanged() {
-    if (_conversationId == 0) return;
-
-    _typingDebounce?.cancel();
-    _socketService.sendTyping(_conversationId);
-
-    // Stop typing indicator after 2 seconds of no input
-    _typingDebounce = Timer(const Duration(seconds: 2), () {
-      _socketService.sendStopTyping(_conversationId);
     });
   }
 
@@ -184,7 +102,6 @@ class _ChatRoomPageState extends State<ChatRoomPage>
 
     setState(() => _isSending = true);
     _messageController.clear();
-    _socketService.sendStopTyping(_conversationId);
 
     final result = _conversationId != 0
         ? await _apiService.sendMessageToConversation(_conversationId, text)
@@ -199,11 +116,8 @@ class _ChatRoomPageState extends State<ChatRoomPage>
         if (_conversationId == 0 && result['data'] != null) {
           final msg = result['data'] as MarketplaceMessage;
           _conversationId = msg.conversationId;
-          // Join the newly created conversation
-          _socketService.joinConversation(_conversationId);
         }
-        // The message will be added via WebSocket event
-        // But also add it immediately for instant feedback
+        // Add message immediately for instant feedback
         if (result['data'] != null) {
           final msg = result['data'] as MarketplaceMessage;
           setState(() {
@@ -380,57 +294,7 @@ class _ChatRoomPageState extends State<ChatRoomPage>
                     },
                   ),
           ),
-          if (_isOtherUserTyping) _buildTypingIndicator(),
           _buildInputArea(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTypingIndicator() {
-    final otherUser = _userId == widget.conversation.buyerId
-        ? widget.conversation.seller
-        : widget.conversation.buyer;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
-      ),
-      alignment: Alignment.centerLeft,
-      child: Row(
-        children: [
-          SizedBox(
-            width: 40,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: List.generate(3, (index) {
-                return TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: 1),
-                  duration: Duration(milliseconds: 600 + (index * 200)),
-                  builder: (context, value, child) {
-                    return Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(
-                          alpha: 0.3 + (value * 0.4),
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                    );
-                  },
-                );
-              }),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          Text(
-            '${otherUser?.name ?? 'User'} is typing...',
-            style: AppTextStyles.bodySmall.copyWith(
-              color: Theme.of(context).hintColor,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
         ],
       ),
     );

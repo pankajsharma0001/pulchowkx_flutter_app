@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
@@ -234,37 +235,44 @@ class _FavoritesPageState extends State<FavoritesPage>
       );
     }
 
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(child: _buildHeader()),
-        if (_favoriteEvents == null || _favoriteEvents!.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: _buildEmptyState(
-              title: 'No Favorite Events',
-              message: 'Events you save will appear here',
-              assetPath: 'assets/images/empty_events.png',
-            ),
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 400,
-                mainAxisSpacing: AppSpacing.md,
-                crossAxisSpacing: AppSpacing.md,
-                childAspectRatio: 0.75, // Match events page grid ratio
+    return RefreshIndicator(
+      onRefresh: () async {
+        HapticFeedback.mediumImpact();
+        await _loadFavoriteEvents();
+      },
+      color: AppColors.primary,
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(child: _buildHeader()),
+          if (_favoriteEvents == null || _favoriteEvents!.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _buildEmptyState(
+                title: 'No Favorite Events',
+                message: 'Events you save will appear here',
+                assetPath: 'assets/images/empty_events.png',
               ),
-              delegate: SliverChildBuilderDelegate((context, index) {
-                return EventCard(
-                  event: _favoriteEvents![index],
-                  type: EventCardType.grid,
-                );
-              }, childCount: _favoriteEvents!.length),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 400,
+                  mainAxisSpacing: AppSpacing.md,
+                  crossAxisSpacing: AppSpacing.md,
+                  childAspectRatio: 0.75, // Match events page grid ratio
+                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  return EventCard(
+                    event: _favoriteEvents![index],
+                    type: EventCardType.grid,
+                  );
+                }, childCount: _favoriteEvents!.length),
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -276,34 +284,41 @@ class _FavoritesPageState extends State<FavoritesPage>
       );
     }
 
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(child: _buildHeader()),
-        if (_favoriteClubs == null || _favoriteClubs!.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: _buildEmptyState(
-              title: 'No Favorite Clubs',
-              message: 'Clubs you save will appear here',
-              assetPath: 'assets/images/empty_clubs.png',
-            ),
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 400,
-                mainAxisSpacing: AppSpacing.md,
-                crossAxisSpacing: AppSpacing.md,
-                childAspectRatio: 0.85,
+    return RefreshIndicator(
+      onRefresh: () async {
+        HapticFeedback.mediumImpact();
+        await _loadFavoriteClubs();
+      },
+      color: AppColors.primary,
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(child: _buildHeader()),
+          if (_favoriteClubs == null || _favoriteClubs!.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _buildEmptyState(
+                title: 'No Favorite Clubs',
+                message: 'Clubs you save will appear here',
+                assetPath: 'assets/images/empty_clubs.png',
               ),
-              delegate: SliverChildBuilderDelegate((context, index) {
-                return ClubCard(club: _favoriteClubs![index]);
-              }, childCount: _favoriteClubs!.length),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 400,
+                  mainAxisSpacing: AppSpacing.md,
+                  crossAxisSpacing: AppSpacing.md,
+                  childAspectRatio: 0.85,
+                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  return ClubCard(club: _favoriteClubs![index]);
+                }, childCount: _favoriteClubs!.length),
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
