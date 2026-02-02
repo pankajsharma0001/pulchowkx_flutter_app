@@ -362,8 +362,7 @@ class _MapPageState extends State<MapPage> {
 
     // Map of icon types to their network image URLs (matching website)
     final iconUrls = {
-      'bank':
-          'https://png.pngtree.com/png-clipart/20230805/original/pngtree-bank-location-icon-from-business-bicolor-set-money-business-company-vector-picture-image_9698988.png',
+      'bank': 'https://cdn-icons-png.flaticon.com/512/6395/6395444.png',
       'food': 'https://cdn-icons-png.freepik.com/512/11167/11167112.png',
       'library': 'https://cdn-icons-png.freepik.com/512/7985/7985904.png',
       'department': 'https://cdn-icons-png.flaticon.com/512/7906/7906888.png',

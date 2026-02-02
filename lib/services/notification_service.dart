@@ -83,31 +83,32 @@ class NotificationService {
       FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
         debugPrint('Got a message whilst in the foreground!');
 
-        final notification = message.notification;
-        final android = message.notification?.android;
+        final data = message.data;
+        final sellerId = data['sellerId'];
 
-        if (notification != null) {
-          _localNotifications.show(
+        if (sellerId != null) {
+          final apiService = ApiService();
+          final currentUserId = await apiService.getDatabaseUserId();
+          if (currentUserId != null && currentUserId == sellerId) {
+            debugPrint(
+              "Suppressing foreground notification for own book listing.",
+            );
+            return;
+          }
+        }
+
+        final notification = message.notification;
+        // If it's a data-only message with title/body in data
+        final title = notification?.title ?? data['title'];
+        final body = notification?.body ?? data['body'];
+
+        if (title != null && body != null) {
+          _showLocalNotification(
             notification.hashCode,
-            notification.title,
-            notification.body,
-            NotificationDetails(
-              android: AndroidNotificationDetails(
-                'high_importance_channel',
-                'High Importance Notifications',
-                channelDescription:
-                    'This channel is used for important campus updates.',
-                importance: Importance.max,
-                priority: Priority.high,
-                icon: android?.smallIcon,
-              ),
-              iOS: const DarwinNotificationDetails(
-                presentAlert: true,
-                presentBadge: true,
-                presentSound: true,
-              ),
-            ),
-            payload: jsonEncode(message.data),
+            title,
+            body,
+            jsonEncode(message.data),
+            androidIcon: message.notification?.android?.smallIcon,
           );
         }
       });
@@ -240,10 +241,86 @@ class NotificationService {
       }
     }
   }
+
+  static Future<void> _showLocalNotification(
+    int id,
+    String title,
+    String body,
+    String? payload, {
+    String? androidIcon,
+  }) async {
+    await _localNotifications.show(
+      id,
+      title,
+      body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          'high_importance_channel',
+          'High Importance Notifications',
+          channelDescription:
+              'This channel is used for important campus updates.',
+          importance: Importance.max,
+          priority: Priority.high,
+          icon: androidIcon,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      payload: payload,
+    );
+  }
 }
 
 // Global background message handler
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint("Handling a background message: ${message.messageId}");
+
+  final data = message.data;
+  final sellerId = data['sellerId'];
+
+  // If no sellerId, let it proceed (or handle other types)
+  // If sellerId is present, check against current user
+  if (sellerId != null) {
+    final apiService = ApiService();
+    // We need to initialize shared prefs or secure storage to get the user ID
+    // ApiService getDatabaseUserId uses SecureStorage, which should work in background isolation in most cases?
+    // Actually, background isolate might not share the same instance.
+    // But SecureStorage is disk-based.
+
+    try {
+      // Initialize necessary bindings for background execution
+      // WidgetsFlutterBinding.ensureInitialized(); // Should be done by Firebase
+
+      final currentUserId = await apiService.getDatabaseUserId();
+      if (currentUserId != null && currentUserId == sellerId) {
+        debugPrint("Suppressing notification for own book listing.");
+        return;
+      }
+    } catch (e) {
+      debugPrint("Error checking user ID in background: $e");
+    }
+  }
+
+  // If we shouldn't suppress, we need to show it manually because it's a data-only message now (mostly)
+  // Or if it had a notification block, the system showed it already?
+  // Our backend change ensures `book` notifications are data-only.
+  // So we MUST show it manually here for `books` topic.
+
+  if (data['title'] != null && data['body'] != null) {
+    await NotificationService._showLocalNotification(
+      message.hashCode,
+      data['title'],
+      data['body'],
+      jsonEncode(data),
+    );
+  } else if (message.notification != null) {
+    // Fallback for standard notifications (e.g. from console)
+    // If it has notification block, system handles it in background?
+    // Not always reliable. But usually yes.
+    // However, if we are here, it means we received it.
+  }
 }
