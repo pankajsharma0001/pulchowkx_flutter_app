@@ -5,7 +5,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/models/book_listing.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
-import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 
 class SellBookPage extends StatefulWidget {
   final BookListing? existingBook; // For edit mode
@@ -437,7 +436,7 @@ class _SellBookPageState extends State<SellBookPage> {
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButtonFormField<BookCategory?>(
-                      value: _selectedCategory,
+                      initialValue: _selectedCategory,
                       isExpanded: true,
                       hint: const Text('Select a category'),
                       decoration: const InputDecoration(
