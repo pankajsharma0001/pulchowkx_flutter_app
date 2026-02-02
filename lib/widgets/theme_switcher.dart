@@ -57,27 +57,43 @@ class ThemeSwitcherState extends State<ThemeSwitcher>
         return;
       }
 
-      // Capture current state
-      final image = await boundary.toImage(
-        pixelRatio: WidgetsBinding
-            .instance
-            .platformDispatcher
-            .views
-            .first
-            .devicePixelRatio,
-      );
-
       final bool isCurrentlyDark =
           Theme.of(_boundaryKey.currentContext!).brightness == Brightness.dark;
 
-      setState(() {
-        _image = image;
-        _tapOffset = offset;
-        _isDarkToLight = isCurrentlyDark;
-      });
-
-      // Change theme
-      toggle();
+      if (isCurrentlyDark) {
+        // Dark → Light: Capture NEW (light) theme, then expand it
+        toggle();
+        await Future.delayed(const Duration(milliseconds: 50));
+        final image = await boundary.toImage(
+          pixelRatio: WidgetsBinding
+              .instance
+              .platformDispatcher
+              .views
+              .first
+              .devicePixelRatio,
+        );
+        setState(() {
+          _image = image;
+          _tapOffset = offset;
+          _isDarkToLight = true;
+        });
+      } else {
+        // Light → Dark: Capture OLD (light) theme, then shrink it
+        final image = await boundary.toImage(
+          pixelRatio: WidgetsBinding
+              .instance
+              .platformDispatcher
+              .views
+              .first
+              .devicePixelRatio,
+        );
+        setState(() {
+          _image = image;
+          _tapOffset = offset;
+          _isDarkToLight = false;
+        });
+        toggle();
+      }
 
       // Start animation
       _animationController.forward();
@@ -145,22 +161,14 @@ class _CircularRevealClipper extends CustomClipper<Path> {
     final double maxRadius = _calcMaxRadius(size, center);
 
     if (isDarkToLight) {
-      // Dark -> Light (Grow): Old image is Dark (Top). New is Light (Bottom).
-      // We want Light to "Grow" from center.
-      // So Top Layer (Dark) must have a "Hole" that grows.
-      // Hole Radius: 0 -> Max
-      final double holeRadius = maxRadius * fraction;
-
-      path.addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-      path.addOval(Rect.fromCircle(center: center, radius: holeRadius));
-      path.fillType = PathFillType.evenOdd;
+      // Dark → Light: Light theme EXPANDS from tap point
+      // Circle grows from 0 to max
+      final double radius = maxRadius * fraction;
+      path.addOval(Rect.fromCircle(center: center, radius: radius));
     } else {
-      // Light -> Dark (Shrink): Old image is Light (Top). New is Dark (Bottom).
-      // We want Light to "Shrink" into center.
-      // So Top Layer (Light) is a circle that shrinks.
-      // Circle Radius: Max -> 0
+      // Light → Dark: Light theme SHRINKS into tap point
+      // Circle shrinks from max to 0
       final double radius = maxRadius * (1.0 - fraction);
-
       path.addOval(Rect.fromCircle(center: center, radius: radius));
     }
 

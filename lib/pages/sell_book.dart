@@ -21,6 +21,9 @@ class _SellBookPageState extends State<SellBookPage> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
 
+  // Static cache for categories to avoid reloading
+  static List<BookCategory>? _cachedCategories;
+
   final _titleController = TextEditingController();
   final _authorController = TextEditingController();
   final _isbnController = TextEditingController();
@@ -37,7 +40,7 @@ class _SellBookPageState extends State<SellBookPage> {
   List<BookImage> _existingImages = [];
   final List<File> _selectedImages = [];
   final List<int> _imagesToDelete = [];
-  bool _isLoading = false;
+  bool _isLoadingCategories = false;
   bool _isSaving = false;
 
   bool get _isEditMode => widget.existingBook != null;
@@ -45,8 +48,8 @@ class _SellBookPageState extends State<SellBookPage> {
   @override
   void initState() {
     super.initState();
-    _loadCategories();
     _populateFields();
+    _loadCategories();
   }
 
   void _populateFields() {
@@ -67,9 +70,24 @@ class _SellBookPageState extends State<SellBookPage> {
   }
 
   Future<void> _loadCategories() async {
-    setState(() => _isLoading = true);
+    // Use cached categories if available
+    if (_cachedCategories != null && _cachedCategories!.isNotEmpty) {
+      setState(() {
+        _categories = _cachedCategories!;
+        if (_isEditMode && widget.existingBook!.categoryId != null) {
+          _selectedCategory = _categories.firstWhere(
+            (c) => c.id == widget.existingBook!.categoryId,
+            orElse: () => _categories.first,
+          );
+        }
+      });
+      return;
+    }
+
+    setState(() => _isLoadingCategories = true);
     final categories = await _apiService.getBookCategories();
     if (mounted) {
+      _cachedCategories = categories; // Cache for future use
       setState(() {
         _categories = categories;
         if (_isEditMode && widget.existingBook!.categoryId != null) {
@@ -78,7 +96,7 @@ class _SellBookPageState extends State<SellBookPage> {
             orElse: () => categories.first,
           );
         }
-        _isLoading = false;
+        _isLoadingCategories = false;
       });
     }
   }
@@ -255,189 +273,204 @@ class _SellBookPageState extends State<SellBookPage> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const SellBookShimmer()
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Images Section
-                    Text('Photos', style: AppTextStyles.labelLarge),
-                    const SizedBox(height: AppSpacing.sm),
-                    _buildImagePicker(),
-                    const SizedBox(height: AppSpacing.lg),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Images Section
+              Text('Photos', style: AppTextStyles.labelLarge),
+              const SizedBox(height: AppSpacing.sm),
+              _buildImagePicker(),
+              const SizedBox(height: AppSpacing.lg),
 
-                    // Basic Info
-                    _buildTextField(
-                      controller: _titleController,
-                      label: 'Book Title *',
-                      hint: 'Enter the book title',
-                      validator: (v) => v?.trim().isEmpty == true
-                          ? 'Title is required'
-                          : null,
-                    ),
-                    _buildTextField(
-                      controller: _authorController,
-                      label: 'Author *',
-                      hint: 'Enter author name',
-                      validator: (v) => v?.trim().isEmpty == true
-                          ? 'Author is required'
-                          : null,
-                    ),
-                    _buildTextField(
-                      controller: _priceController,
-                      label: 'Price (Rs.) *',
-                      hint: 'Enter price',
-                      keyboardType: TextInputType.number,
-                      validator: (v) {
-                        if (v?.trim().isEmpty == true) {
-                          return 'Price is required';
-                        }
-                        if (double.tryParse(v!.trim()) == null) {
-                          return 'Please enter a valid price';
-                        }
-                        if (double.parse(v.trim()) <= 0) {
-                          return 'Price must be greater than zero';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    // Condition
-                    const SizedBox(height: AppSpacing.md),
-                    Text('Condition *', style: AppTextStyles.labelMedium),
-                    const SizedBox(height: AppSpacing.sm),
-                    Wrap(
-                      spacing: AppSpacing.sm,
-                      children: BookCondition.values.map((c) {
-                        final isSelected = _condition == c;
-                        final isDark =
-                            Theme.of(context).brightness == Brightness.dark;
-                        return ChoiceChip(
-                          label: Text(c.label),
-                          selected: isSelected,
-                          onSelected: (_) => setState(() => _condition = c),
-                          selectedColor: AppColors.primary.withValues(
-                            alpha: 0.2,
-                          ),
-                          backgroundColor: isDark
-                              ? AppColors.backgroundSecondaryDark
-                              : AppColors.backgroundSecondary,
-                          labelStyle: TextStyle(
-                            color: isSelected
-                                ? AppColors.primary
-                                : (isDark
-                                      ? AppColors.textSecondaryDark
-                                      : AppColors.textSecondary),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-
-                    const SizedBox(height: AppSpacing.lg),
-                    const Divider(),
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Optional Details
-                    Text('Additional Details', style: AppTextStyles.labelLarge),
-                    const SizedBox(height: AppSpacing.md),
-
-                    _buildTextField(
-                      controller: _isbnController,
-                      label: 'ISBN',
-                      hint: 'International Standard Book Number',
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextField(
-                            controller: _editionController,
-                            label: 'Edition',
-                            hint: 'e.g., 3rd',
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: _buildTextField(
-                            controller: _yearController,
-                            label: 'Year',
-                            hint: 'Publication year',
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
-                    ),
-                    _buildTextField(
-                      controller: _publisherController,
-                      label: 'Publisher',
-                      hint: 'Publisher name',
-                    ),
-                    _buildTextField(
-                      controller: _courseCodeController,
-                      label: 'Course Code',
-                      hint: 'e.g., CE-501',
-                    ),
-
-                    // Category
-                    if (_categories.isNotEmpty) ...[
-                      const SizedBox(height: AppSpacing.md),
-                      Text('Category', style: AppTextStyles.labelMedium),
-                      const SizedBox(height: AppSpacing.sm),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).cardTheme.color,
-                          borderRadius: BorderRadius.circular(AppRadius.sm),
-                          border: Border.all(
-                            color:
-                                Theme.of(context).dividerTheme.color ??
-                                AppColors.border,
-                          ),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButtonFormField<BookCategory?>(
-                            initialValue: _selectedCategory,
-                            isExpanded: true,
-                            hint: const Text('Select a category'),
-                            validator: (v) =>
-                                v == null ? 'Category is required' : null,
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                            items: _categories
-                                .map(
-                                  (cat) => DropdownMenuItem(
-                                    value: cat,
-                                    child: Text(cat.name),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) =>
-                                setState(() => _selectedCategory = value),
-                          ),
-                        ),
-                      ),
-                    ],
-
-                    const SizedBox(height: AppSpacing.lg),
-                    _buildTextField(
-                      controller: _descriptionController,
-                      label: 'Description',
-                      hint: 'Add any additional details about the book...',
-                      maxLines: 4,
-                    ),
-
-                    const SizedBox(height: AppSpacing.xl),
-                  ],
-                ),
+              // Basic Info
+              _buildTextField(
+                controller: _titleController,
+                label: 'Book Title *',
+                hint: 'Enter the book title',
+                validator: (v) =>
+                    v?.trim().isEmpty == true ? 'Title is required' : null,
               ),
-            ),
+              _buildTextField(
+                controller: _authorController,
+                label: 'Author *',
+                hint: 'Enter author name',
+                validator: (v) =>
+                    v?.trim().isEmpty == true ? 'Author is required' : null,
+              ),
+              _buildTextField(
+                controller: _priceController,
+                label: 'Price (Rs.) *',
+                hint: 'Enter price',
+                keyboardType: TextInputType.number,
+                validator: (v) {
+                  if (v?.trim().isEmpty == true) {
+                    return 'Price is required';
+                  }
+                  if (double.tryParse(v!.trim()) == null) {
+                    return 'Please enter a valid price';
+                  }
+                  if (double.parse(v.trim()) <= 0) {
+                    return 'Price must be greater than zero';
+                  }
+                  return null;
+                },
+              ),
+
+              // Condition
+              const SizedBox(height: AppSpacing.md),
+              Text('Condition *', style: AppTextStyles.labelMedium),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.sm,
+                children: BookCondition.values.map((c) {
+                  final isSelected = _condition == c;
+                  final isDark =
+                      Theme.of(context).brightness == Brightness.dark;
+                  return ChoiceChip(
+                    label: Text(c.label),
+                    selected: isSelected,
+                    onSelected: (_) => setState(() => _condition = c),
+                    selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                    backgroundColor: isDark
+                        ? AppColors.backgroundSecondaryDark
+                        : AppColors.backgroundSecondary,
+                    labelStyle: TextStyle(
+                      color: isSelected
+                          ? AppColors.primary
+                          : (isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondary),
+                    ),
+                  );
+                }).toList(),
+              ),
+
+              const SizedBox(height: AppSpacing.lg),
+              const Divider(),
+              const SizedBox(height: AppSpacing.lg),
+
+              // Optional Details
+              Text('Additional Details', style: AppTextStyles.labelLarge),
+              const SizedBox(height: AppSpacing.md),
+
+              _buildTextField(
+                controller: _isbnController,
+                label: 'ISBN',
+                hint: 'International Standard Book Number',
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _editionController,
+                      label: 'Edition',
+                      hint: 'e.g., 3rd',
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _yearController,
+                      label: 'Year',
+                      hint: 'Publication year',
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              _buildTextField(
+                controller: _publisherController,
+                label: 'Publisher',
+                hint: 'Publisher name',
+              ),
+              _buildTextField(
+                controller: _courseCodeController,
+                label: 'Course Code',
+                hint: 'e.g., CE-501',
+              ),
+
+              // Category
+              const SizedBox(height: AppSpacing.md),
+              Text('Category', style: AppTextStyles.labelMedium),
+              const SizedBox(height: AppSpacing.sm),
+              if (_isLoadingCategories)
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardTheme.color,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    border: Border.all(
+                      color:
+                          Theme.of(context).dividerTheme.color ??
+                          AppColors.border,
+                    ),
+                  ),
+                  child: const Row(
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: AppSpacing.sm),
+                      Text('Loading categories...'),
+                    ],
+                  ),
+                )
+              else if (_categories.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardTheme.color,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    border: Border.all(
+                      color:
+                          Theme.of(context).dividerTheme.color ??
+                          AppColors.border,
+                    ),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButtonFormField<BookCategory?>(
+                      value: _selectedCategory,
+                      isExpanded: true,
+                      hint: const Text('Select a category'),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      items: _categories
+                          .map(
+                            (cat) => DropdownMenuItem(
+                              value: cat,
+                              child: Text(cat.name),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) =>
+                          setState(() => _selectedCategory = value),
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: AppSpacing.lg),
+              _buildTextField(
+                controller: _descriptionController,
+                label: 'Description',
+                hint: 'Add any additional details about the book...',
+                maxLines: 4,
+              ),
+
+              const SizedBox(height: AppSpacing.xl),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

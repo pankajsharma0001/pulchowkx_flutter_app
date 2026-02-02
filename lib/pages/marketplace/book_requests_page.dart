@@ -341,10 +341,12 @@ class _BookRequestsPageState extends State<BookRequestsPage>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            BookDetailsPage(bookId: request.listingId),
+                        builder: (context) => BookDetailsPage(
+                          bookId: request.listingId,
+                          initialBook: request.listing,
+                        ),
                       ),
-                    ).then((_) => _loadData());
+                    );
                   },
                 );
               },
@@ -423,10 +425,12 @@ class _BookRequestsPageState extends State<BookRequestsPage>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            BookDetailsPage(bookId: request.listingId),
+                        builder: (context) => BookDetailsPage(
+                          bookId: request.listingId,
+                          initialBook: request.listing,
+                        ),
                       ),
-                    ).then((_) => _loadData());
+                    );
                   },
                 );
               },

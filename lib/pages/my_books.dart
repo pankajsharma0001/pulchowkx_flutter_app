@@ -22,13 +22,16 @@ class _MyBooksPageState extends State<MyBooksPage>
 
   List<BookListing> _myListings = [];
   List<SavedBook> _savedBooks = [];
-  bool _isLoading = true;
+  bool _isLoading = false;
+  bool _hasLoaded = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadData();
+    if (!_hasLoaded) {
+      _loadData();
+    }
   }
 
   @override
@@ -48,6 +51,7 @@ class _MyBooksPageState extends State<MyBooksPage>
         _myListings = listings;
         _savedBooks = saved;
         _isLoading = false;
+        _hasLoaded = true;
       });
     }
   }
@@ -224,8 +228,10 @@ class _MyBooksPageState extends State<MyBooksPage>
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) =>
-                      BookDetailsPage(bookId: _myListings[index].id),
+                  builder: (context) => BookDetailsPage(
+                    bookId: _myListings[index].id,
+                    initialBook: _myListings[index],
+                  ),
                 ),
               );
             },
@@ -245,24 +251,29 @@ class _MyBooksPageState extends State<MyBooksPage>
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      itemCount: _savedBooks.length,
-      itemBuilder: (context, index) {
-        return _SavedBookCard(
-          savedBook: _savedBooks[index],
-          onUnsave: () => _unsaveBook(_savedBooks[index]),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    BookDetailsPage(bookId: _savedBooks[index].listingId),
-              ),
-            );
-          },
-        );
-      },
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        itemCount: _savedBooks.length,
+        itemBuilder: (context, index) {
+          return _SavedBookCard(
+            savedBook: _savedBooks[index],
+            onUnsave: () => _unsaveBook(_savedBooks[index]),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BookDetailsPage(
+                    bookId: _savedBooks[index].listingId,
+                    initialBook: _savedBooks[index].listing,
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 

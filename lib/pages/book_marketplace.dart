@@ -601,8 +601,10 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  BookDetailsPage(bookId: _listings[index].id),
+                              builder: (context) => BookDetailsPage(
+                                bookId: _listings[index].id,
+                                initialBook: _listings[index],
+                              ),
                             ),
                           );
                         },

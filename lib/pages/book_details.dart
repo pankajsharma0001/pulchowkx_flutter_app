@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/models/book_listing.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
@@ -10,8 +11,9 @@ import 'package:pulchowkx_app/models/chat.dart';
 
 class BookDetailsPage extends StatefulWidget {
   final int bookId;
+  final BookListing? initialBook;
 
-  const BookDetailsPage({super.key, required this.bookId});
+  const BookDetailsPage({super.key, required this.bookId, this.initialBook});
 
   @override
   State<BookDetailsPage> createState() => _BookDetailsPageState();
@@ -30,7 +32,24 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   @override
   void initState() {
     super.initState();
-    _loadBook();
+    if (widget.initialBook != null) {
+      // Use initial data immediately - no loading needed
+      _book = widget.initialBook;
+      _isLoading = false;
+      // Fetch request status in background if not owner
+      if (!_book!.isOwner) {
+        _fetchRequestStatus();
+      }
+    } else {
+      _loadBook();
+    }
+  }
+
+  Future<void> _fetchRequestStatus() async {
+    final myRequest = await _apiService.getPurchaseRequestStatus(widget.bookId);
+    if (mounted) {
+      setState(() => _myRequest = myRequest);
+    }
   }
 
   Future<void> _loadBook() async {
@@ -310,6 +329,13 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         ),
         title: Text('Book Details', style: AppTextStyles.h4),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              _loadBook();
+            },
+          ),
           if (_book != null && !_book!.isOwner) ...[
             if (_myRequest?.status == RequestStatus.accepted)
               IconButton(
@@ -359,42 +385,49 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
       );
     }
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildImageGallery(),
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildStatusBadge(),
-                const SizedBox(height: AppSpacing.sm),
-                Text(_book!.title, style: AppTextStyles.h3),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'by ${_book!.author}',
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    color:
-                        Theme.of(context).textTheme.bodyMedium?.color ??
-                        AppColors.textSecondary,
+    return RefreshIndicator(
+      onRefresh: () async {
+        HapticFeedback.mediumImpact();
+        await _loadBook();
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildImageGallery(),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildStatusBadge(),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(_book!.title, style: AppTextStyles.h3),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'by ${_book!.author}',
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      color:
+                          Theme.of(context).textTheme.bodyMedium?.color ??
+                          AppColors.textSecondary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                _buildPriceSection(),
-                const SizedBox(height: AppSpacing.lg),
-                _buildInfoCards(),
-                if (_book!.description != null) ...[
                   const SizedBox(height: AppSpacing.lg),
-                  _buildDescription(),
+                  _buildPriceSection(),
+                  const SizedBox(height: AppSpacing.lg),
+                  _buildInfoCards(),
+                  if (_book!.description != null) ...[
+                    const SizedBox(height: AppSpacing.lg),
+                    _buildDescription(),
+                  ],
+                  const SizedBox(height: AppSpacing.lg),
+                  _buildSellerSection(),
                 ],
-                const SizedBox(height: AppSpacing.lg),
-                _buildSellerSection(),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

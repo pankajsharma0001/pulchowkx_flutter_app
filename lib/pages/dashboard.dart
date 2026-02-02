@@ -12,7 +12,6 @@ import 'package:pulchowkx_app/pages/admin/create_club_page.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/pages/settings_page.dart';
 import 'package:pulchowkx_app/models/event.dart';
-import 'package:pulchowkx_app/pages/marketplace/conversations_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -411,23 +410,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   );
                                 },
                               ),
-                            _QuickActionCard(
-                              icon: Icons.chat_outlined,
-                              title: 'Messages',
-                              description:
-                                  'View your marketplace conversations.',
-                              color: Colors.blue,
-                              heroTag: 'hero-messages',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const ConversationsPage(),
-                                  ),
-                                );
-                              },
-                            ),
+
                             _QuickActionCard(
                               icon: Icons.favorite_rounded,
                               title: 'My Favorites',
