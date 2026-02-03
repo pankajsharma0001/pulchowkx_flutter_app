@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
@@ -152,7 +152,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   child: PageView.builder(
                     controller: _pageController,
                     onPageChanged: (index) {
-                      HapticFeedback.selectionClick();
+                      haptics.selectionClick();
                       setState(() => _currentPage = index);
                     },
                     itemCount: _slides.length,
@@ -208,7 +208,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       // Next/Get Started button
                       GestureDetector(
                         onTap: () {
-                          HapticFeedback.lightImpact();
+                          haptics.lightImpact();
                           _nextPage();
                         },
                         child: AnimatedContainer(

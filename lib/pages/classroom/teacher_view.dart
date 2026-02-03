@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -253,7 +253,7 @@ class _TeacherSubjectCardState extends State<TeacherSubjectCard> {
                       color: AppColors.textMuted,
                     ),
                     onPressed: () {
-                      HapticFeedback.selectionClick();
+                      haptics.selectionClick();
                       setState(() => _isExpanded = !_isExpanded);
                     },
                   ),

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:pulchowkx_app/auth/service/google_auth.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:hive/hive.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/services/notification_service.dart';
 import 'package:pulchowkx_app/main.dart' show themeProvider;
@@ -111,11 +114,52 @@ class _SettingsPageState extends State<SettingsPage> {
     );
 
     if (confirmed == true) {
-      await DefaultCacheManager().emptyCache();
+      // Show loading indicator
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Cache cleared successfully!'),
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(width: 16),
+                Text('Clearing cache...'),
+              ],
+            ),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+
+      // Clear DefaultCacheManager (flutter_cache_manager)
+      await DefaultCacheManager().emptyCache();
+
+      // Clear CachedNetworkImage cache
+      await CachedNetworkImage.evictFromCache('');
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+
+      // Clear Hive API cache
+      try {
+        final box = Hive.box('api_cache');
+        await box.clear();
+      } catch (e) {
+        debugPrint('Error clearing Hive cache: $e');
+      }
+
+      if (mounted) {
+        // Trigger haptic feedback
+        haptics.mediumImpact();
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All caches cleared successfully!'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -195,6 +239,99 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _reportBug() async {
+    final Uri params = Uri(
+      scheme: 'mailto',
+      path: 'bugs@pulchowkx.com',
+      query:
+          'subject=Bug Report (v1.0.0)&body=Please describe the bug:%0A%0ASteps to reproduce:%0A1.%0A2.%0A3.%0A%0AExpected behavior:%0A%0AActual behavior:%0A%0ADevice info:%0A',
+    );
+    if (await canLaunchUrl(params)) {
+      await launchUrl(params);
+    }
+  }
+
+  void _showFAQDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: Text('FAQ & Help', style: AppTextStyles.h4),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildFAQItem(
+                'How do I register for events?',
+                'Go to the Events tab, find an event you\'re interested in, and tap "Register". Make sure you\'re signed in.',
+              ),
+              _buildFAQItem(
+                'How do I list a book for sale?',
+                'Navigate to the Marketplace tab, tap the + button, and fill in the book details.',
+              ),
+              _buildFAQItem(
+                'Why can\'t I see some features?',
+                'Some features require you to be signed in. Please sign in with your Google account.',
+              ),
+              _buildFAQItem(
+                'How do I contact a club?',
+                'Visit the club\'s page and tap on their website or social media links.',
+              ),
+              _buildFAQItem(
+                'How do I report inappropriate content?',
+                'Use the "Report a Bug" option in settings or contact support directly.',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFAQItem(String question, String answer) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            question,
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            answer,
+            style: AppTextStyles.bodySmall.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _contactSupport() async {
+    final Uri params = Uri(
+      scheme: 'mailto',
+      path: 'support@pulchowkx.com',
+      query: 'subject=Support Request (v1.0.0)',
+    );
+    if (await canLaunchUrl(params)) {
+      await launchUrl(params);
+    }
   }
 
   @override
@@ -351,6 +488,37 @@ class _SettingsPageState extends State<SettingsPage> {
                         trailing: const Icon(Icons.launch_rounded, size: 18),
                         onTap: _sendFeedback,
                       ),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.bug_report_rounded,
+                          color: AppColors.warning,
+                        ),
+                        title: const Text('Report a Bug'),
+                        subtitle: const Text('Found an issue? Let us know'),
+                        trailing: const Icon(Icons.launch_rounded, size: 18),
+                        onTap: () => _reportBug(),
+                      ),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.help_outline_rounded,
+                          color: AppColors.info,
+                        ),
+                        title: const Text('FAQ & Help'),
+                        subtitle: const Text('Frequently asked questions'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => _showFAQDialog(),
+                      ),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.email_rounded,
+                          color: AppColors.primary,
+                        ),
+                        title: const Text('Contact Support'),
+                        subtitle: const Text('support@pulchowkx.com'),
+                        trailing: const Icon(Icons.launch_rounded, size: 18),
+                        onTap: () => _contactSupport(),
+                      ),
+                      const Divider(height: 32),
                       ListTile(
                         leading: const Icon(
                           Icons.privacy_tip_rounded,

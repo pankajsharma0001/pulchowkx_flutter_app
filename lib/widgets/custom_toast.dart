@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 
 enum ToastType { success, error, warning, info }
@@ -18,7 +18,7 @@ class CustomToast {
     VoidCallback? onAction,
   }) {
     _dismiss();
-    HapticFeedback.lightImpact();
+    haptics.lightImpact();
 
     final overlay = Overlay.of(context);
     _currentOverlay = OverlayEntry(

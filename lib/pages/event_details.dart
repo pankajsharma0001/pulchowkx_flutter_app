@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -716,14 +716,11 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
               fit: StackFit.expand,
               children: [
                 if (event.bannerUrl != null)
-                  Hero(
-                    tag: 'event_banner_${event.id}',
-                    child: CachedNetworkImage(
-                      imageUrl: event.bannerUrl!,
-                      fit: BoxFit.cover,
-                      placeholder: (_, _) => _buildBannerPlaceholder(),
-                      errorWidget: (_, _, _) => _buildBannerPlaceholder(),
-                    ),
+                  CachedNetworkImage(
+                    imageUrl: event.bannerUrl!,
+                    fit: BoxFit.cover,
+                    placeholder: (_, _) => _buildBannerPlaceholder(),
+                    errorWidget: (_, _, _) => _buildBannerPlaceholder(),
                   )
                 else
                   _buildBannerPlaceholder(),
@@ -759,7 +756,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                       );
                       return GestureDetector(
                         onTap: () {
-                          HapticFeedback.lightImpact();
+                          haptics.lightImpact();
                           favoritesService.toggleEventFavorite(
                             event.id.toString(),
                           );
@@ -903,21 +900,23 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                     Expanded(
                       child: _InfoCard(
                         icon: Icons.calendar_today_rounded,
-                        title: 'Date',
-                        value: dateFormat.format(event.eventStartTime),
+                        title: 'Start Date',
+                        value:
+                            '${dateFormat.format(event.eventStartTime)} ${timeFormat.format(event.eventStartTime)}',
                       ),
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: _InfoCard(
-                        icon: Icons.access_time_rounded,
-                        title: 'Time',
+                        icon: Icons.event_rounded,
+                        title: 'End Date',
                         value:
-                            '${timeFormat.format(event.eventStartTime)} - ${timeFormat.format(event.eventEndTime)}',
+                            '${dateFormat.format(event.eventEndTime)} ${timeFormat.format(event.eventEndTime)}',
                       ),
                     ),
                   ],
                 ),
+
                 const SizedBox(height: AppSpacing.md),
                 Row(
                   children: [

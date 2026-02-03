@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/models/club.dart';
@@ -307,7 +307,7 @@ class _ClubHeader extends StatelessWidget {
                     );
                     return GestureDetector(
                       onTap: () {
-                        HapticFeedback.lightImpact();
+                        haptics.lightImpact();
                         favoritesService.toggleClubFavorite(club.id.toString());
                       },
                       child: Container(
@@ -581,6 +581,33 @@ class _AboutTabState extends State<_AboutTab> {
                 height: 1.6,
               ),
             ),
+
+          // View Website Button
+          if (widget.profile?.websiteUrl != null &&
+              widget.profile!.websiteUrl!.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final uri = Uri.parse(widget.profile!.websiteUrl!);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+              icon: const Icon(Icons.language_rounded),
+              label: const Text('View Website'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.sm,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+              ),
+            ),
+          ],
 
           // Mission & Vision (if profile has content)
           if (_hasProfileContent) ...[

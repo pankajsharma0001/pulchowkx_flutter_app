@@ -4,6 +4,7 @@ import 'package:pulchowkx_app/pages/onboarding_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/services/theme_provider.dart';
+import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:pulchowkx_app/widgets/theme_switcher.dart';
@@ -36,6 +37,9 @@ void main() async {
   } catch (e) {
     debugPrint('Failed to initialize Hive: $e');
   }
+
+  // Initialize haptic service with theme provider
+  haptics.init(themeProvider);
 
   // Non-blocking analytics
   AnalyticsService.logAppOpen().catchError((e) {

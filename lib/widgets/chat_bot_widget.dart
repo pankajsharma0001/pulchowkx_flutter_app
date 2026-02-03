@@ -116,6 +116,8 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
         _panelAnimationController.forward();
         _fabAnimationController.forward();
         _pulseAnimationController.stop();
+        // Scroll to bottom to show latest messages when reopening
+        _scrollToBottom();
       } else {
         _panelAnimationController.reverse();
         _fabAnimationController.reverse();
@@ -123,6 +125,19 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
         _focusNode.unfocus();
       }
     });
+  }
+
+  /// Close the chatbot panel programmatically
+  void _closeChat() {
+    if (_isOpen) {
+      setState(() {
+        _isOpen = false;
+        _panelAnimationController.reverse();
+        _fabAnimationController.reverse();
+        _pulseAnimationController.repeat();
+        _focusNode.unfocus();
+      });
+    }
   }
 
   void _startCooldown(int seconds) {
@@ -178,6 +193,10 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
             response.data!.locations,
             response.data!.action,
           );
+          // Auto-close chatbot after navigating to location
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) _closeChat();
+          });
         }
       } else {
         final isQuotaError = response.isQuotaError;

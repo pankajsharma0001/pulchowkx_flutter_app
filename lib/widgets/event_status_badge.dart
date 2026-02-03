@@ -19,7 +19,12 @@ class EventStatusBadge extends StatelessWidget {
     String text;
     IconData? icon;
 
-    if (event.isOngoing) {
+    if (event.isCancelled) {
+      bgColor = AppColors.error;
+      textColor = Colors.white;
+      text = 'CANCELLED';
+      icon = Icons.cancel_rounded;
+    } else if (event.isOngoing) {
       bgColor = AppColors.success;
       textColor = Colors.white;
       text = 'LIVE';
@@ -35,7 +40,11 @@ class EventStatusBadge extends StatelessWidget {
     }
 
     if (isCompact) {
-      if (event.isOngoing) {
+      if (event.isCancelled) {
+        bgColor = AppColors.error.withValues(alpha: 0.15);
+        textColor = AppColors.error;
+        icon = Icons.cancel_rounded;
+      } else if (event.isOngoing) {
         bgColor = AppColors.success.withValues(alpha: 0.15);
         textColor = AppColors.success;
       } else if (event.isUpcoming) {

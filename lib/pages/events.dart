@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:pulchowkx_app/pages/calendar_page.dart';
+import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:pulchowkx_app/models/event.dart';
@@ -48,7 +48,7 @@ class _EventsPageState extends State<EventsPage> {
         ),
         child: RefreshIndicator(
           onRefresh: () async {
-            HapticFeedback.mediumImpact();
+            haptics.mediumImpact();
             _refreshEvents();
             // Check connectivity on refresh
             final connectivityResult = await Connectivity().checkConnectivity();
@@ -56,9 +56,7 @@ class _EventsPageState extends State<EventsPage> {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text(
-                      'No internet connection. Showing cached data.',
-                    ),
+                    content: Text('No internet connection.'),
                     duration: Duration(seconds: 3),
                   ),
                 );
@@ -145,7 +143,7 @@ class _EventsPageState extends State<EventsPage> {
                           const SizedBox(height: AppSpacing.md),
                           OutlinedButton.icon(
                             onPressed: () {
-                              HapticFeedback.lightImpact();
+                              haptics.lightImpact();
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -215,6 +213,20 @@ class _EventsPageState extends State<EventsPage> {
                     ),
                   ],
 
+                  // Cancelled Events
+                  if (categorized['cancelled']!.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      'Cancelled Events',
+                      AppColors.error,
+                      null,
+                      categorized['cancelled']!.length,
+                    ),
+                    _buildEventsGrid(
+                      categorized['cancelled']!,
+                      isCompleted: true,
+                    ),
+                  ],
+
                   // Bottom padding
                   const SliverToBoxAdapter(
                     child: SizedBox(height: AppSpacing.xl),
@@ -233,9 +245,12 @@ class _EventsPageState extends State<EventsPage> {
       ..sort((a, b) => b.eventStartTime.compareTo(a.eventStartTime));
 
     return {
-      'ongoing': sorted.where((e) => e.isOngoing).toList(),
-      'upcoming': sorted.where((e) => e.isUpcoming).toList(),
-      'completed': sorted.where((e) => e.isCompleted).toList(),
+      'ongoing': sorted.where((e) => e.isOngoing && !e.isCancelled).toList(),
+      'upcoming': sorted.where((e) => e.isUpcoming && !e.isCancelled).toList(),
+      'cancelled': sorted.where((e) => e.isCancelled).toList(),
+      'completed': sorted
+          .where((e) => e.isCompleted && !e.isCancelled)
+          .toList(),
     };
   }
 

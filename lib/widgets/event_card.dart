@@ -78,14 +78,11 @@ class _EventCardState extends State<EventCard> {
                       fit: StackFit.expand,
                       children: [
                         if (widget.event.bannerUrl != null)
-                          Hero(
-                            tag: 'event_banner_${widget.event.id}',
-                            child: CachedNetworkImage(
-                              imageUrl: widget.event.bannerUrl!,
-                              fit: BoxFit.cover,
-                              placeholder: (_, _) => _buildPlaceholder(),
-                              errorWidget: (_, _, _) => _buildPlaceholder(),
-                            ),
+                          CachedNetworkImage(
+                            imageUrl: widget.event.bannerUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (_, _) => _buildPlaceholder(),
+                            errorWidget: (_, _, _) => _buildPlaceholder(),
                           )
                         else
                           _buildPlaceholder(),
@@ -126,7 +123,7 @@ class _EventCardState extends State<EventCard> {
                                   ? AppShadows.sm
                                   : null,
                             ),
-                            child: Column(
+                            child: Row(
                               children: [
                                 Text(
                                   dateFormat
@@ -135,14 +132,19 @@ class _EventCardState extends State<EventCard> {
                                   style: AppTextStyles.labelSmall.copyWith(
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.bold,
+                                    fontSize: 12,
                                   ),
                                 ),
+                                const SizedBox(width: 6),
                                 Text(
                                   widget.event.eventStartTime.day.toString(),
                                   style: Theme.of(context)
                                       .textTheme
                                       .headlineMedium
-                                      ?.copyWith(fontSize: 18),
+                                      ?.copyWith(
+                                        color: AppColors.primary,
+                                        fontSize: 16,
+                                      ),
                                 ),
                               ],
                             ),
@@ -211,6 +213,7 @@ class _EventCardState extends State<EventCard> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         const Spacer(),
+                        // const SizedBox(height: AppSpacing.sm),
                         // Time and venue
                         Row(
                           children: [

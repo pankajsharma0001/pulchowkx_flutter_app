@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
@@ -237,7 +237,7 @@ class _FavoritesPageState extends State<FavoritesPage>
 
     return RefreshIndicator(
       onRefresh: () async {
-        HapticFeedback.mediumImpact();
+        haptics.mediumImpact();
         await _loadFavoriteEvents();
       },
       color: AppColors.primary,
@@ -286,7 +286,7 @@ class _FavoritesPageState extends State<FavoritesPage>
 
     return RefreshIndicator(
       onRefresh: () async {
-        HapticFeedback.mediumImpact();
+        haptics.mediumImpact();
         await _loadFavoriteClubs();
       },
       color: AppColors.primary,

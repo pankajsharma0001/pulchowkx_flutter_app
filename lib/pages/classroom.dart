@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:pulchowkx_app/models/classroom.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
@@ -126,7 +126,7 @@ class _ClassroomPageState extends State<ClassroomPage> {
         ),
         child: RefreshIndicator(
           onRefresh: () async {
-            HapticFeedback.mediumImpact();
+            haptics.mediumImpact();
             await _loadData();
           },
           color: AppColors.primary,

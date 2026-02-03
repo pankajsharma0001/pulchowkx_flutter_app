@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/models/book_listing.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
@@ -329,13 +329,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         ),
         title: Text('Book Details', style: AppTextStyles.h4),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              _loadBook();
-            },
-          ),
           if (_book != null && !_book!.isOwner) ...[
             if (_myRequest?.status == RequestStatus.accepted)
               IconButton(
@@ -387,7 +380,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
 
     return RefreshIndicator(
       onRefresh: () async {
-        HapticFeedback.mediumImpact();
+        haptics.mediumImpact();
         await _loadBook();
       },
       child: SingleChildScrollView(
@@ -662,25 +655,50 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                   ),
                 ),
               const SizedBox(width: AppSpacing.md),
-              if (!_book!.isOwner)
+              if (!_book!.isOwner) ...[
+                if (_myRequest?.status == RequestStatus.accepted)
+                  IconButton(
+                    onPressed: _openChat,
+                    icon: const Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      color: AppColors.primary,
+                    ),
+                    tooltip: 'Message Seller',
+                  ),
                 IconButton(
                   onPressed: () async {
-                    final email = _book!.seller?.email;
-                    if (email != null) {
-                      final emailUri = Uri.parse(
-                        'mailto:$email?subject=Interested in: ${_book!.title}',
-                      );
-                      if (await canLaunchUrl(emailUri)) {
-                        await launchUrl(emailUri);
+                    if (_myRequest?.status == RequestStatus.accepted) {
+                      final email = _book!.seller?.email;
+                      if (email != null) {
+                        final emailUri = Uri.parse(
+                          'mailto:$email?subject=Interested in: ${_book!.title}',
+                        );
+                        if (await canLaunchUrl(emailUri)) {
+                          await launchUrl(emailUri);
+                        }
                       }
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'You can contact the seller once your request is accepted.',
+                          ),
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
                     }
                   },
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.email_outlined,
-                    color: AppColors.accent,
+                    color: _myRequest?.status == RequestStatus.accepted
+                        ? AppColors.accent
+                        : AppColors.textMuted,
                   ),
-                  tooltip: 'Email Seller',
+                  tooltip: _myRequest?.status == RequestStatus.accepted
+                      ? 'Email Seller'
+                      : 'Request acceptance required',
                 ),
+              ],
             ],
           ),
           const SizedBox(height: AppSpacing.sm),

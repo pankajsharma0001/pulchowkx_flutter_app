@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:confetti/confetti.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/services.dart';
+import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:pulchowkx_app/models/classroom.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
@@ -192,7 +192,7 @@ class _SubjectCardState extends State<SubjectCard> {
           InkWell(
             onTap: hasAssignments
                 ? () {
-                    HapticFeedback.selectionClick();
+                    haptics.selectionClick();
                     setState(() => _isExpanded = !_isExpanded);
                   }
                 : null,

@@ -143,9 +143,11 @@ class ClubEvent {
 
   bool get isCompleted {
     final now = DateTime.now();
-    return status == 'completed' ||
-        eventEndTime.isBefore(now) ||
-        status == 'cancelled';
+    return status == 'completed' || eventEndTime.isBefore(now);
+  }
+
+  bool get isCancelled {
+    return status == 'cancelled';
   }
 
   bool get canRegister {

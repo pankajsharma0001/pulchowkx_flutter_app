@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:pulchowkx_app/models/club.dart';
@@ -41,16 +41,14 @@ class _ClubsPageState extends State<ClubsPage> {
         ),
         child: RefreshIndicator(
           onRefresh: () async {
-            HapticFeedback.mediumImpact();
+            haptics.mediumImpact();
             _refreshClubs();
             final connectivityResult = await Connectivity().checkConnectivity();
             if (connectivityResult.first == ConnectivityResult.none) {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text(
-                      'No internet connection. Showing cached data.',
-                    ),
+                    content: Text('No internet connection.'),
                     duration: Duration(seconds: 3),
                   ),
                 );

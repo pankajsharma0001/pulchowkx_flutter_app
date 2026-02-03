@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/cards/logo.dart';
@@ -242,7 +242,7 @@ class _BrandLogo extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          HapticFeedback.lightImpact();
+          haptics.lightImpact();
           if (isHomePage) return;
           final mainLayout = MainLayout.of(context);
           if (mainLayout != null) {
@@ -312,7 +312,7 @@ class _NavBarItemState extends State<_NavBarItem> {
           onTap: widget.isActive
               ? null
               : () {
-                  HapticFeedback.selectionClick();
+                  haptics.selectionClick();
                   widget.onTap();
                 },
           borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -377,7 +377,7 @@ class _UserAvatar extends StatelessWidget {
         onTap: isActive
             ? null
             : () {
-                HapticFeedback.selectionClick();
+                haptics.selectionClick();
                 onTap();
               },
         borderRadius: BorderRadius.circular(AppRadius.full),
@@ -429,7 +429,7 @@ class _SignInButton extends StatelessWidget {
           onTap: isActive
               ? null
               : () {
-                  HapticFeedback.lightImpact();
+                  haptics.lightImpact();
                   onTap();
                 },
           borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -476,7 +476,7 @@ class _CompactSignInButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            HapticFeedback.lightImpact();
+            haptics.lightImpact();
             onTap();
           },
           borderRadius: BorderRadius.circular(AppRadius.full),
@@ -529,7 +529,7 @@ class _MobileMoreMenu extends StatelessWidget {
         ],
       ),
       onSelected: (page) {
-        HapticFeedback.selectionClick();
+        haptics.selectionClick();
         if (page == AppPage.clubs) {
           CustomAppBar._navigateToClubs(context, isLoggedIn, currentPage);
         } else if (page == AppPage.events) {

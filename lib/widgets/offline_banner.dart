@@ -58,7 +58,7 @@ class OfflineBanner extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                message ?? 'Offline Mode: Showing cached data',
+                message ?? 'Offline Mode',
                 style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.warning,
                 ),

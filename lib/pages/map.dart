@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pulchowkx_app/models/chatbot_response.dart';
+import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:pulchowkx_app/widgets/chat_bot_widget.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart'
     show CustomAppBar, AppPage;
@@ -47,6 +48,7 @@ class _MapPageState extends State<MapPage> {
   bool _isLocating = false;
   bool _isNavigationPanelExpanded = true;
   bool _isTogglingMapType = false; // Guard for map type toggle
+  double _cameraBearing = 0.0; // Track camera rotation for custom compass
 
   // Pulchowk Campus center and bounds
   static const LatLng _pulchowkCenter = LatLng(
@@ -578,7 +580,8 @@ class _MapPageState extends State<MapPage> {
         point.x - 80, // left - increased for easier tapping
         point.y - 100, // top - increased for easier tapping
         point.x + 80, // right - increased for easier tapping
-        point.y + 60, // bottom (for labels below) - increased for easier tapping
+        point.y +
+            60, // bottom (for labels below) - increased for easier tapping
       );
 
       // Query rendered features in the rect area - only the markers-layer
@@ -789,6 +792,10 @@ class _MapPageState extends State<MapPage> {
 
       if (status.isDenied) {
         status = await Permission.location.request();
+        // After granting permission, give the system time to initialize
+        if (status.isGranted) {
+          await Future.delayed(const Duration(milliseconds: 1500));
+        }
       }
 
       if (status.isPermanentlyDenied) {
@@ -830,31 +837,73 @@ class _MapPageState extends State<MapPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Please enable location services'),
+              content: const Text(
+                'Please enable location services in your device settings',
+              ),
               backgroundColor: Colors.orange[700],
               behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+              action: SnackBarAction(
+                label: 'Settings',
+                textColor: Colors.white,
+                onPressed: () => openAppSettings(),
+              ),
             ),
           );
         }
         return;
       }
 
+      // Ensure MapLibre's location component is enabled
+      try {
+        // Re-enable location tracking on the map to ensure the component is initialized
+        await _mapController!.updateMyLocationTrackingMode(
+          MyLocationTrackingMode.trackingGps,
+        );
+        // Give the location component time to initialize
+        await Future.delayed(const Duration(milliseconds: 1000));
+      } catch (e) {
+        debugPrint('📍 Error enabling location tracking: $e');
+      }
+
       // Use MapLibre's built-in location tracking with timeout
       // On first launch, GPS may need time to acquire a fix, so we retry
       LatLng? latLng;
-      for (int attempt = 0; attempt < 2; attempt++) {
-        latLng = await _mapController!.requestMyLocationLatLng().timeout(
-          Duration(
-            seconds: attempt == 0 ? 15 : 10,
-          ), // Longer timeout for first attempt
-          onTimeout: () => null,
-        );
+      for (int attempt = 0; attempt < 3; attempt++) {
+        try {
+          latLng = await _mapController!.requestMyLocationLatLng().timeout(
+            Duration(
+              seconds: attempt == 0 ? 20 : 15,
+            ), // Longer timeout for first attempt
+            onTimeout: () => null,
+          );
+        } catch (e) {
+          debugPrint('📍 Location attempt ${attempt + 1} error: $e');
+          // If it's a platform exception about location disabled, wait and retry
+          if (e.toString().contains('LOCATION DISABLED')) {
+            await Future.delayed(const Duration(seconds: 2));
+            // Try re-enabling location tracking
+            try {
+              await _mapController!.updateMyLocationTrackingMode(
+                MyLocationTrackingMode.trackingGps,
+              );
+              await Future.delayed(const Duration(milliseconds: 500));
+            } catch (_) {}
+          }
+        }
         if (latLng != null) break;
-        if (attempt == 0) {
-          debugPrint('📍 First location attempt failed, retrying...');
-          await Future.delayed(const Duration(milliseconds: 500));
+        if (attempt < 2) {
+          debugPrint('📍 Location attempt ${attempt + 1} failed, retrying...');
+          await Future.delayed(const Duration(seconds: 2));
         }
       }
+
+      // Reset tracking mode back to none after getting location
+      try {
+        await _mapController!.updateMyLocationTrackingMode(
+          MyLocationTrackingMode.none,
+        );
+      } catch (_) {}
 
       if (latLng != null) {
         _userLocation = latLng;
@@ -1375,10 +1424,7 @@ class _MapPageState extends State<MapPage> {
       'features': [
         {
           'type': 'Feature',
-          'geometry': {
-            'type': 'LineString',
-            'coordinates': routeCoordsList,
-          },
+          'geometry': {'type': 'LineString', 'coordinates': routeCoordsList},
         },
       ],
     };
@@ -1484,7 +1530,16 @@ class _MapPageState extends State<MapPage> {
               myLocationTrackingMode: MyLocationTrackingMode.none,
               myLocationRenderMode: MyLocationRenderMode.compass,
               trackCameraPosition: true,
-              compassEnabled: true,
+              compassEnabled: false,
+              onCameraIdle: () {
+                if (_mapController != null) {
+                  final bearing =
+                      _mapController!.cameraPosition?.bearing ?? 0.0;
+                  if (bearing != _cameraBearing) {
+                    setState(() => _cameraBearing = bearing);
+                  }
+                }
+              },
               cameraTargetBounds: CameraTargetBounds(_campusBounds),
               minMaxZoomPreference: MinMaxZoomPreference(
                 16,
@@ -1522,7 +1577,6 @@ class _MapPageState extends State<MapPage> {
                 ),
               ),
 
-            // Search bar
             // Map/Satellite Toggle
             Positioned(
               bottom: 24,
@@ -1557,7 +1611,7 @@ class _MapPageState extends State<MapPage> {
                       isActive: !_isSatellite,
                       onTap: () {
                         if (_isSatellite) {
-                          HapticFeedback.selectionClick();
+                          haptics.selectionClick();
                           _toggleMapType();
                         }
                       },
@@ -1568,7 +1622,7 @@ class _MapPageState extends State<MapPage> {
                       isActive: _isSatellite,
                       onTap: () {
                         if (!_isSatellite) {
-                          HapticFeedback.selectionClick();
+                          haptics.selectionClick();
                           _toggleMapType();
                         }
                       },
@@ -1578,13 +1632,61 @@ class _MapPageState extends State<MapPage> {
               ),
             ),
 
+            // Custom Compass Button (above location button, only shows when rotated)
+            if (_cameraBearing.abs() > 1)
+              Positioned(
+                bottom: 148,
+                right: 16,
+                child: GestureDetector(
+                  onTap: () {
+                    haptics.selectionClick();
+                    // Reset rotation to north
+                    _mapController?.animateCamera(CameraUpdate.bearingTo(0));
+                  },
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color:
+                          Theme.of(
+                            context,
+                          ).cardTheme.color?.withValues(alpha: 0.95) ??
+                          Colors.white.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outline.withValues(alpha: 0.15),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 15,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Transform.rotate(
+                        angle: -_cameraBearing * (pi / 180),
+                        child: Icon(
+                          Icons.navigation_rounded,
+                          color: AppColors.error,
+                          size: 26,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
             // Current Location Button
             Positioned(
               bottom: 80,
               right: 16,
               child: GestureDetector(
                 onTap: () {
-                  HapticFeedback.mediumImpact();
+                  haptics.mediumImpact();
                   if (!_isLocating) {
                     _goToCurrentLocation();
                   }
@@ -1667,7 +1769,7 @@ class _MapPageState extends State<MapPage> {
                         children: [
                           IconButton(
                             onPressed: () {
-                              HapticFeedback.selectionClick();
+                              haptics.selectionClick();
                               _exitNavigation();
                             },
                             icon: const Icon(Icons.close_rounded),
@@ -1685,7 +1787,7 @@ class _MapPageState extends State<MapPage> {
                           const Spacer(),
                           IconButton(
                             onPressed: () {
-                              HapticFeedback.selectionClick();
+                              haptics.selectionClick();
                               setState(
                                 () => _isNavigationPanelExpanded =
                                     !_isNavigationPanelExpanded,
@@ -1880,7 +1982,7 @@ class _MapPageState extends State<MapPage> {
             // Search bar (Moved to bottom of stack to appear on top)
             if (!_isNavigating)
               Positioned(
-                top: MediaQuery.of(context).padding.top + 16,
+                top: MediaQuery.of(context).padding.top,
                 left: 16,
                 right: 16,
                 child: TapRegion(
@@ -1963,7 +2065,7 @@ class _MapPageState extends State<MapPage> {
                                 ? IconButton(
                                     icon: const Icon(Icons.clear_rounded),
                                     onPressed: () {
-                                      HapticFeedback.selectionClick();
+                                      haptics.selectionClick();
                                       setState(() {
                                         _searchController.clear();
                                         _searchQuery = '';
@@ -2053,7 +2155,7 @@ class _MapPageState extends State<MapPage> {
                                             ),
                                       ),
                                       onTap: () {
-                                        HapticFeedback.lightImpact();
+                                        haptics.lightImpact();
                                         _flyToLocation(location);
                                       },
                                     );

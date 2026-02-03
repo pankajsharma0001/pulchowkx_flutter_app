@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:pulchowkx_app/models/book_listing.dart';
@@ -152,7 +152,7 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
       appBar: const CustomAppBar(currentPage: AppPage.bookMarketplace),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          HapticFeedback.lightImpact();
+          haptics.lightImpact();
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const SellBookPage()),
@@ -169,13 +169,20 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
               ? AppColors.heroGradient
               : AppColors.heroGradientDark,
         ),
-        child: Column(
-          children: [
-            _buildHeader(),
-            _buildSearchAndFilters(),
-            if (_showFilters) _buildFilterPanel(),
-            Expanded(child: _buildContent()),
-          ],
+        child: RefreshIndicator(
+          onRefresh: () async {
+            haptics.mediumImpact();
+            await _loadListings();
+          },
+          child: CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              SliverToBoxAdapter(child: _buildHeader()),
+              SliverToBoxAdapter(child: _buildSearchAndFilters()),
+              if (_showFilters) SliverToBoxAdapter(child: _buildFilterPanel()),
+              _buildSliverContent(),
+            ],
+          ),
         ),
       ),
     );
@@ -515,31 +522,36 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildSliverContent() {
     if (_isLoading) {
-      return const Padding(
+      return const SliverPadding(
         padding: EdgeInsets.all(AppSpacing.lg),
-        child: GridShimmer(
-          itemShimmer: BookCardShimmer(),
-          childAspectRatio: 0.65,
+        sliver: SliverToBoxAdapter(
+          child: GridShimmer(
+            itemShimmer: BookCardShimmer(),
+            childAspectRatio: 0.65,
+          ),
         ),
       );
     }
 
     if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: AppColors.error),
-            const SizedBox(height: AppSpacing.md),
-            Text(_errorMessage!, style: AppTextStyles.bodyMedium),
-            const SizedBox(height: AppSpacing.md),
-            ElevatedButton(
-              onPressed: _loadListings,
-              child: const Text('Retry'),
-            ),
-          ],
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: AppColors.error),
+              const SizedBox(height: AppSpacing.md),
+              Text(_errorMessage!, style: AppTextStyles.bodyMedium),
+              const SizedBox(height: AppSpacing.md),
+              ElevatedButton(
+                onPressed: _loadListings,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -550,72 +562,65 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
           _selectedCategory != null ||
           _selectedCondition != null;
 
-      return EmptyStateWidget(
-        type: isSearching ? EmptyStateType.search : EmptyStateType.books,
-        onAction: isSearching ? _resetFilters : null,
-        actionLabel: isSearching ? 'Clear Filters' : 'Sell a Book',
-        title: isSearching ? 'No match found' : null,
-        message: isSearching
-            ? 'We couldn\'t find any books matching your current filters.'
-            : null,
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: EmptyStateWidget(
+          type: isSearching ? EmptyStateType.search : EmptyStateType.books,
+          onAction: isSearching ? _resetFilters : null,
+          actionLabel: isSearching ? 'Clear Filters' : 'Sell a Book',
+          title: isSearching ? 'No match found' : null,
+          message: isSearching
+              ? 'We couldn\'t find any books matching your current filters.'
+              : null,
+        ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        HapticFeedback.mediumImpact();
-        await _loadListings();
-      },
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: AnimationLimiter(
-          child: GridView.builder(
-            controller: _scrollController,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.65,
-              crossAxisSpacing: AppSpacing.md,
-              mainAxisSpacing: AppSpacing.md,
-            ),
-            itemCount: _listings.length + (_isLoadingMore ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index >= _listings.length) {
-                return const BookCardShimmer();
-              }
-              return AnimationConfiguration.staggeredGrid(
-                position: index,
-                duration: const Duration(milliseconds: 600),
-                columnCount: 2,
-                child: SlideAnimation(
-                  verticalOffset: 50.0,
+    return SliverPadding(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.65,
+          crossAxisSpacing: AppSpacing.md,
+          mainAxisSpacing: AppSpacing.md,
+        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          if (index >= _listings.length) {
+            return const BookCardShimmer();
+          }
+          return AnimationConfiguration.staggeredGrid(
+            position: index,
+            duration: const Duration(milliseconds: 600),
+            columnCount: 2,
+            child: SlideAnimation(
+              verticalOffset: 50.0,
+              curve: Curves.easeOutQuart,
+              child: ScaleAnimation(
+                scale: 0.9,
+                curve: Curves.easeOutQuart,
+                child: FadeInAnimation(
                   curve: Curves.easeOutQuart,
-                  child: ScaleAnimation(
-                    scale: 0.9,
-                    curve: Curves.easeOutQuart,
-                    child: FadeInAnimation(
-                      curve: Curves.easeOutQuart,
-                      child: _BookCard(
-                        listing: _listings[index],
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => BookDetailsPage(
-                                bookId: _listings[index].id,
-                                initialBook: _listings[index],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                  child: _BookCard(
+                    listing: _listings[index],
+                    onTap: () {
+                      haptics.lightImpact();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BookDetailsPage(
+                            bookId: _listings[index].id,
+                            initialBook: _listings[index],
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
-              );
-            },
-          ),
-        ),
+              ),
+            ),
+          );
+        }, childCount: _listings.length + (_isLoadingMore ? 1 : 0)),
       ),
     );
   }

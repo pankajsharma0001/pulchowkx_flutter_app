@@ -579,10 +579,18 @@ class ApiService {
         return ApiResult.networkError();
       }
 
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return ApiResult.unauthorized();
+      }
+
       final response = await http.post(
         Uri.parse('$baseUrl/register-event'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'authStudentId': authStudentId, 'eventId': eventId}),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode({'eventId': eventId}),
       );
 
       final json = jsonDecode(response.body);
@@ -621,10 +629,18 @@ class ApiService {
         return ApiResult.networkError();
       }
 
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return ApiResult.unauthorized();
+      }
+
       final response = await http.post(
         Uri.parse('$baseUrl/cancel-registration'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'authStudentId': authStudentId, 'eventId': eventId}),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode({'eventId': eventId}),
       );
 
       final json = jsonDecode(response.body);
