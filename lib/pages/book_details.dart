@@ -33,13 +33,11 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   void initState() {
     super.initState();
     if (widget.initialBook != null) {
-      // Use initial data immediately - no loading needed
+      // Use initial data immediately for UI
       _book = widget.initialBook;
       _isLoading = false;
-      // Fetch request status in background if not owner
-      if (!_book!.isOwner) {
-        _fetchRequestStatus();
-      }
+      // Always fetch full book details to get correct isOwner status
+      _loadBook();
     } else {
       _loadBook();
     }
