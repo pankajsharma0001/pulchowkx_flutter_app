@@ -575,10 +575,10 @@ class _MapPageState extends State<MapPage> {
       // Create a generous rect for hit detection to make it easier to tap icons
       // Icons typically have iconAnchor: 'bottom' and labels have textAnchor: 'top'
       final tapRect = Rect.fromLTRB(
-        point.x - 60, // left
-        point.y - 80, // top
-        point.x + 60, // right
-        point.y + 40, // bottom (for labels below)
+        point.x - 80, // left - increased for easier tapping
+        point.y - 100, // top - increased for easier tapping
+        point.x + 80, // right - increased for easier tapping
+        point.y + 60, // bottom (for labels below) - increased for easier tapping
       );
 
       // Query rendered features in the rect area - only the markers-layer
@@ -1359,6 +1359,16 @@ class _MapPageState extends State<MapPage> {
       // Layer doesn't exist yet
     }
 
+    // Build coordinates list with exact start and end icon positions
+    // This ensures the route line starts/ends at the icon, not the nearest road
+    final startCoords = _startPoint!['coords'] as List<dynamic>;
+    final endCoords = _endPoint!['coords'] as List<dynamic>;
+    final routeCoordsList = <List<double>>[
+      [startCoords[0].toDouble(), startCoords[1].toDouble()], // Start at icon
+      ..._routeCoordinates!.map((c) => [c.longitude, c.latitude]),
+      [endCoords[0].toDouble(), endCoords[1].toDouble()], // End at icon
+    ];
+
     // Create GeoJSON for route
     final routeGeoJSON = {
       'type': 'FeatureCollection',
@@ -1367,9 +1377,7 @@ class _MapPageState extends State<MapPage> {
           'type': 'Feature',
           'geometry': {
             'type': 'LineString',
-            'coordinates': _routeCoordinates!
-                .map((c) => [c.longitude, c.latitude])
-                .toList(),
+            'coordinates': routeCoordsList,
           },
         },
       ],
@@ -1867,8 +1875,7 @@ class _MapPageState extends State<MapPage> {
                 ),
               ),
 
-            // Chatbot Widget Overlay
-            ChatBotWidget(onLocationsReturned: _handleChatBotLocations),
+            // ChatBotWidget moved to after search bar so it appears on top
 
             // Search bar (Moved to bottom of stack to appear on top)
             if (!_isNavigating)
@@ -2119,6 +2126,9 @@ class _MapPageState extends State<MapPage> {
                   ),
                 ),
               ),
+
+            // Chatbot Widget Overlay - placed last in Stack to appear above all other UI elements
+            ChatBotWidget(onLocationsReturned: _handleChatBotLocations),
           ],
         ),
       ),
