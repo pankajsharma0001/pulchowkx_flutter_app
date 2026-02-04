@@ -47,6 +47,7 @@ class _MapPageState extends State<MapPage> {
   // ignore: unused_field
   LatLng? _userLocation;
   bool _isLocating = false;
+  bool _showMyLocation = false; // Toggle for showing user location
   bool _isNavigationPanelExpanded = true;
   bool _isTogglingMapType = false; // Guard for map type toggle
   double _cameraBearing = 0.0; // Track camera rotation for custom compass
@@ -466,6 +467,96 @@ class _MapPageState extends State<MapPage> {
     debugPrint(
       '✓ Icons loaded in ${duration.inMilliseconds}ms: $loadedCount new, $cachedCount cached, $fallbackCount fallback, $failedCount failed',
     );
+
+    // If there are failed icons, retry them after a delay
+    if (_failedIcons.isNotEmpty) {
+      debugPrint(
+        '🔄 Will retry ${_failedIcons.length} failed icons in 3 seconds...',
+      );
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) _retryFailedIcons();
+      });
+    }
+  }
+
+  /// Retry loading icons that previously failed
+  Future<void> _retryFailedIcons() async {
+    if (_mapController == null || _failedIcons.isEmpty) return;
+
+    final iconsToRetry = Set<String>.from(_failedIcons);
+    debugPrint('🔄 Retrying ${iconsToRetry.length} failed icons...');
+
+    // Map of icon types to their network image URLs
+    final iconUrls = {
+      'bank': 'https://cdn-icons-png.flaticon.com/512/6395/6395444.png',
+      'food': 'https://cdn-icons-png.freepik.com/512/11167/11167112.png',
+      'library': 'https://cdn-icons-png.freepik.com/512/7985/7985904.png',
+      'department': 'https://cdn-icons-png.flaticon.com/512/7906/7906888.png',
+      'temple': 'https://cdn-icons-png.flaticon.com/512/1183/1183391.png',
+      'gym': 'https://cdn-icons-png.flaticon.com/512/11020/11020519.png',
+      'football': 'https://cdn-icons-png.freepik.com/512/8893/8893610.png',
+      'cricket': 'https://i.postimg.cc/cLb6QFC1/download.png',
+      'sports': 'https://i.postimg.cc/mDW05pSw-/volleyball.png',
+      'hostel': 'https://cdn-icons-png.flaticon.com/512/7804/7804352.png',
+      'lab': 'https://cdn-icons-png.flaticon.com/256/12348/12348567.png',
+      'helipad': 'https://cdn-icons-png.flaticon.com/512/5695/5695654.png',
+      'parking':
+          'https://cdn.iconscout.com/icon/premium/png-256-thumb/parking-place-icon-svg-download-png-897308.png',
+      'electrical': 'https://cdn-icons-png.flaticon.com/512/9922/9922144.png',
+      'music': 'https://cdn-icons-png.flaticon.com/512/5905/5905923.png',
+      'energy': 'https://cdn-icons-png.flaticon.com/512/10053/10053795.png',
+      'helm':
+          'https://png.pngtree.com/png-clipart/20230918/original/pngtree-aircraftplaneairplane-map-pin-icon-aviation-aircraft-transportation-vector-png-image_12363891.png',
+      'garden': 'https://cdn-icons-png.flaticon.com/512/15359/15359437.png',
+      'store': 'https://cdn-icons-png.flaticon.com/512/3448/3448673.png',
+      'quarter': 'https://static.thenounproject.com/png/331579-200.png',
+      'robotics': 'https://cdn-icons-png.flaticon.com/512/10681/10681183.png',
+      'clinic': 'https://cdn-icons-png.flaticon.com/512/10714/10714002.png',
+      'badminton': 'https://static.thenounproject.com/png/198230-200.png',
+      'entrance': 'https://i.postimg.cc/jjLDcb6p/image-removebg-preview.png',
+      'office': 'https://cdn-icons-png.flaticon.com/512/3846/3846807.png',
+      'building': 'https://cdn-icons-png.flaticon.com/512/5193/5193760.png',
+      'block': 'https://cdn-icons-png.flaticon.com/512/3311/3311565.png',
+      'cave': 'https://cdn-icons-png.flaticon.com/512/210/210567.png',
+      'fountain':
+          'https://cdn.iconscout.com/icon/free/png-256/free-fountain-icon-svg-download-png-449881.png',
+      'water':
+          'https://static.vecteezy.com/system/resources/thumbnails/044/570/540/small_2x/single-water-drop-on-transparent-background-free-png.png',
+      'workshop': 'https://cdn-icons-png.flaticon.com/512/10747/10747285.png',
+      'toilet':
+          'https://www.shareicon.net/data/2015/09/21/644170_pointer_512x512.png',
+      'bridge':
+          'https://icons.veryicon.com/png/o/phone/map-anchor-4-colors/01_bridge-blue.png',
+      'marker':
+          'https://toppng.com/uploads/preview/eat-play-do-icon-map-marker-115548254600u9yjx6qhj.png',
+    };
+
+    int successCount = 0;
+    for (final iconKey in iconsToRetry) {
+      if (!iconUrls.containsKey(iconKey)) continue;
+
+      try {
+        final response = await http
+            .get(Uri.parse(iconUrls[iconKey]!))
+            .timeout(const Duration(seconds: 8));
+
+        if (response.statusCode == 200) {
+          final bytes = response.bodyBytes;
+          _iconCache[iconKey] = bytes;
+          final iconName = '$iconKey-icon';
+          await _mapController!.addImage(iconName, bytes);
+          _failedIcons.remove(iconKey);
+          successCount++;
+          debugPrint('✓ Retry successful for $iconKey');
+        }
+      } catch (e) {
+        debugPrint('✗ Retry failed for $iconKey: $e');
+      }
+    }
+
+    debugPrint(
+      '🔄 Retry complete: $successCount/${iconsToRetry.length} icons recovered',
+    );
   }
 
   /// Add markers to the map using symbol layer with icons
@@ -778,12 +869,19 @@ class _MapPageState extends State<MapPage> {
         location.longitude <= _campusBounds.northeast.longitude;
   }
 
-  /// Get current location and animate camera to it
+  /// Get current location and animate camera to it (toggles visibility)
   Future<void> _goToCurrentLocation() async {
     if (_mapController == null) return;
     // Prevent multiple concurrent location requests
     if (_isLocating) {
       debugPrint('📍 Already locating, ignoring request');
+      return;
+    }
+
+    // If location is already showing, hide it and return
+    if (_showMyLocation) {
+      setState(() => _showMyLocation = false);
+      debugPrint('📍 Hiding user location');
       return;
     }
 
@@ -868,6 +966,7 @@ class _MapPageState extends State<MapPage> {
 
       final latLng = LatLng(position.latitude, position.longitude);
       _userLocation = latLng;
+      setState(() => _showMyLocation = true);
       final isWithinCampus = _isWithinCampus(latLng);
 
       // Check if within campus bounds
@@ -1378,7 +1477,7 @@ class _MapPageState extends State<MapPage> {
               onMapCreated: _onMapCreated,
               onStyleLoadedCallback: _onStyleLoaded,
               onMapClick: _onMapClick,
-              myLocationEnabled: true,
+              myLocationEnabled: _showMyLocation,
               myLocationTrackingMode: MyLocationTrackingMode.none,
               myLocationRenderMode: MyLocationRenderMode.compass,
               trackCameraPosition: true,
@@ -1577,8 +1676,12 @@ class _MapPageState extends State<MapPage> {
                             ),
                           )
                         : Icon(
-                            Icons.my_location_rounded,
-                            color: Theme.of(context).colorScheme.primary,
+                            _showMyLocation
+                                ? Icons.location_disabled_rounded
+                                : Icons.my_location_rounded,
+                            color: _showMyLocation
+                                ? AppColors.error
+                                : Theme.of(context).colorScheme.primary,
                           ),
                   ),
                 ),
