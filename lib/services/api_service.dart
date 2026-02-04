@@ -262,6 +262,24 @@ class ApiService {
     }
   }
 
+  /// Remove data from cache
+  Future<void> _removeFromCache(String key) async {
+    try {
+      final box = Hive.box('api_cache');
+      await box.delete(key);
+    } catch (e) {
+      debugPrint('Error removing from Hive cache: $e');
+    }
+  }
+
+  /// Invalidate enrollments cache for a user
+  Future<void> invalidateEnrollmentsCache() async {
+    final userId = await getDatabaseUserId();
+    if (userId != null) {
+      await _removeFromCache('enrollments_${userId}_cache');
+    }
+  }
+
   // ==================== CLUBS ====================
 
   /// Get all clubs
@@ -599,6 +617,8 @@ class ApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (data['success'] == true) {
+          // Invalidate enrollments cache so fresh data is fetched
+          await invalidateEnrollmentsCache();
           return ApiResult.success(message: message);
         }
         return ApiResult.failure(message);
@@ -649,6 +669,8 @@ class ApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (data['success'] == true) {
+          // Invalidate enrollments cache so fresh data is fetched
+          await invalidateEnrollmentsCache();
           return ApiResult.success(message: message);
         }
         return ApiResult.failure(message);

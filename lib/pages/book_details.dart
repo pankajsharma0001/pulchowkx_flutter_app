@@ -36,18 +36,21 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
       // Use initial data immediately for UI
       _book = widget.initialBook;
       _isLoading = false;
-      // Always fetch full book details to get correct isOwner status
-      _loadBook();
+      // Always fetch full book details to get correct isOwner status (without showing loading)
+      _loadBook(showLoading: false);
     } else {
       _loadBook();
     }
   }
 
-  Future<void> _loadBook() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  Future<void> _loadBook({bool showLoading = true}) async {
+    // Only show loading if we don't have any data yet
+    if (showLoading && _book == null) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
 
     try {
       final book = await _apiService.getBookListingById(widget.bookId);
