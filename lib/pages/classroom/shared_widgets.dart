@@ -53,15 +53,8 @@ class StatCard extends StatelessWidget {
 
 class ProfileCard extends StatelessWidget {
   final StudentProfile profile;
-  final bool isEditing;
-  final VoidCallback onEdit;
 
-  const ProfileCard({
-    super.key,
-    required this.profile,
-    required this.isEditing,
-    required this.onEdit,
-  });
+  const ProfileCard({super.key, required this.profile});
 
   @override
   Widget build(BuildContext context) {
@@ -106,30 +99,6 @@ class ProfileCard extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          // Edit Profile Button
-          GestureDetector(
-            onTap: onEdit,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.edit,
-                  color: Colors.white.withValues(alpha: 0.8),
-                  size: 16,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Edit Profile',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    decoration: TextDecoration.underline,
-                    decorationColor: Colors.white.withValues(alpha: 0.8),
-                  ),
-                ),
-              ],
-            ),
           ),
           const SizedBox(height: AppSpacing.md),
           ClipRRect(

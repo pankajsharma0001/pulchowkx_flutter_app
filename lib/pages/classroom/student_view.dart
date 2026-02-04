@@ -15,18 +15,14 @@ class StudentView extends StatelessWidget {
   final StudentProfile profile;
   final List<Subject> subjects;
   final ApiService apiService;
-  final bool isEditingProfile;
   final VoidCallback onRefresh;
-  final VoidCallback onEditProfile;
 
   const StudentView({
     super.key,
     required this.profile,
     required this.subjects,
     required this.apiService,
-    required this.isEditingProfile,
     required this.onRefresh,
-    required this.onEditProfile,
   });
 
   @override
@@ -39,11 +35,7 @@ class StudentView extends StatelessWidget {
         _buildStatsGrid(),
         const SizedBox(height: AppSpacing.xl),
         // Profile Card
-        ProfileCard(
-          profile: profile,
-          isEditing: isEditingProfile,
-          onEdit: onEditProfile,
-        ),
+        ProfileCard(profile: profile),
         const SizedBox(height: AppSpacing.lg),
 
         // Subjects

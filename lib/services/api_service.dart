@@ -2153,15 +2153,34 @@ class ApiService {
         body: jsonEncode(request.toJson()),
       );
 
+      debugPrint('upsertStudentProfile response: ${response.statusCode}');
+      debugPrint('upsertStudentProfile body: ${response.body}');
+
+      if (response.statusCode != 200) {
+        return {
+          'success': false,
+          'message': 'Server error: ${response.statusCode}',
+        };
+      }
+
       final json = jsonDecode(response.body);
+
+      if (json['success'] != true) {
+        return {
+          'success': false,
+          'message': json['message'] ?? 'Failed to update profile',
+        };
+      }
+
       return {
-        'success': json['success'] == true,
+        'success': true,
         'profile': json['profile'] != null
             ? StudentProfile.fromJson(json['profile'] as Map<String, dynamic>)
             : null,
-        'message': json['message'],
+        'message': json['message'] ?? 'Profile updated successfully',
       };
     } catch (e) {
+      debugPrint('upsertStudentProfile error: $e');
       return {'success': false, 'message': 'Error: $e'};
     }
   }
@@ -2434,13 +2453,17 @@ class ApiService {
   /// Get all conversations for the current user
   Future<List<MarketplaceConversation>> getConversations() async {
     final userId = await getDatabaseUserId();
-    if (userId == null) return [];
+    if (userId == null) {
+      debugPrint('getConversations: No user ID found');
+      return [];
+    }
 
     final String cacheKey = 'conversations_${userId}_cache';
     bool isOnline = await _hasInternetConnection();
 
     if (isOnline) {
       try {
+        debugPrint('getConversations: Fetching from API...');
         final response = await http.get(
           Uri.parse('$apiBaseUrl/chat/conversations'),
           headers: {
@@ -2449,17 +2472,28 @@ class ApiService {
           },
         );
 
+        debugPrint('getConversations response: ${response.statusCode}');
+        debugPrint('getConversations body: ${response.body}');
+
         if (response.statusCode == 200) {
           await _saveToCache(cacheKey, response.body);
           final json = jsonDecode(response.body);
           if (json['success'] == true && json['data'] != null) {
-            return (json['data'] as List)
+            final conversations = (json['data'] as List)
                 .map(
                   (c) => MarketplaceConversation.fromJson(
                     c as Map<String, dynamic>,
                   ),
                 )
                 .toList();
+            debugPrint(
+              'getConversations: Found ${conversations.length} conversations',
+            );
+            return conversations;
+          } else {
+            debugPrint(
+              'getConversations: success=${json['success']}, data=${json['data']}',
+            );
           }
         }
       } catch (e) {

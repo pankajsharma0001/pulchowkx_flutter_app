@@ -5,7 +5,6 @@ import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
-import 'classroom/shared_widgets.dart';
 import 'classroom/student_view.dart';
 import 'classroom/teacher_view.dart';
 import 'package:pulchowkx_app/services/notification_service.dart';
@@ -21,17 +20,10 @@ class _ClassroomPageState extends State<ClassroomPage> {
   final ApiService _apiService = ApiService();
 
   StudentProfile? _profile;
-  List<Faculty> _faculties = [];
   List<Subject> _subjects = [];
   bool _isLoading = true;
   bool _isTeacher = false;
   String? _errorMessage;
-  bool _isEditingProfile = false;
-
-  // Setup form state
-  Faculty? _selectedFaculty;
-  int _selectedSemester = 1;
-  DateTime _semesterStartDate = DateTime.now();
 
   @override
   void initState() {
@@ -47,7 +39,6 @@ class _ClassroomPageState extends State<ClassroomPage> {
 
     try {
       _isTeacher = await _apiService.isTeacher();
-      _faculties = await _apiService.getFaculties();
 
       if (_isTeacher) {
         _subjects = await _apiService.getTeacherSubjects();
@@ -55,17 +46,6 @@ class _ClassroomPageState extends State<ClassroomPage> {
         _profile = await _apiService.getStudentProfile();
         if (_profile != null) {
           _subjects = await _apiService.getMySubjects();
-
-          // Sync setup form state with profile
-          if (!_isEditingProfile) {
-            _selectedFaculty = _faculties.firstWhere(
-              (f) => f.id == _profile!.facultyId,
-              orElse: () =>
-                  _faculties.isNotEmpty ? _faculties.first : _faculties.first,
-            );
-            _selectedSemester = _profile!.currentSemester;
-            _semesterStartDate = _profile!.semesterStartDate;
-          }
 
           // Subscribe to faculty notifications
           NotificationService.subscribeToFaculty(_profile!.facultyId);
@@ -81,35 +61,6 @@ class _ClassroomPageState extends State<ClassroomPage> {
           _errorMessage = 'Error: $e';
           _isLoading = false;
         });
-      }
-    }
-  }
-
-  Future<void> _setupProfile() async {
-    if (_selectedFaculty == null) return;
-
-    final result = await _apiService.upsertStudentProfile(
-      StudentProfileRequest(
-        facultyId: _selectedFaculty!.id,
-        currentSemester: _selectedSemester,
-        semesterStartDate: _semesterStartDate.toIso8601String(),
-        autoAdvance: true,
-      ),
-    );
-
-    if (result['success'] == true) {
-      if (mounted) {
-        setState(() => _isEditingProfile = false);
-      }
-      await _loadData();
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? 'Failed to save profile'),
-            backgroundColor: AppColors.error,
-          ),
-        );
       }
     }
   }
@@ -180,34 +131,42 @@ class _ClassroomPageState extends State<ClassroomPage> {
             apiService: _apiService,
             onRefresh: _loadData,
           )
-        else if (_profile == null || _isEditingProfile)
-          SetupForm(
-            faculties: _faculties,
-            selectedFaculty: _selectedFaculty,
-            selectedSemester: _selectedSemester,
-            semesterStartDate: _semesterStartDate,
-            isEditingProfile: _isEditingProfile,
-            onFacultyChanged: (value) => setState(() {
-              _selectedFaculty = value;
-              _selectedSemester = 1;
-            }),
-            onSemesterChanged: (value) =>
-                setState(() => _selectedSemester = value),
-            onStartDateChanged: (value) =>
-                setState(() => _semesterStartDate = value),
-            onSubmit: _setupProfile,
-            onCancel: () => setState(() => _isEditingProfile = false),
-          )
-        else
+        else if (_profile != null)
           StudentView(
             profile: _profile!,
             subjects: _subjects,
             apiService: _apiService,
-            isEditingProfile: _isEditingProfile,
             onRefresh: _loadData,
-            onEditProfile: () => setState(() => _isEditingProfile = true),
-          ),
+          )
+        else
+          _buildNoProfileMessage(),
       ],
+    );
+  }
+
+  Widget _buildNoProfileMessage() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.school_outlined, size: 64, color: AppColors.textMuted),
+            const SizedBox(height: AppSpacing.md),
+            Text('Profile not set up', style: AppTextStyles.h4),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Your profile will be automatically configured\nbased on your college email.',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textMuted,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            ElevatedButton(onPressed: _loadData, child: const Text('Refresh')),
+          ],
+        ),
+      ),
     );
   }
 
