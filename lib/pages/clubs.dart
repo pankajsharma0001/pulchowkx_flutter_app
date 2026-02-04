@@ -153,18 +153,18 @@ class _ClubsPageState extends State<ClubsPage> {
                     sliver: AnimationLimiter(
                       child: SliverGrid(
                         gridDelegate:
-                            const SliverGridDelegateWithMaxCrossAxisExtent(
-                              maxCrossAxisExtent: 400,
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
                               mainAxisSpacing: AppSpacing.md,
                               crossAxisSpacing: AppSpacing.md,
-                              childAspectRatio: 0.85,
+                              childAspectRatio: 0.75,
                             ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) =>
                               AnimationConfiguration.staggeredGrid(
                                 position: index,
                                 duration: const Duration(milliseconds: 600),
-                                columnCount: 1,
+                                columnCount: 2,
                                 child: SlideAnimation(
                                   verticalOffset: 50.0,
                                   curve: Curves.easeOutQuart,

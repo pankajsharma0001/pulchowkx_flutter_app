@@ -77,7 +77,7 @@ class ClubCard extends StatelessWidget {
                     ),
                     // Badge
                     Positioned(
-                      top: 12,
+                      top: 8,
                       right: 12,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -85,11 +85,15 @@ class ClubCard extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: AppColors.primary.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(AppRadius.full),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
-                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Text(
                           'Official Club',
@@ -109,9 +113,9 @@ class ClubCard extends StatelessWidget {
 
             // Info Section
             Expanded(
-              flex: 2,
+              flex: 3,
               child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
+                padding: const EdgeInsets.all(AppSpacing.sm),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -119,37 +123,42 @@ class ClubCard extends StatelessWidget {
                       club.name,
                       style: Theme.of(
                         context,
-                      ).textTheme.headlineMedium?.copyWith(fontSize: 16),
+                      ).textTheme.headlineMedium?.copyWith(fontSize: 14),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Expanded(
                       child: Text(
                         club.description ?? 'No description available',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodySmall?.copyWith(height: 1.4),
-                        maxLines: 2,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          height: 1.3,
+                          fontSize: 11,
+                        ),
+                        maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xs),
+                    const SizedBox(height: 4),
                     // Stats row
                     Row(
                       children: [
-                        _buildStat(
-                          context,
-                          Icons.event_rounded,
-                          '${club.upcomingEvents ?? 0}',
-                          'Events',
+                        Flexible(
+                          child: _buildStat(
+                            context,
+                            Icons.event_rounded,
+                            '${club.upcomingEvents ?? 0}',
+                            'Events',
+                          ),
                         ),
-                        const SizedBox(width: AppSpacing.md),
-                        _buildStat(
-                          context,
-                          Icons.people_rounded,
-                          '${club.totalParticipants ?? 0}',
-                          'Members',
+                        const SizedBox(width: AppSpacing.sm),
+                        Flexible(
+                          child: _buildStat(
+                            context,
+                            Icons.people_rounded,
+                            '${club.totalParticipants ?? 0}',
+                            'Members',
+                          ),
                         ),
                       ],
                     ),
@@ -176,18 +185,18 @@ class ClubCard extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: AppColors.primary),
-        const SizedBox(width: 4),
-        Text(
-          value,
-          style: Theme.of(
-            context,
-          ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
-        ),
+        Icon(icon, size: 12, color: AppColors.primary),
         const SizedBox(width: 2),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 10),
+        Flexible(
+          child: Text(
+            '$value $label',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontSize: 9,
+              fontWeight: FontWeight.w500,
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
         ),
       ],
     );

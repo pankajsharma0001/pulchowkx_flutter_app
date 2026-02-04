@@ -405,7 +405,7 @@ class _MapPageState extends State<MapPage> {
       'bridge':
           'https://icons.veryicon.com/png/o/phone/map-anchor-4-colors/01_bridge-blue.png',
       'marker':
-          'https://www.vhv.rs/dpng/d/476-4767994_map-marker-icon-red-location-marker-png-transparent.png',
+          'https://toppng.com/uploads/preview/eat-play-do-icon-map-marker-115548254600u9yjx6qhj.png',
     };
 
     debugPrint('Starting to load ${iconUrls.length} icons in parallel...');

@@ -339,17 +339,17 @@ class _EventsPageState extends State<EventsPage> {
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       sliver: AnimationLimiter(
         child: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 400,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
             mainAxisSpacing: AppSpacing.md,
             crossAxisSpacing: AppSpacing.md,
-            childAspectRatio: 0.75,
+            childAspectRatio: 0.65,
           ),
           delegate: SliverChildBuilderDelegate(
             (context, index) => AnimationConfiguration.staggeredGrid(
               position: index,
               duration: const Duration(milliseconds: 600),
-              columnCount: 1,
+              columnCount: 2,
               child: SlideAnimation(
                 verticalOffset: 50.0,
                 curve: Curves.easeOutQuart,

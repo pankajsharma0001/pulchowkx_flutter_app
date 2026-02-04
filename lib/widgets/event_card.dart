@@ -101,22 +101,25 @@ class _EventCardState extends State<EventCard> {
                         ),
                         // Status badge
                         Positioned(
-                          top: 12,
-                          left: 12,
-                          child: EventStatusBadge(event: widget.event),
+                          top: 8,
+                          left: 8,
+                          child: EventStatusBadge(
+                            event: widget.event,
+                            isCompact: true,
+                          ),
                         ),
                         // Date badge
                         Positioned(
-                          top: 12,
-                          right: 12,
+                          top: 8,
+                          right: 8,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
+                              horizontal: 6,
+                              vertical: 4,
                             ),
                             decoration: BoxDecoration(
                               color: Theme.of(context).colorScheme.surface,
-                              borderRadius: BorderRadius.circular(AppRadius.md),
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
                               boxShadow:
                                   Theme.of(context).brightness ==
                                       Brightness.light
@@ -132,10 +135,10 @@ class _EventCardState extends State<EventCard> {
                                   style: AppTextStyles.labelSmall.copyWith(
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                                    fontSize: 9,
                                   ),
                                 ),
-                                const SizedBox(width: 6),
+                                const SizedBox(width: 3),
                                 Text(
                                   widget.event.eventStartTime.day.toString(),
                                   style: Theme.of(context)
@@ -143,7 +146,7 @@ class _EventCardState extends State<EventCard> {
                                       .headlineMedium
                                       ?.copyWith(
                                         color: AppColors.primary,
-                                        fontSize: 16,
+                                        fontSize: 12,
                                       ),
                                 ),
                               ],
@@ -201,47 +204,53 @@ class _EventCardState extends State<EventCard> {
                 Expanded(
                   flex: 2,
                   child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.md),
+                    padding: const EdgeInsets.all(AppSpacing.sm),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           widget.event.title,
-                          style: Theme.of(context).textTheme.labelLarge
-                              ?.copyWith(fontWeight: FontWeight.w600),
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: AppSpacing.xs),
+                        const Spacer(),
                         Row(
                           children: [
                             const Icon(
                               Icons.access_time_rounded,
-                              size: 14,
+                              size: 11,
                               color: AppColors.textSecondary,
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 2),
                             Text(
                               timeFormat.format(widget.event.eventStartTime),
-                              style: Theme.of(context).textTheme.bodySmall,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(fontSize: 10),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         if (widget.event.venue != null)
                           Row(
                             children: [
                               const Icon(
                                 Icons.location_on_outlined,
-                                size: 14,
+                                size: 11,
                                 color: AppColors.textSecondary,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 2),
                               Expanded(
                                 child: Text(
                                   widget.event.venue!,
                                   style: AppTextStyles.labelSmall.copyWith(
                                     color: AppColors.textSecondary,
+                                    fontSize: 10,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -249,21 +258,24 @@ class _EventCardState extends State<EventCard> {
                               ),
                             ],
                           ),
-                        const SizedBox(height: AppSpacing.xs),
                         // Participants
                         Row(
                           children: [
                             const Icon(
                               Icons.people_rounded,
-                              size: 14,
+                              size: 11,
                               color: AppColors.primary,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${widget.event.currentParticipants}${widget.event.maxParticipants != null ? '/${widget.event.maxParticipants}' : ''} registered',
-                              style: AppTextStyles.labelSmall.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w500,
+                            const SizedBox(width: 2),
+                            Flexible(
+                              child: Text(
+                                '${widget.event.currentParticipants}${widget.event.maxParticipants != null ? '/${widget.event.maxParticipants}' : ''} registered',
+                                style: AppTextStyles.labelSmall.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 10,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
