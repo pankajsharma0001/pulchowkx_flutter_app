@@ -383,7 +383,7 @@ class _MapPageState extends State<MapPage> {
       'music': 'https://cdn-icons-png.flaticon.com/512/5905/5905923.png',
       'energy': 'https://cdn-icons-png.flaticon.com/512/10053/10053795.png',
       'helm':
-          'https://png.pngtree.com/png-vector/20221130/ourmid/pngtree-airport-location-pin-in-light-blue-color-png-image_6485369.png',
+          'https://png.pngtree.com/png-clipart/20230918/original/pngtree-aircraftplaneairplane-map-pin-icon-aviation-aircraft-transportation-vector-png-image_12363891.png',
       'garden': 'https://cdn-icons-png.flaticon.com/512/15359/15359437.png',
       'store': 'https://cdn-icons-png.flaticon.com/512/3448/3448673.png',
       'quarter': 'https://static.thenounproject.com/png/331579-200.png',
@@ -400,10 +400,12 @@ class _MapPageState extends State<MapPage> {
       'water':
           'https://static.vecteezy.com/system/resources/thumbnails/044/570/540/small_2x/single-water-drop-on-transparent-background-free-png.png',
       'workshop': 'https://cdn-icons-png.flaticon.com/512/10747/10747285.png',
-      'toilet': 'https://cdn-icons-png.flaticon.com/512/5326/5326954.png',
-      'bridge': 'https://cdn-icons-png.flaticon.com/512/2917/2917995.png',
+      'toilet':
+          'https://www.shareicon.net/data/2015/09/21/644170_pointer_512x512.png',
+      'bridge':
+          'https://icons.veryicon.com/png/o/phone/map-anchor-4-colors/01_bridge-blue.png',
       'marker':
-          'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+          'https://www.vhv.rs/dpng/d/476-4767994_map-marker-icon-red-location-marker-png-transparent.png',
     };
 
     debugPrint('Starting to load ${iconUrls.length} icons in parallel...');
