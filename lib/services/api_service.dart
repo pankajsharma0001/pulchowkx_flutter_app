@@ -696,9 +696,18 @@ class ApiService {
 
     if (isOnline) {
       try {
+        final userId = await getDatabaseUserId();
+        if (userId == null) {
+          debugPrint('Cannot fetch enrollments: No database user ID');
+          return [];
+        }
+
         final response = await http.post(
           Uri.parse('$baseUrl/enrollment'),
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $userId',
+          },
           body: jsonEncode({'authStudentId': authStudentId}),
         );
         if (response.statusCode == 200) {
@@ -1161,9 +1170,13 @@ class ApiService {
   /// Get extra event details
   Future<Map<String, dynamic>?> getExtraEventDetails(int eventId) async {
     try {
+      final userId = await getDatabaseUserId();
       final response = await http.get(
         Uri.parse('$apiBaseUrl/clubs/event-details/$eventId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (userId != null) 'Authorization': 'Bearer $userId',
+        },
       );
 
       if (response.statusCode == 200) {
