@@ -23,22 +23,19 @@ class HomePage extends StatelessWidget {
               : AppColors.heroGradient,
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
+          child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md,
-              vertical: AppSpacing.lg,
+              vertical: AppSpacing.md,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeroSection(context),
-                const SizedBox(height: AppSpacing.xl),
+                Expanded(child: _buildHeroSection(context)),
+                const SizedBox(height: AppSpacing.lg),
                 _buildStatsPanel(context),
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: AppSpacing.lg),
                 _buildMissionControl(context),
-                const SizedBox(height: AppSpacing.xl),
-                _buildQuickActionsGrid(context),
-                const SizedBox(height: AppSpacing.xxl),
               ],
             ),
           ),
@@ -49,10 +46,10 @@ class HomePage extends StatelessWidget {
 
   Widget _buildHeroSection(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color?.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
@@ -64,9 +61,10 @@ class HomePage extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppRadius.full),
@@ -78,55 +76,61 @@ class HomePage extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 6,
-                  height: 6,
+                  width: 5,
+                  height: 5,
                   decoration: const BoxDecoration(
                     color: AppColors.success,
                     shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Text(
                   'STUDENT PRODUCTIVITY LAYER',
                   style: AppTextStyles.labelSmall.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          RichText(
-            text: TextSpan(
-              style: AppTextStyles.h1.copyWith(
-                fontSize: 32,
-                height: 1.1,
-                color: Theme.of(context).textTheme.displayLarge?.color,
-              ),
-              children: [
-                const TextSpan(text: 'Your Campus,\n'),
-                TextSpan(
-                  text: 'fully connected',
-                  style: TextStyle(
-                    foreground: Paint()
-                      ..shader = AppColors.primaryGradient.createShader(
-                        const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0),
-                      ),
+                    letterSpacing: 1.1,
+                    fontSize: 9,
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: AppSpacing.md),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final fontSize = constraints.maxWidth < 350 ? 24.0 : 28.0;
+              return RichText(
+                text: TextSpan(
+                  style: AppTextStyles.h1.copyWith(
+                    fontSize: fontSize,
+                    height: 1.1,
+                    color: Theme.of(context).textTheme.displayLarge?.color,
+                  ),
+                  children: [
+                    const TextSpan(text: 'Your Campus,\n'),
+                    TextSpan(
+                      text: 'fully connected',
+                      style: TextStyle(
+                        foreground: Paint()
+                          ..shader = AppColors.primaryGradient.createShader(
+                            const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0),
+                          ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             'Smart Pulchowk brings maps, clubs, books, events, and notices into one fast interface.',
-            style: AppTextStyles.bodyMedium.copyWith(
+            style: AppTextStyles.bodySmall.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: AppSpacing.lg),
           Row(
             children: [
               Expanded(
@@ -218,10 +222,10 @@ class HomePage extends StatelessWidget {
 
   Widget _buildMissionControl(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
       ),
       child: Column(
@@ -232,30 +236,34 @@ class HomePage extends StatelessWidget {
             style: AppTextStyles.labelSmall.copyWith(
               color: AppColors.primary,
               fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
+              letterSpacing: 1.1,
+              fontSize: 9,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             'Campus Mission Control',
-            style: AppTextStyles.h4.copyWith(fontWeight: FontWeight.w900),
+            style: AppTextStyles.h4.copyWith(
+              fontWeight: FontWeight.w900,
+              fontSize: 16,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           _buildMissionItem(
             context,
             title: 'Try global search',
-            subtitle: 'Example: dean office, robotics, notices',
+            subtitle: 'dean office, robotics, notices',
             icon: Icons.search_rounded,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const SearchPage()),
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.xs),
           _buildMissionItem(
             context,
             title: 'Explore events',
-            subtitle: 'Workshops, hackathons, and seminars',
+            subtitle: 'Workshops and seminars',
             icon: Icons.event_rounded,
             onTap: () => MainLayout.of(context)?.setSelectedIndex(6),
           ),
@@ -317,110 +325,6 @@ class HomePage extends StatelessWidget {
             Icon(
               Icons.chevron_right_rounded,
               color: AppColors.textMuted.withValues(alpha: 0.5),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickActionsGrid(BuildContext context) {
-    final actions = [
-      {'title': 'Map', 'icon': Icons.map_rounded, 'index': 1},
-      {'title': 'Clubs', 'icon': Icons.groups_rounded, 'index': 5},
-      {'title': 'Events', 'icon': Icons.event_rounded, 'index': 6},
-      {'title': 'Market', 'icon': Icons.shopping_bag_rounded, 'index': 3},
-      {'title': 'Class', 'icon': Icons.school_rounded, 'index': 2},
-      {
-        'title': 'Notices',
-        'icon': Icons.notifications_rounded,
-        'index': 0,
-      }, // Needs separate page usually
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Quick Navigation',
-          style: AppTextStyles.h4.copyWith(fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: AppSpacing.md,
-            mainAxisSpacing: AppSpacing.md,
-            childAspectRatio: 0.9,
-          ),
-          itemCount: actions.length,
-          itemBuilder: (context, index) {
-            final action = actions[index];
-            return _buildQuickActionCard(
-              context,
-              title: action['title'] as String,
-              icon: action['icon'] as IconData,
-              onTap: () {
-                if (action['title'] == 'Notices') {
-                  // Navigate to search with notices filter or a separate notices page
-                } else {
-                  MainLayout.of(
-                    context,
-                  )?.setSelectedIndex(action['index'] as int);
-                }
-              },
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuickActionCard(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: () {
-        haptics.selectionClick();
-        onTap();
-      },
-      borderRadius: BorderRadius.circular(AppRadius.xl),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(AppRadius.xl),
-          border: Border.all(color: AppColors.border.withValues(alpha: 0.3)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.05),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: AppColors.primary, size: 28),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: AppTextStyles.labelMedium.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
             ),
           ],
         ),

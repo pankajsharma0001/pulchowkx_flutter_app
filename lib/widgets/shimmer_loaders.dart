@@ -264,6 +264,40 @@ class BookCardShimmer extends StatelessWidget {
   }
 }
 
+class StatsGridShimmer extends StatelessWidget {
+  const StatsGridShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double itemWidth = (constraints.maxWidth - AppSpacing.md * 2) / 3;
+        return Wrap(
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.md,
+          children: [
+            BoxShimmer(
+              height: 80,
+              width: itemWidth,
+              borderRadius: AppRadius.xl,
+            ),
+            BoxShimmer(
+              height: 80,
+              width: itemWidth,
+              borderRadius: AppRadius.xl,
+            ),
+            BoxShimmer(
+              height: 80,
+              width: itemWidth,
+              borderRadius: AppRadius.xl,
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class DashboardHeaderShimmer extends StatelessWidget {
   const DashboardHeaderShimmer({super.key});
 

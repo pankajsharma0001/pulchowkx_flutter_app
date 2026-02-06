@@ -599,28 +599,114 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   }
 
   Widget _buildSellerSection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: Theme.of(context).dividerColor),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [
+                  const Color(0xFF1E293B), // slate-800
+                  const Color(0xFF164E63), // cyan-900
+                  const Color(0xFF1E3A8A), // blue-900
+                ]
+              : [
+                  const Color(0xFFF8FAFC), // slate-50
+                  const Color(0xFFECFEFF), // cyan-50
+                  const Color(0xFFEFF6FF), // blue-50
+                ],
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        border: Border.all(
+          color: isDark
+              ? const Color(0xFF0891B2).withValues(alpha: 0.3) // cyan-600
+              : const Color(0xFFCFFAFE), // cyan-100
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Seller', style: AppTextStyles.labelLarge),
+          // Header with verified badge
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Seller Trust Profile',
+                style: AppTextStyles.labelLarge.copyWith(
+                  color: isDark
+                      ? const Color(0xFF94A3B8) // slate-400
+                      : const Color(0xFF475569), // slate-600
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (_sellerReputation != null &&
+                  _sellerReputation!.totalRatings >= 5)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF065F46).withValues(alpha: 0.5)
+                        : const Color(0xFFD1FAE5), // emerald-100
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                    border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF10B981)
+                          : const Color(0xFFA7F3D0), // emerald-200
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.check_rounded,
+                        size: 14,
+                        color: isDark
+                            ? const Color(0xFF34D399)
+                            : const Color(0xFF047857), // emerald-700
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Verified Seller',
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: isDark
+                              ? const Color(0xFF34D399)
+                              : const Color(0xFF047857), // emerald-700
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
           const SizedBox(height: AppSpacing.md),
+
+          // Seller info row
           Row(
             children: [
               CircleAvatar(
                 radius: 24,
-                backgroundColor: AppColors.primaryLight,
+                backgroundColor: isDark
+                    ? const Color(0xFF1E40AF)
+                    : const Color(0xFFDBEAFE), // blue-100
                 backgroundImage: _book!.seller?.image != null
                     ? CachedNetworkImageProvider(_book!.seller!.image!)
                     : null,
                 child: _book!.seller?.image == null
-                    ? const Icon(Icons.person, color: AppColors.primary)
+                    ? Text(
+                        (_book!.seller?.name ?? 'S')[0].toUpperCase(),
+                        style: TextStyle(
+                          color: isDark ? Colors.white : AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      )
                     : null,
               ),
               const SizedBox(width: AppSpacing.md),
@@ -628,44 +714,32 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    GestureDetector(
-                      onTap: _showReputationDetails,
-                      child: Row(
-                        children: [
-                          Text(
-                            _book!.seller?.name ?? 'Unknown Seller',
-                            style: AppTextStyles.labelLarge,
-                          ),
-                          if (_sellerReputation != null &&
-                              _sellerReputation!.totalRatings > 0) ...[
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.star_rounded,
-                              size: 16,
-                              color: Colors.amber[700],
-                            ),
-                            Text(
-                              _sellerReputation!.averageRating.toStringAsFixed(
-                                1,
-                              ),
-                              style: AppTextStyles.labelSmall.copyWith(
-                                color: Colors.amber[900],
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              ' (${_sellerReputation!.totalRatings})',
-                              style: AppTextStyles.bodySmall,
-                            ),
-                          ],
-                        ],
+                    Text(
+                      _book!.seller?.name ?? 'Unknown Seller',
+                      style: AppTextStyles.labelLarge.copyWith(
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     if (_book!.seller?.email != null)
-                      Text(
-                        _book!.seller!.email!,
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.primary,
+                      GestureDetector(
+                        onTap: () async {
+                          final email = _book!.seller?.email;
+                          if (email != null) {
+                            final emailUri = Uri.parse('mailto:$email');
+                            if (await canLaunchUrl(emailUri)) {
+                              await launchUrl(emailUri);
+                            }
+                          }
+                        },
+                        child: Text(
+                          _book!.seller!.email!,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: isDark
+                                ? const Color(0xFF06B6D4) // cyan-500
+                                : const Color(0xFF0E7490), // cyan-700
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                   ],
@@ -674,142 +748,247 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
               if (_book!.isOwner)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
+                    horizontal: 10,
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.accentLight,
+                    color: AppColors.accentLight.withValues(
+                      alpha: isDark ? 0.3 : 1,
+                    ),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   child: Text(
                     'You',
                     style: AppTextStyles.labelSmall.copyWith(
                       color: AppColors.accent,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-              const SizedBox(width: AppSpacing.md),
-              if (!_book!.isOwner) ...[
-                if (_myRequest?.status == RequestStatus.accepted)
-                  IconButton(
-                    onPressed: _openChat,
-                    icon: const Icon(
-                      Icons.chat_bubble_outline_rounded,
-                      color: AppColors.primary,
-                    ),
-                    tooltip: 'Message Seller',
-                  ),
-                IconButton(
-                  onPressed: () async {
-                    if (_myRequest?.status == RequestStatus.accepted) {
-                      final email = _book!.seller?.email;
-                      if (email != null) {
-                        final emailUri = Uri.parse(
-                          'mailto:$email?subject=Interested in: ${_book!.title}',
-                        );
-                        if (await canLaunchUrl(emailUri)) {
-                          await launchUrl(emailUri);
-                        }
-                      }
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'You can contact the seller once your request is accepted.',
-                          ),
-                          duration: Duration(seconds: 3),
-                        ),
-                      );
-                    }
-                  },
-                  icon: Icon(
-                    Icons.email_outlined,
-                    color: _myRequest?.status == RequestStatus.accepted
-                        ? AppColors.accent
-                        : AppColors.textMuted,
-                  ),
-                  tooltip: _myRequest?.status == RequestStatus.accepted
-                      ? 'Email Seller'
-                      : 'Request acceptance required',
-                ),
-                IconButton(
-                  onPressed: () {
-                    showMenu(
-                      context: context,
-                      position: const RelativeRect.fromLTRB(100, 400, 0, 0),
-                      items: [
-                        PopupMenuItem(
-                          value: 'report',
-                          child: Row(
-                            children: const [
-                              Icon(Icons.report_outlined, size: 20),
-                              SizedBox(width: 8),
-                              Text('Report Listing'),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem(
-                          value: 'block',
-                          child: Row(
-                            children: const [
-                              Icon(
-                                Icons.block_rounded,
-                                size: 20,
-                                color: AppColors.error,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Block User',
-                                style: TextStyle(color: AppColors.error),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ).then((value) {
-                      if (value == 'report') _reportListing();
-                      if (value == 'block') _blockUser();
-                    });
-                  },
-                  icon: const Icon(Icons.more_vert_rounded),
-                  tooltip: 'Options',
-                ),
-              ],
             ],
           ),
+          const SizedBox(height: AppSpacing.lg),
+
+          // Reputation stats
+          Row(
+            children: [
+              Expanded(
+                child: _buildReputationStatCard(
+                  label: 'REPUTATION',
+                  value:
+                      _sellerReputation?.averageRating.toStringAsFixed(1) ??
+                      '0',
+                  suffix: '/5',
+                  isDark: isDark,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: _buildReputationStatCard(
+                  label: 'TOTAL RATINGS',
+                  value: _sellerReputation?.totalRatings.toString() ?? '0',
+                  isDark: isDark,
+                ),
+              ),
+            ],
+          ),
+
+          // Action buttons (only for non-owners)
+          if (!_book!.isOwner) ...[
+            const SizedBox(height: AppSpacing.lg),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                _buildTrustActionButton(
+                  label: 'Rate seller',
+                  onTap: _rateSeller,
+                  color: const Color(0xFF0891B2), // cyan-600
+                  bgColor: isDark
+                      ? const Color(0xFF164E63).withValues(alpha: 0.5)
+                      : Colors.white,
+                  borderColor: isDark
+                      ? const Color(0xFF06B6D4)
+                      : const Color(0xFFCFFAFE),
+                  isDark: isDark,
+                ),
+                _buildTrustActionButton(
+                  label: 'Report seller',
+                  onTap: _reportListing,
+                  color: const Color(0xFFD97706), // amber-600
+                  bgColor: isDark
+                      ? const Color(0xFF78350F).withValues(alpha: 0.5)
+                      : Colors.white,
+                  borderColor: isDark
+                      ? const Color(0xFFF59E0B)
+                      : const Color(0xFFFDE68A),
+                  isDark: isDark,
+                ),
+                _buildTrustActionButton(
+                  label: 'Block seller',
+                  onTap: _blockUser,
+                  color: const Color(0xFFDC2626), // red-600
+                  bgColor: isDark
+                      ? const Color(0xFF7F1D1D).withValues(alpha: 0.5)
+                      : Colors.white,
+                  borderColor: isDark
+                      ? const Color(0xFFEF4444)
+                      : const Color(0xFFFECACA),
+                  isDark: isDark,
+                ),
+              ],
+            ),
+          ],
+
+          const SizedBox(height: AppSpacing.md),
+          Divider(color: isDark ? Colors.white24 : Colors.black12),
           const SizedBox(height: AppSpacing.sm),
-          const Divider(),
-          const SizedBox(height: AppSpacing.sm),
+
+          // Posted date and views
           Row(
             children: [
               Icon(
                 Icons.calendar_today,
                 size: 14,
-                color: Theme.of(context).disabledColor,
+                color: isDark
+                    ? Colors.white54
+                    : Theme.of(context).disabledColor,
               ),
               const SizedBox(width: 6),
               Text(
                 'Posted ${_formatDate(_book!.createdAt)}',
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: Theme.of(context).disabledColor,
+                  color: isDark
+                      ? Colors.white54
+                      : Theme.of(context).disabledColor,
                 ),
               ),
               const SizedBox(width: AppSpacing.lg),
               Icon(
                 Icons.visibility,
                 size: 14,
-                color: Theme.of(context).disabledColor,
+                color: isDark
+                    ? Colors.white54
+                    : Theme.of(context).disabledColor,
               ),
               const SizedBox(width: 6),
               Text(
                 '${_book!.viewCount} views',
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: Theme.of(context).disabledColor,
+                  color: isDark
+                      ? Colors.white54
+                      : Theme.of(context).disabledColor,
                 ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildReputationStatCard({
+    required String label,
+    required String value,
+    String? suffix,
+    required bool isDark,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _showReputationDetails,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.white,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(
+              color: isDark
+                  ? const Color(0xFF164E63)
+                  : const Color(0xFFCFFAFE), // cyan-100
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.4,
+                  color: isDark
+                      ? const Color(0xFF94A3B8) // slate-400
+                      : const Color(0xFF9CA3AF), // gray-400
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    ),
+                  ),
+                  if (suffix != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2, left: 2),
+                      child: Text(
+                        suffix,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: isDark
+                              ? const Color(0xFF64748B)
+                              : const Color(0xFF64748B), // slate-500
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTrustActionButton({
+    required String label,
+    required VoidCallback onTap,
+    required Color color,
+    required Color bgColor,
+    required Color borderColor,
+    required bool isDark,
+  }) {
+    return Material(
+      color: bgColor,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: InkWell(
+        onTap: () {
+          haptics.selectionClick();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: borderColor),
+          ),
+          child: Text(
+            label,
+            style: AppTextStyles.labelSmall.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1156,6 +1335,47 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     );
   }
 
+  Future<void> _rateSeller() async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) =>
+          _RatingDialog(sellerName: _book?.seller?.name ?? 'Seller'),
+    );
+
+    if (result != null && result['rating'] != null) {
+      setState(() => _isLoading = true);
+      final apiResult = await _apiService.rateSeller(
+        sellerId: _book!.sellerId,
+        listingId: _book!.id,
+        rating: result['rating'],
+        review: result['review'],
+      );
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (apiResult['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Rating submitted! Thank you.')),
+          );
+          // Refresh reputation data
+          _apiService.getSellerReputation(_book!.sellerId).then((reputation) {
+            if (mounted) {
+              setState(() {
+                _sellerReputation = reputation;
+              });
+            }
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(apiResult['message'] ?? 'Failed to submit rating.'),
+            ),
+          );
+        }
+      }
+    }
+  }
+
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final diff = now.difference(date);
@@ -1164,6 +1384,95 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     if (diff.inDays < 7) return '${diff.inDays} days ago';
     if (diff.inDays < 30) return '${(diff.inDays / 7).floor()} weeks ago';
     return '${(diff.inDays / 30).floor()} months ago';
+  }
+}
+
+class _RatingDialog extends StatefulWidget {
+  final String sellerName;
+  const _RatingDialog({required this.sellerName});
+
+  @override
+  State<_RatingDialog> createState() => _RatingDialogState();
+}
+
+class _RatingDialogState extends State<_RatingDialog> {
+  int _rating = 0;
+  final _reviewController = TextEditingController();
+
+  @override
+  void dispose() {
+    _reviewController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Rate Seller'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'How was your experience with ${widget.sellerName}?',
+              style: AppTextStyles.bodyMedium,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(5, (index) {
+                final starValue = index + 1;
+                return IconButton(
+                  onPressed: () {
+                    haptics.selectionClick();
+                    setState(() => _rating = starValue);
+                  },
+                  icon: Icon(
+                    starValue <= _rating
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
+                    color: starValue <= _rating
+                        ? Colors.amber[700]
+                        : Colors.grey[400],
+                    size: 32,
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _reviewController,
+              decoration: const InputDecoration(
+                hintText: 'Share your review (optional)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+              style: AppTextStyles.bodyMedium,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _rating == 0
+              ? null
+              : () => Navigator.pop(context, {
+                  'rating': _rating,
+                  'review': _reviewController.text.trim(),
+                }),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+          ),
+          child: const Text('Submit'),
+        ),
+      ],
+    );
   }
 }
 

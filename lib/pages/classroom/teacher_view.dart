@@ -80,11 +80,11 @@ class TeacherView extends StatelessWidget {
       children: [
         Text(
           'Teacher Workspace',
-          style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.bold),
+          style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 4),
         Text(
-          'Post classwork, review submissions, and keep every subject on pace.',
+          'Manage your curriculum, track student progress, and organize assignments effortlessly.',
           style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMuted),
         ),
       ],
@@ -92,7 +92,6 @@ class TeacherView extends StatelessWidget {
   }
 
   Widget _buildTeacherStatsGrid() {
-    int subjectsCount = subjects.length;
     int assignmentsCount = 0;
     int classworkCount = 0;
     int homeworkCount = 0;
@@ -116,15 +115,17 @@ class TeacherView extends StatelessWidget {
           children: [
             Expanded(
               child: StatCard(
-                label: 'SUBJECTS',
-                value: subjectsCount.toString(),
+                label: 'Subjects',
+                value: subjects.length.toString(),
+                color: const Color(0xFF0891B2), // cyan-600
               ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: StatCard(
-                label: 'ASSIGNMENTS',
+                label: 'Active Tasks',
                 value: assignmentsCount.toString(),
+                color: const Color(0xFF6366F1), // indigo-500
               ),
             ),
           ],
@@ -134,15 +135,17 @@ class TeacherView extends StatelessWidget {
           children: [
             Expanded(
               child: StatCard(
-                label: 'CLASSWORK',
+                label: 'Classwork',
                 value: classworkCount.toString(),
+                color: const Color(0xFF7C3AED), // purple-600
               ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: StatCard(
-                label: 'HOMEWORK',
+                label: 'Homework',
                 value: homeworkCount.toString(),
+                color: const Color(0xFF10B981), // emerald-500
               ),
             ),
           ],
@@ -160,7 +163,7 @@ class TeacherView extends StatelessWidget {
   }
 }
 
-class TeacherSubjectCard extends StatefulWidget {
+class TeacherSubjectCard extends StatelessWidget {
   final Subject subject;
   final ApiService apiService;
   final VoidCallback onRefresh;
@@ -173,114 +176,96 @@ class TeacherSubjectCard extends StatefulWidget {
   });
 
   @override
-  State<TeacherSubjectCard> createState() => _TeacherSubjectCardState();
-}
-
-class _TeacherSubjectCardState extends State<TeacherSubjectCard> {
-  bool _isExpanded = false;
-
-  @override
   Widget build(BuildContext context) {
-    final assignmentCount = widget.subject.assignments?.length ?? 0;
-    final hasAssignments = assignmentCount > 0;
+    final assignmentCount = subject.assignments?.length ?? 0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      margin: const EdgeInsets.only(bottom: AppSpacing.lg),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
           color: Theme.of(context).dividerTheme.color ?? AppColors.border,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.05 : 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.accentLight,
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                  ),
-                  child: Center(
-                    child: Text(
-                      widget.subject.code ?? widget.subject.title[0],
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: AppColors.accent,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Center(
+                child: Text(
+                  subject.code ?? subject.title[0],
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
                   ),
                 ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    subject.title,
+                    style: AppTextStyles.h4.copyWith(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
                     children: [
                       Text(
-                        widget.subject.title,
-                        style: AppTextStyles.labelMedium,
-                      ),
-                      Text(
-                        'Semester ${widget.subject.semesterNumber}',
+                        'Semester ${subject.semesterNumber}',
                         style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.textMuted,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      Text('•', style: TextStyle(color: AppColors.textMuted)),
+                      const SizedBox(width: 8),
                       Text(
                         '$assignmentCount assignments',
                         style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.textMuted,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
-                ),
-                TextButton.icon(
-                  onPressed: () => _showCreateAssignmentDialog(context),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add'),
-                ),
-                if (hasAssignments) ...[
-                  const SizedBox(width: AppSpacing.sm),
-                  IconButton(
-                    icon: Icon(
-                      _isExpanded ? Icons.expand_less : Icons.expand_more,
-                      color: AppColors.textMuted,
-                    ),
-                    onPressed: () {
-                      haptics.selectionClick();
-                      setState(() => _isExpanded = !_isExpanded);
-                    },
-                  ),
                 ],
-              ],
-            ),
-          ),
-          if (_isExpanded && hasAssignments)
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).scaffoldBackgroundColor.withValues(alpha: 0.5),
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(AppRadius.lg),
-                ),
-              ),
-              child: Column(
-                children: widget.subject.assignments!.map((assignment) {
-                  return TeacherAssignmentTile(
-                    assignment: assignment,
-                    apiService: widget.apiService,
-                  );
-                }).toList(),
               ),
             ),
-        ],
+            const SizedBox(width: AppSpacing.sm),
+            IconButton.filledTonal(
+              onPressed: () => _showCreateAssignmentDialog(context),
+              icon: const Icon(Icons.add_rounded),
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                foregroundColor: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -289,9 +274,9 @@ class _TeacherSubjectCardState extends State<TeacherSubjectCard> {
     showDialog(
       context: context,
       builder: (context) => CreateAssignmentDialog(
-        subjectId: widget.subject.id,
-        apiService: widget.apiService,
-        onCreated: widget.onRefresh,
+        subjectId: subject.id,
+        apiService: apiService,
+        onCreated: onRefresh,
       ),
     );
   }
@@ -309,37 +294,77 @@ class TeacherAssignmentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isHomework = assignment.type == AssignmentType.homework;
+    final Color typeColor = isHomework
+        ? const Color(0xFF7C3AED)
+        : AppColors.primary;
+    final Color typeBg = typeColor.withValues(alpha: 0.1);
+
     return ListTile(
-      leading: Icon(
-        assignment.type == AssignmentType.homework
-            ? Icons.home_work_outlined
-            : Icons.class_outlined,
-        color: AppColors.primary,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: 4,
       ),
-      title: Text(assignment.title, style: AppTextStyles.labelMedium),
-      subtitle: Text(
-        assignment.dueAt != null
-            ? 'Due: ${DateFormat('MMM dd, yyyy').format(assignment.dueAt!)}'
-            : 'No due date',
-        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextButton(
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AssignmentSubmissionsDialog(
-                  assignmentId: assignment.id,
-                  assignmentTitle: assignment.title,
-                  apiService: apiService,
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: typeBg,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: typeColor.withValues(alpha: 0.2)),
                 ),
-              );
-            },
-            child: const Text('View Submissions'),
+                child: Text(
+                  isHomework ? 'HOMEWORK' : 'CLASSWORK',
+                  style: TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                    color: typeColor,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              if (assignment.dueAt != null) ...[
+                const SizedBox(width: 8),
+                Text(
+                  'Due ${DateFormat('MMM dd').format(assignment.dueAt!)}',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            assignment.title,
+            style: AppTextStyles.labelMedium.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
+      ),
+      trailing: TextButton(
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (context) => AssignmentSubmissionsDialog(
+              assignmentId: assignment.id,
+              assignmentTitle: assignment.title,
+              apiService: apiService,
+            ),
+          );
+        },
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+        ),
+        child: const Text('View Submissions'),
       ),
     );
   }
@@ -418,25 +443,57 @@ class _AssignmentSubmissionsDialogState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(child: Text('Submissions: ${widget.assignmentTitle}')),
-          if (!_isLoading && _submissions.isNotEmpty) ...[
-            _buildExportChip(
-              label: 'CSV',
-              icon: Icons.table_chart_rounded,
-              onTap: () => _handleExportSubmissions('csv'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  widget.assignmentTitle,
+                  style: AppTextStyles.h4.copyWith(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (!_isLoading && _submissions.isNotEmpty)
+            Row(
+              children: [
+                Text(
+                  '${_submissions.length} Submissions',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                _buildExportChip(
+                  label: 'CSV',
+                  icon: Icons.table_chart_rounded,
+                  onTap: () => _handleExportSubmissions('csv'),
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                _buildExportChip(
+                  label: 'PDF',
+                  icon: Icons.picture_as_pdf_rounded,
+                  onTap: () => _handleExportSubmissions('pdf'),
+                ),
+              ],
             ),
-            const SizedBox(width: AppSpacing.xs),
-            _buildExportChip(
-              label: 'PDF',
-              icon: Icons.picture_as_pdf_rounded,
-              onTap: () => _handleExportSubmissions('pdf'),
-            ),
-          ],
         ],
       ),
+      titlePadding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
       content: SizedBox(
         width: double.maxFinite,
         height: 400,
@@ -500,25 +557,29 @@ class _AssignmentSubmissionsDialogState
     required VoidCallback onTap,
   }) {
     return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
+      onTap: () {
+        haptics.selectionClick();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(AppRadius.md),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-          borderRadius: BorderRadius.circular(AppRadius.sm),
+          color: AppColors.primary.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 12, color: AppColors.primary),
-            const SizedBox(width: 4),
+            Icon(icon, size: 14, color: AppColors.primary),
+            const SizedBox(width: 6),
             Text(
               label,
               style: AppTextStyles.labelSmall.copyWith(
                 color: AppColors.primary,
                 fontSize: 10,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
@@ -600,7 +661,10 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Create Assignment'),
+      title: Text(
+        'Create Assignment',
+        style: AppTextStyles.h4.copyWith(fontWeight: FontWeight.w900),
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -610,9 +674,17 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
               controller: _titleController,
               decoration: InputDecoration(
                 labelText: 'Title *',
+                labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                hintText: 'Enter assignment title',
+                filled: true,
+                fillColor: Theme.of(
+                  context,
+                ).scaffoldBackgroundColor.withValues(alpha: 0.5),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  borderSide: BorderSide.none,
                 ),
+                contentPadding: const EdgeInsets.all(AppSpacing.md),
               ),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -620,28 +692,73 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
               controller: _descriptionController,
               decoration: InputDecoration(
                 labelText: 'Description',
+                labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                hintText: 'Add instructions (optional)',
+                filled: true,
+                fillColor: Theme.of(
+                  context,
+                ).scaffoldBackgroundColor.withValues(alpha: 0.5),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  borderSide: BorderSide.none,
                 ),
+                contentPadding: const EdgeInsets.all(AppSpacing.md),
               ),
               maxLines: 3,
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.lg),
+            const Text(
+              'Assignment Type',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
             Row(
               children: AssignmentType.values.map((t) {
                 final isSelected = _type == t;
+                final color = t == AssignmentType.homework
+                    ? const Color(0xFF7C3AED)
+                    : AppColors.primary;
                 return Padding(
                   padding: const EdgeInsets.only(right: AppSpacing.sm),
                   child: ChoiceChip(
                     label: Text(t.label),
                     selected: isSelected,
                     onSelected: (_) => setState(() => _type = t),
-                    selectedColor: AppColors.primaryLight,
+                    selectedColor: color.withValues(alpha: 0.1),
+                    checkmarkColor: color,
+                    labelStyle: TextStyle(
+                      color: isSelected ? color : AppColors.textMuted,
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      side: BorderSide(
+                        color: isSelected
+                            ? color.withValues(alpha: 0.3)
+                            : AppColors.border,
+                      ),
+                    ),
                   ),
                 );
               }).toList(),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.lg),
+            const Text(
+              'Due Date',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
             GestureDetector(
               onTap: () async {
                 final date = await showDatePicker(
@@ -657,17 +774,35 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
               child: Container(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.border),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  color: Theme.of(
+                    context,
+                  ).scaffoldBackgroundColor.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.calendar_today, size: 18),
+                    Icon(
+                      Icons.calendar_today_rounded,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: AppSpacing.sm),
                     Text(
                       _dueDate != null
                           ? DateFormat('MMM dd, yyyy').format(_dueDate!)
                           : 'Set due date (optional)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: _dueDate != null
+                            ? AppColors.textPrimary
+                            : AppColors.textMuted,
+                      ),
+                    ),
+                    const Spacer(),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 14,
+                      color: AppColors.textMuted,
                     ),
                   ],
                 ),
@@ -790,7 +925,10 @@ class _AddTeacherSubjectDialogState extends State<AddTeacherSubjectDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Add Subject'),
+      title: Text(
+        'Add Subject',
+        style: AppTextStyles.h4.copyWith(fontWeight: FontWeight.w900),
+      ),
       content: SizedBox(
         width: double.maxFinite,
         child: SingleChildScrollView(
@@ -809,9 +947,17 @@ class _AddTeacherSubjectDialogState extends State<AddTeacherSubjectDialog> {
                 DropdownButtonFormField<Faculty>(
                   initialValue: _selectedFaculty,
                   isExpanded: true,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Faculty',
-                    border: OutlineInputBorder(),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                    filled: true,
+                    fillColor: Theme.of(
+                      context,
+                    ).scaffoldBackgroundColor.withValues(alpha: 0.5),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                   items: _faculties
                       .map(
@@ -831,9 +977,16 @@ class _AddTeacherSubjectDialogState extends State<AddTeacherSubjectDialog> {
                     _loadSubjects();
                   },
                 ),
-                const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: AppSpacing.lg),
                 if (_selectedFaculty != null) ...[
-                  const Text('Semester'),
+                  const Text(
+                    'Semester',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                   const SizedBox(height: AppSpacing.sm),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -842,33 +995,65 @@ class _AddTeacherSubjectDialogState extends State<AddTeacherSubjectDialog> {
                         _selectedFaculty!.semestersCount,
                         (index) {
                           final sem = index + 1;
+                          final isSelected = _selectedSemester == sem;
                           return Padding(
                             padding: const EdgeInsets.only(
                               right: AppSpacing.xs,
                             ),
                             child: ChoiceChip(
                               label: Text('Sem $sem'),
-                              selected: _selectedSemester == sem,
+                              selected: isSelected,
                               onSelected: (selected) {
                                 if (selected) {
                                   setState(() => _selectedSemester = sem);
                                   _loadSubjects();
                                 }
                               },
+                              selectedColor: AppColors.primary.withValues(
+                                alpha: 0.1,
+                              ),
+                              checkmarkColor: AppColors.primary,
+                              labelStyle: TextStyle(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.textMuted,
+                                fontWeight: isSelected
+                                    ? FontWeight.w800
+                                    : FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.md,
+                                ),
+                                side: BorderSide(
+                                  color: isSelected
+                                      ? AppColors.primary.withValues(alpha: 0.3)
+                                      : AppColors.border,
+                                ),
+                              ),
                             ),
                           );
                         },
                       ),
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.lg),
                 ],
                 if (_availableSubjects.isNotEmpty)
                   DropdownButtonFormField<Subject>(
                     initialValue: _selectedSubject,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Subject',
-                      border: OutlineInputBorder(),
+                      labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                      filled: true,
+                      fillColor: Theme.of(
+                        context,
+                      ).scaffoldBackgroundColor.withValues(alpha: 0.5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                     items: _availableSubjects
                         .map(
@@ -888,7 +1073,10 @@ class _AddTeacherSubjectDialogState extends State<AddTeacherSubjectDialog> {
                 else if (_selectedFaculty != null && !_isLoading)
                   const Text(
                     'No subjects found for this semester',
-                    style: TextStyle(color: AppColors.textMuted),
+                    style: TextStyle(
+                      color: AppColors.textMuted,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 if (_isLoading &&
                     _availableSubjects.isEmpty &&

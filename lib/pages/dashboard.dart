@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/auth/service/google_auth.dart';
+import 'package:pulchowkx_app/pages/marketplace/book_requests_page.dart';
+import 'package:pulchowkx_app/pages/book_marketplace.dart';
+import 'package:pulchowkx_app/models/event.dart';
 import 'package:pulchowkx_app/cards/my_enrollments.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
@@ -12,7 +15,6 @@ import 'package:pulchowkx_app/pages/admin/create_club_page.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/pages/settings_page.dart';
 import 'package:pulchowkx_app/pages/notices.dart';
-import 'package:pulchowkx_app/models/event.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -25,16 +27,52 @@ class _DashboardPageState extends State<DashboardPage> {
   final ApiService _apiService = ApiService();
   bool _isAdmin = false;
   bool _isLoading = true;
+  int _totalEnrollments = 0;
+  int _upcomingEnrollments = 0;
+  int _attendedEnrollments = 0;
 
   @override
   void initState() {
     super.initState();
-    _checkAdminStatus();
+    _fetchDashboardData();
   }
 
-  Future<void> _checkAdminStatus() async {
+  Future<void> _fetchDashboardData() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+
     try {
       final isAdmin = await _apiService.isAdmin();
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user != null) {
+        final dbId = await _apiService.requireDatabaseUserId();
+        if (dbId != null) {
+          final enrollments = await _apiService.getEnrollments(dbId);
+          final now = DateTime.now();
+
+          if (mounted) {
+            setState(() {
+              _isAdmin = isAdmin;
+              _totalEnrollments = enrollments.length;
+              _upcomingEnrollments = enrollments
+                  .where(
+                    (e) =>
+                        e.event != null &&
+                        e.event!.eventStartTime.isAfter(now) &&
+                        e.status == 'registered',
+                  )
+                  .length;
+              _attendedEnrollments = enrollments
+                  .where((e) => e.status.toLowerCase() == 'attended')
+                  .length;
+              _isLoading = false;
+            });
+            return;
+          }
+        }
+      }
+
       if (mounted) {
         setState(() {
           _isAdmin = isAdmin;
@@ -42,6 +80,7 @@ class _DashboardPageState extends State<DashboardPage> {
         });
       }
     } catch (e) {
+      debugPrint('Error fetching dashboard data: $e');
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -49,8 +88,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _handleRefresh() async {
-    setState(() => _isLoading = true);
-    await _checkAdminStatus();
+    await _fetchDashboardData();
   }
 
   Future<void> _handleSignOut(BuildContext context) async {
@@ -74,7 +112,6 @@ class _DashboardPageState extends State<DashboardPage> {
                 size: 20,
               ),
             ),
-            const SizedBox(width: 12),
             const SizedBox(width: 12),
             Text(
               'Sign Out',
@@ -161,208 +198,15 @@ class _DashboardPageState extends State<DashboardPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header Section
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  gradient: AppColors.primaryGradient,
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.md,
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.dashboard_rounded,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Text(
-                                'Dashboard',
-                                style: Theme.of(context).textTheme.displaySmall,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            'Manage your account and view your enrollments',
-                            style: AppTextStyles.bodyMedium,
-                          ),
-                        ],
-                      ),
-                    ),
-                    _SignOutButton(onPressed: () => _handleSignOut(context)),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // Profile Card
+                // Header area with User Profile
                 _isLoading
                     ? const DashboardHeaderShimmer()
-                    : Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).cardTheme.color,
-                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                          border: Border.all(
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                ? AppColors.borderDark
-                                : AppColors.border,
-                          ),
-                          boxShadow:
-                              Theme.of(context).brightness == Brightness.light
-                              ? AppShadows.sm
-                              : null,
-                        ),
-                        child: Column(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(AppSpacing.lg),
-                              child: Row(
-                                children: [
-                                  // Avatar with gradient border
-                                  Container(
-                                    padding: const EdgeInsets.all(3),
-                                    decoration: BoxDecoration(
-                                      gradient: AppColors.primaryGradient,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: CircleAvatar(
-                                      radius: 36,
-                                      backgroundColor: Theme.of(
-                                        context,
-                                      ).cardTheme.color,
-                                      backgroundImage: photoUrl != null
-                                          ? CachedNetworkImageProvider(photoUrl)
-                                          : null,
-                                      child: photoUrl == null
-                                          ? const Icon(
-                                              Icons.person_rounded,
-                                              size: 36,
-                                              color: AppColors.primary,
-                                            )
-                                          : null,
-                                    ),
-                                  ),
-                                  const SizedBox(width: AppSpacing.md),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          displayName,
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.headlineMedium,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          email,
-                                          style: AppTextStyles.bodySmall,
-                                        ),
-                                        const SizedBox(height: AppSpacing.sm),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: _isAdmin
-                                                ? (Theme.of(
-                                                            context,
-                                                          ).brightness ==
-                                                          Brightness.dark
-                                                      ? AppColors.accent
-                                                            .withValues(
-                                                              alpha: 0.15,
-                                                            )
-                                                      : AppColors.accentLight)
-                                                : (Theme.of(
-                                                            context,
-                                                          ).brightness ==
-                                                          Brightness.dark
-                                                      ? AppColors.success
-                                                            .withValues(
-                                                              alpha: 0.15,
-                                                            )
-                                                      : AppColors.successLight),
-                                            borderRadius: BorderRadius.circular(
-                                              AppRadius.full,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                _isAdmin
-                                                    ? Icons.admin_panel_settings
-                                                    : Icons.verified_rounded,
-                                                size: 12,
-                                                color: _isAdmin
-                                                    ? AppColors.accent
-                                                    : AppColors.success,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                _isAdmin
-                                                    ? 'Admin'
-                                                    : 'Active Student',
-                                                style: AppTextStyles.labelSmall
-                                                    .copyWith(
-                                                      color: _isAdmin
-                                                          ? AppColors.accent
-                                                          : AppColors.success,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              height: 1,
-                              color: Theme.of(context).dividerTheme.color,
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.lg,
-                                vertical: AppSpacing.md,
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.calendar_today_rounded,
-                                    size: 14,
-                                    color: AppColors.textMuted,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Member since ${user?.metadata.creationTime?.year ?? 2026}',
-                                    style: AppTextStyles.bodySmall,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    : _buildProfileHeader(displayName, email, photoUrl),
+
+                const SizedBox(height: AppSpacing.lg),
+
+                // Stats Grid
+                _isLoading ? const StatsGridShimmer() : _buildStatsGrid(),
                 const SizedBox(height: AppSpacing.xl),
 
                 // Event Enrollments Section
@@ -394,30 +238,44 @@ class _DashboardPageState extends State<DashboardPage> {
                         builder: (context, constraints) {
                           final isWide = constraints.maxWidth >= 600;
                           final cards = [
-                            if (_isAdmin)
-                              _QuickActionCard(
-                                icon: Icons.add_circle_outline,
-                                title: 'Create Club',
-                                description: 'Start a new club community.',
-                                color: Colors.purple,
-                                heroTag: 'hero-create-club',
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const CreateClubPage(),
-                                    ),
-                                  );
-                                },
-                              ),
-
                             _QuickActionCard(
-                              icon: Icons.notifications_active_rounded,
+                              icon: Icons.shopping_bag_outlined,
+                              title: 'Marketplace',
+                              description: 'Buy and sell books with others.',
+                              color: AppColors.primary,
+                              heroTag: 'hero-marketplace',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const BookMarketplacePage(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _QuickActionCard(
+                              icon: Icons.history_rounded,
+                              title: 'Requests',
+                              description: 'Track your book buy/sell requests.',
+                              color: AppColors.accent,
+                              heroTag: 'hero-requests',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const BookRequestsPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _QuickActionCard(
+                              icon: Icons.notification_important_outlined,
                               title: 'IOE Notices',
                               description:
                                   'View exam results and routines from IOE.',
-                              color: AppColors.warning,
+                              color: AppColors.success,
                               heroTag: 'hero-notices',
                               onTap: () {
                                 Navigator.push(
@@ -428,13 +286,11 @@ class _DashboardPageState extends State<DashboardPage> {
                                 );
                               },
                             ),
-
                             _QuickActionCard(
-                              icon: Icons.favorite_rounded,
-                              title: 'My Favorites',
-                              description:
-                                  'Quickly access your saved clubs and events.',
-                              color: Colors.redAccent,
+                              icon: Icons.favorite_outline_rounded,
+                              title: 'Favorites',
+                              description: 'Access your saved clubs and books.',
+                              color: Colors.orange,
                               heroTag: 'hero-favorites',
                               onTap: () {
                                 Navigator.push(
@@ -460,6 +316,23 @@ class _DashboardPageState extends State<DashboardPage> {
                                 );
                               },
                             ),
+                            if (_isAdmin)
+                              _QuickActionCard(
+                                icon: Icons.admin_panel_settings_outlined,
+                                title: 'Create Club',
+                                description: 'Start a new club community.',
+                                color: Colors.purple,
+                                heroTag: 'hero-create-club',
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const CreateClubPage(),
+                                    ),
+                                  );
+                                },
+                              ),
                           ];
 
                           if (isWide) {
@@ -505,6 +378,233 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader(String name, String email, String? photoUrl) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color?.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        border: Border.all(
+          color: isDark
+              ? AppColors.borderDark.withValues(alpha: 0.5)
+              : AppColors.border.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Avatar
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                  ),
+                  image: photoUrl != null
+                      ? DecorationImage(
+                          image: CachedNetworkImageProvider(photoUrl),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child: photoUrl == null
+                    ? const Center(
+                        child: Icon(
+                          Icons.person_rounded,
+                          size: 32,
+                          color: AppColors.primary,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Text(
+                        'Student Dashboard'.toUpperCase(),
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: AppColors.primary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      name,
+                      style: AppTextStyles.h4.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      email,
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    // Navigate to Classroom (Home usually)
+                    Navigator.of(
+                      context,
+                      rootNavigator: true,
+                    ).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const MainLayout(initialIndex: 3),
+                      ),
+                      (route) => false,
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    side: BorderSide(
+                      color:
+                          Theme.of(context).dividerTheme.color ??
+                          AppColors.border,
+                    ),
+                  ),
+                  child: Text(
+                    'Classroom',
+                    style: AppTextStyles.labelMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => _handleSignOut(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.textPrimary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Sign Out',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsGrid() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double itemWidth = (constraints.maxWidth - AppSpacing.md * 2) / 3;
+        return Wrap(
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.md,
+          children: [
+            _buildStatCard(
+              'Total Enrollments',
+              _totalEnrollments.toString(),
+              AppColors.primary,
+              width: itemWidth,
+            ),
+            _buildStatCard(
+              'Upcoming Events',
+              _upcomingEnrollments.toString(),
+              AppColors.accent,
+              width: itemWidth,
+            ),
+            _buildStatCard(
+              'Attended',
+              _attendedEnrollments.toString(),
+              AppColors.success,
+              width: itemWidth,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildStatCard(
+    String label,
+    String value,
+    Color color, {
+    double? width,
+  }) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        border: Border.all(color: color.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: AppTextStyles.labelSmall.copyWith(
+              color: AppColors.textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: AppTextStyles.h3.copyWith(
+              color: color,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -604,23 +704,34 @@ class _NextUpCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
+        gradient: RadialGradient(
+          center: Alignment.topLeft,
+          radius: 1.5,
+          colors: [
+            AppColors.primary.withValues(alpha: 0.15),
+            Theme.of(context).cardTheme.color?.withValues(alpha: 0.95) ??
+                Colors.white,
+            AppColors.primary.withValues(alpha: 0.05),
+          ],
+          stops: const [0.0, 0.5, 1.0],
         ),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.colored(AppColors.primary),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+        boxShadow: Theme.of(context).brightness == Brightness.light
+            ? AppShadows.sm
+            : null,
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: const Icon(
               Icons.timer_outlined,
-              color: Colors.white,
+              color: AppColors.primary,
               size: 24,
             ),
           ),
@@ -630,20 +741,23 @@ class _NextUpCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
+                  'Next Up'.toUpperCase(),
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 10,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                Text(
                   event.title,
                   style: AppTextStyles.labelLarge.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w800,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  timeText,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: Colors.white.withValues(alpha: 0.9),
-                  ),
-                ),
+                Text(timeText, style: AppTextStyles.bodySmall),
               ],
             ),
           ),
@@ -663,50 +777,6 @@ class _NextUpCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SignOutButton extends StatelessWidget {
-  final VoidCallback onPressed;
-
-  const _SignOutButton({required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = isDark ? const Color(0xFFEF9A9A) : const Color(0xFFD32F2F);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.logout_rounded, size: 16, color: color),
-                const SizedBox(width: 6),
-                Text(
-                  'Sign Out',
-                  style: AppTextStyles.buttonSmall.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -743,10 +813,10 @@ class _QuickActionCardState extends State<_QuickActionCard> {
       onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        height: 150,
+        height: 140,
         decoration: BoxDecoration(
           color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
+          borderRadius: BorderRadius.circular(AppRadius.xl),
           border: Border.all(
             color: _isHovered
                 ? widget.color.withValues(alpha: 0.5)

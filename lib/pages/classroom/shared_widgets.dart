@@ -6,45 +6,81 @@ import 'package:pulchowkx_app/theme/app_theme.dart';
 class StatCard extends StatelessWidget {
   final String label;
   final String value;
+  final IconData? icon;
+  final Color? color;
+  final double? progress;
+  final bool animate;
 
-  const StatCard({super.key, required this.label, required this.value});
+  const StatCard({
+    super.key,
+    required this.label,
+    required this.value,
+    this.icon,
+    this.color,
+    this.progress,
+    this.animate = true,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final themeColor = color ?? AppColors.primary;
+    final borderColor = isDark
+        ? themeColor.withValues(alpha: 0.2)
+        : themeColor.withValues(alpha: 0.1);
+
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.lg,
+      ),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(
-          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
-        ),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).brightness == Brightness.light
-                ? Colors.black.withValues(alpha: 0.03)
-                : Colors.transparent,
+            color: themeColor.withValues(alpha: isDark ? 0.05 : 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            label,
-            style: AppTextStyles.labelSmall.copyWith(
-              color: AppColors.textMuted,
-              letterSpacing: 1.2,
-              fontSize: 10,
+            value,
+            style: AppTextStyles.h3.copyWith(
+              fontWeight: FontWeight.w900,
+              fontSize: 28,
+              height: 1.1,
+              color: themeColor,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            value,
-            style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.bold),
+            label.toUpperCase(),
+            textAlign: TextAlign.center,
+            style: AppTextStyles.labelSmall.copyWith(
+              color: AppColors.textMuted,
+              letterSpacing: 1.2,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
           ),
+          if (progress != null) ...[
+            const SizedBox(height: AppSpacing.lg),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.full),
+              child: LinearProgressIndicator(
+                value: progress,
+                backgroundColor: themeColor.withValues(alpha: 0.1),
+                valueColor: AlwaysStoppedAnimation<Color>(themeColor),
+                minHeight: 4,
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -528,7 +528,7 @@ class _MobileMoreMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<AppPage>(
+    return PopupMenuButton<String>(
       offset: const Offset(0, 45),
       icon: Stack(
         children: [
@@ -553,12 +553,22 @@ class _MobileMoreMenu extends StatelessWidget {
             ),
         ],
       ),
-      onSelected: (page) {
+      onSelected: (value) {
         haptics.selectionClick();
-        if (page == AppPage.clubs) {
+        if (value == 'clubs') {
           CustomAppBar._navigateToClubs(context, isLoggedIn, currentPage);
-        } else if (page == AppPage.events) {
+        } else if (value == 'events') {
           CustomAppBar._navigateToEvents(context, isLoggedIn, currentPage);
+        } else if (value == 'notices') {
+          // Navigate to notices page via MainLayout
+          final mainLayout = MainLayout.of(context);
+          if (mainLayout != null) {
+            // Navigate to search with notices filter or notices section
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SearchPage()),
+            );
+          }
         }
       },
       shape: RoundedRectangleBorder(
@@ -566,7 +576,7 @@ class _MobileMoreMenu extends StatelessWidget {
       ),
       itemBuilder: (context) => [
         PopupMenuItem(
-          value: AppPage.clubs,
+          value: 'clubs',
           child: Row(
             children: [
               Icon(
@@ -592,7 +602,7 @@ class _MobileMoreMenu extends StatelessWidget {
           ),
         ),
         PopupMenuItem(
-          value: AppPage.events,
+          value: 'events',
           child: Row(
             children: [
               Icon(
@@ -614,6 +624,20 @@ class _MobileMoreMenu extends StatelessWidget {
                       : null,
                 ),
               ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'notices',
+          child: Row(
+            children: [
+              Icon(
+                Icons.campaign_rounded,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: 12),
+              const Text('IOE Notices'),
             ],
           ),
         ),
