@@ -8,6 +8,7 @@ import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:pulchowkx_app/pages/marketplace/chat_room.dart';
 import 'package:pulchowkx_app/models/chat.dart';
+import 'package:pulchowkx_app/models/trust.dart';
 
 class BookDetailsPage extends StatefulWidget {
   final int bookId;
@@ -23,6 +24,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   final ApiService _apiService = ApiService();
   BookListing? _book;
   BookPurchaseRequest? _myRequest;
+  SellerReputation? _sellerReputation;
   bool _isLoading = true;
   bool _isRequesting = false;
   String? _errorMessage;
@@ -67,6 +69,15 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
           _isLoading = false;
           if (book == null) _errorMessage = 'Book not found';
         });
+
+        // Fetch seller reputation if book found
+        if (book != null) {
+          _apiService.getSellerReputation(book.sellerId).then((reputation) {
+            if (mounted) {
+              setState(() => _sellerReputation = reputation);
+            }
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -617,9 +628,38 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      _book!.seller?.name ?? 'Unknown Seller',
-                      style: AppTextStyles.labelLarge,
+                    GestureDetector(
+                      onTap: _showReputationDetails,
+                      child: Row(
+                        children: [
+                          Text(
+                            _book!.seller?.name ?? 'Unknown Seller',
+                            style: AppTextStyles.labelLarge,
+                          ),
+                          if (_sellerReputation != null &&
+                              _sellerReputation!.totalRatings > 0) ...[
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.star_rounded,
+                              size: 16,
+                              color: Colors.amber[700],
+                            ),
+                            Text(
+                              _sellerReputation!.averageRating.toStringAsFixed(
+                                1,
+                              ),
+                              style: AppTextStyles.labelSmall.copyWith(
+                                color: Colors.amber[900],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              ' (${_sellerReputation!.totalRatings})',
+                              style: AppTextStyles.bodySmall,
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                     if (_book!.seller?.email != null)
                       Text(
@@ -691,6 +731,48 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                   tooltip: _myRequest?.status == RequestStatus.accepted
                       ? 'Email Seller'
                       : 'Request acceptance required',
+                ),
+                IconButton(
+                  onPressed: () {
+                    showMenu(
+                      context: context,
+                      position: const RelativeRect.fromLTRB(100, 400, 0, 0),
+                      items: [
+                        PopupMenuItem(
+                          value: 'report',
+                          child: Row(
+                            children: const [
+                              Icon(Icons.report_outlined, size: 20),
+                              SizedBox(width: 8),
+                              Text('Report Listing'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'block',
+                          child: Row(
+                            children: const [
+                              Icon(
+                                Icons.block_rounded,
+                                size: 20,
+                                color: AppColors.error,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Block User',
+                                style: TextStyle(color: AppColors.error),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ).then((value) {
+                      if (value == 'report') _reportListing();
+                      if (value == 'block') _blockUser();
+                    });
+                  },
+                  icon: const Icon(Icons.more_vert_rounded),
+                  tooltip: 'Options',
                 ),
               ],
             ],
@@ -789,6 +871,286 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _blockUser() async {
+    if (_book == null) return;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Block User?'),
+        content: Text(
+          'Are you sure you want to block ${_book!.seller?.name ?? "this user"}? You will no longer see their listings and they won\'t be able to contact you.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Block'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      final apiResult = await _apiService.blockMarketplaceUser(_book!.sellerId);
+      if (mounted) {
+        if (apiResult['success'] == true) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('User blocked')));
+          Navigator.pop(context); // Go back as we shouldn't see this listing
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(apiResult['message'] ?? 'Failed to block user'),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _reportListing() async {
+    if (_book == null) return;
+
+    ReportCategory? selectedCategory;
+    final descriptionController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Report Listing'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Why are you reporting this?'),
+                const SizedBox(height: AppSpacing.md),
+                DropdownButtonFormField<ReportCategory>(
+                  decoration: const InputDecoration(labelText: 'Category'),
+                  items: ReportCategory.values
+                      .map(
+                        (cat) => DropdownMenuItem(
+                          value: cat,
+                          child: Text(cat.displayName),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (val) =>
+                      setDialogState(() => selectedCategory = val),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Details',
+                    hintText: 'Describe the issue...',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+              child: const Text('Submit Report'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == true && selectedCategory != null) {
+      final apiResult = await _apiService.createMarketplaceReport(
+        reportedUserId: _book!.sellerId,
+        listingId: _book!.id,
+        category: selectedCategory!,
+        description: descriptionController.text,
+      );
+
+      if (mounted) {
+        if (apiResult['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Report submitted successfully')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(apiResult['message'] ?? 'Failed to submit report'),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _showReputationDetails() {
+    if (_sellerReputation == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Seller Reputation', style: AppTextStyles.h4),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Column(
+                  children: [
+                    Text(
+                      _sellerReputation!.averageRating.toStringAsFixed(1),
+                      style: AppTextStyles.h2.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    Row(
+                      children: List.generate(5, (index) {
+                        return Icon(
+                          index < _sellerReputation!.averageRating.floor()
+                              ? Icons.star_rounded
+                              : Icons.star_outline_rounded,
+                          color: Colors.amber[700],
+                          size: 20,
+                        );
+                      }),
+                    ),
+                    Text(
+                      '${_sellerReputation!.totalRatings} ratings',
+                      style: AppTextStyles.bodySmall,
+                    ),
+                  ],
+                ),
+                const SizedBox(width: AppSpacing.xl),
+                Expanded(
+                  child: Column(
+                    children: [5, 4, 3, 2, 1].map((star) {
+                      final count = _sellerReputation!.distribution[star] ?? 0;
+                      final percent = _sellerReputation!.totalRatings > 0
+                          ? count / _sellerReputation!.totalRatings
+                          : 0.0;
+                      return Row(
+                        children: [
+                          Text('$star', style: AppTextStyles.labelSmall),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: LinearProgressIndicator(
+                              value: percent,
+                              backgroundColor: Colors.grey[200],
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.amber[700]!,
+                              ),
+                              minHeight: 6,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            width: 25,
+                            child: Text(
+                              '$count',
+                              style: AppTextStyles.bodySmall,
+                              textAlign: TextAlign.end,
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text('Recent Reviews', style: AppTextStyles.labelLarge),
+            const SizedBox(height: AppSpacing.sm),
+            if (_sellerReputation!.recentRatings.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                child: Text('No reviews yet.', style: AppTextStyles.bodySmall),
+              )
+            else
+              Expanded(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _sellerReputation!.recentRatings.length,
+                  itemBuilder: (context, index) {
+                    final rating = _sellerReputation!.recentRatings[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Row(
+                                children: List.generate(5, (i) {
+                                  return Icon(
+                                    i < rating.rating
+                                        ? Icons.star_rounded
+                                        : Icons.star_outline_rounded,
+                                    color: Colors.amber[700],
+                                    size: 14,
+                                  );
+                                }),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                rating.rater?.name ?? 'Anonymous',
+                                style: AppTextStyles.labelSmall,
+                              ),
+                            ],
+                          ),
+                          if (rating.review != null &&
+                              rating.review!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                rating.review!,
+                                style: AppTextStyles.bodySmall,
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
         ),
       ),
     );

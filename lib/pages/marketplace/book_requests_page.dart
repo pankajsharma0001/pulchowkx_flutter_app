@@ -240,6 +240,39 @@ class _BookRequestsPageState extends State<BookRequestsPage>
     }
   }
 
+  Future<void> _rateSeller(BookPurchaseRequest request) async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => _RatingDialog(request: request),
+    );
+
+    if (result != null && result['rating'] != null) {
+      setState(() => _isLoading = true);
+      final apiResult = await _apiService.rateSeller(
+        sellerId: request.listing?.sellerId ?? '',
+        listingId: request.listingId,
+        rating: result['rating'],
+        review: result['review'],
+      );
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              apiResult['success'] == true
+                  ? 'Rating submitted! Thank you.'
+                  : (apiResult['message'] ?? 'Failed to submit rating.'),
+            ),
+            backgroundColor: apiResult['success'] == true
+                ? AppColors.success
+                : AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -337,6 +370,7 @@ class _BookRequestsPageState extends State<BookRequestsPage>
                   onCancel: () => _cancelRequest(request),
                   onRemove: () => _deleteRequest(request),
                   onChat: () => _openChatWithBuyer(request),
+                  onRate: () => _rateSeller(request),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -468,6 +502,7 @@ class _RequestCard extends StatelessWidget {
   final VoidCallback? onCancel;
   final VoidCallback onRemove;
   final VoidCallback? onChat;
+  final VoidCallback? onRate;
   final VoidCallback onTap;
 
   const _RequestCard({
@@ -478,6 +513,7 @@ class _RequestCard extends StatelessWidget {
     this.onCancel,
     required this.onRemove,
     this.onChat,
+    this.onRate,
     required this.onTap,
   });
 
@@ -666,6 +702,21 @@ class _RequestCard extends StatelessWidget {
                       ),
                   ],
                 ),
+                if (onRate != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: onRate,
+                      icon: const Icon(Icons.star_outline_rounded, size: 18),
+                      label: const Text('Rate Seller'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ],
           ),
@@ -685,5 +736,86 @@ class _RequestCard extends StatelessWidget {
       case RequestStatus.cancelled:
         return AppColors.textMuted;
     }
+  }
+}
+
+class _RatingDialog extends StatefulWidget {
+  final BookPurchaseRequest request;
+  const _RatingDialog({required this.request});
+
+  @override
+  State<_RatingDialog> createState() => _RatingDialogState();
+}
+
+class _RatingDialogState extends State<_RatingDialog> {
+  int _rating = 0;
+  final _reviewController = TextEditingController();
+
+  @override
+  void dispose() {
+    _reviewController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Rate Seller'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'How was your experience with ${widget.request.listing?.seller?.name ?? "this seller"}?',
+              style: AppTextStyles.bodyMedium,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(5, (index) {
+                final starValue = index + 1;
+                return IconButton(
+                  onPressed: () => setState(() => _rating = starValue),
+                  icon: Icon(
+                    starValue <= _rating
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
+                    color: starValue <= _rating
+                        ? Colors.amber
+                        : AppColors.textMuted,
+                    size: 32,
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _reviewController,
+              decoration: const InputDecoration(
+                hintText: 'Share your review (optional)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _rating == 0
+              ? null
+              : () => Navigator.pop(context, {
+                  'rating': _rating,
+                  'review': _reviewController.text.trim(),
+                }),
+          child: const Text('Submit'),
+        ),
+      ],
+    );
   }
 }

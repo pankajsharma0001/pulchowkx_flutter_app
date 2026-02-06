@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/cards/logo.dart';
 import 'package:pulchowkx_app/pages/home_page.dart';
+import 'package:pulchowkx_app/pages/search_page.dart';
 import 'package:pulchowkx_app/pages/clubs.dart';
 import 'package:pulchowkx_app/pages/dashboard.dart';
 import 'package:pulchowkx_app/pages/events.dart';
@@ -36,13 +37,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 600;
-    final bool isMoreActive =
+    final isMoreActive =
         currentPage == AppPage.clubs || currentPage == AppPage.events;
 
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        final bool isLoggedIn = snapshot.data != null;
+        final isLoggedIn = snapshot.data != null;
         final user = snapshot.data;
 
         return Container(
@@ -75,6 +76,17 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        IconButton(
+                          icon: const Icon(Icons.search_rounded),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SearchPage(),
+                              ),
+                            );
+                          },
+                        ),
                         if (isLoggedIn)
                           _UserAvatar(
                             photoUrl: user?.photoURL,
@@ -124,6 +136,19 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                           icon: Icons.map_rounded,
                           isActive: currentPage == AppPage.map,
                           onTap: () => _navigateToMap(context, currentPage),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        IconButton(
+                          icon: const Icon(Icons.search_rounded),
+                          tooltip: 'Global Search',
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SearchPage(),
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(width: AppSpacing.xs),
                         if (isLoggedIn)

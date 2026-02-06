@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 
 /// App color palette - consistent throughout the application
 class AppColors {
-  // Primary colors
-  static const Color primary = Color(0xFF1877F2);
-  static const Color primaryDark = Color(0xFF0D47A1);
-  static const Color primaryLight = Color(0xFF42A5F5);
+  // Primary colors - more cyan/blue like the website
+  static const Color primary = Color(0xFF0891B2); // Cyan-600
+  static const Color primaryDark = Color(0xFF164E63); // Cyan-900
+  static const Color primaryLight = Color(0xFF22D3EE); // Cyan-400
 
   // Secondary/Accent colors
-  static const Color accent = Color(0xFF6366F1);
-  static const Color accentLight = Color(0xFFEEF2FF);
+  static const Color accent = Color(0xFF2563EB); // Blue-600
+  static const Color accentLight = Color(0xFFEFF6FF); // Blue-50
 
   // Background colors (Light)
-  static const Color background = Color(0xFFFAFAFA);
-  static const Color backgroundSecondary = Color(0xFFF3F4F6);
+  static const Color background = Color(0xFFF8FAFC);
+  static const Color backgroundSecondary = Color(0xFFF1F5F9);
   static const Color surface = Colors.white;
   static const Color cardBackground = Colors.white;
 
@@ -24,16 +24,14 @@ class AppColors {
   static const Color cardBackgroundDark = Color(0xFF1E293B);
 
   // Text colors (Light)
-  static const Color textPrimary = Color(0xFF111827);
-  static const Color textSecondary = Color(0xFF6B7280);
-  static const Color textMuted = Color(0xFF9CA3AF);
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF475569);
+  static const Color textMuted = Color(0xFF94A3B8);
 
   // Text colors (Dark)
-  static const Color textPrimaryDark = Color(0xFFF9FAFB);
-  static const Color textSecondaryDark = Color(
-    0xFFE2E8F0,
-  ); // Lighter for better contrast
-  static const Color textMutedDark = Color(0xFF94A3B8);
+  static const Color textPrimaryDark = Color(0xFFF8FAFC);
+  static const Color textSecondaryDark = Color(0xFFCBD5E1);
+  static const Color textMutedDark = Color(0xFF64748B);
 
   // Status colors
   static const Color success = Color(0xFF10B981);
@@ -46,19 +44,19 @@ class AppColors {
   static const Color infoLight = Color(0xFFDBEAFE);
 
   // Border colors
-  static const Color border = Color(0xFFE5E7EB);
-  static const Color borderLight = Color(0xFFF3F4F6);
+  static const Color border = Color(0xFFE2E8F0);
+  static const Color borderLight = Color(0xFFF1F5F9);
   static const Color borderDark = Color(0xFF334155);
 
-  // Gradient
+  // Gradients matching the website
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF1877F2), Color(0xFF6366F1)],
+    colors: [Color(0xFF0891B2), Color(0xFF2563EB)], // Cyan-600 to Blue-600
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient heroGradient = LinearGradient(
-    colors: [Color(0xFFF0F9FF), Color(0xFFEEF2FF)],
+    colors: [Color(0xFFECFEFF), Color(0xFFEFF6FF)], // Cyan-50 to Blue-50
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
@@ -67,6 +65,12 @@ class AppColors {
     colors: [Color(0xFF0F172A), Color(0xFF1E1B4B)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
+  );
+
+  static const LinearGradient accentGradient = LinearGradient(
+    colors: [Color(0xFF0EA5E9), Color(0xFF6366F1)], // Sky-500 to Indigo-500
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
   );
 }
 
@@ -169,6 +173,8 @@ class AppRadius {
   static const double md = 10;
   static const double lg = 14;
   static const double xl = 20;
+  static const double xxl = 24;
+  static const double xxxl = 32;
   static const double full = 999;
 }
 

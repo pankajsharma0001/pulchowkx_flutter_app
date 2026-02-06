@@ -11,6 +11,7 @@ import 'package:pulchowkx_app/pages/favorites_page.dart';
 import 'package:pulchowkx_app/pages/admin/create_club_page.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/pages/settings_page.dart';
+import 'package:pulchowkx_app/pages/notices.dart';
 import 'package:pulchowkx_app/models/event.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -410,6 +411,23 @@ class _DashboardPageState extends State<DashboardPage> {
                                   );
                                 },
                               ),
+
+                            _QuickActionCard(
+                              icon: Icons.notifications_active_rounded,
+                              title: 'IOE Notices',
+                              description:
+                                  'View exam results and routines from IOE.',
+                              color: AppColors.warning,
+                              heroTag: 'hero-notices',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const NoticesPage(),
+                                  ),
+                                );
+                              },
+                            ),
 
                             _QuickActionCard(
                               icon: Icons.favorite_rounded,

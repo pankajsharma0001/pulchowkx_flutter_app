@@ -11,6 +11,8 @@ import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/services/notification_service.dart';
 import 'package:pulchowkx_app/main.dart' show themeProvider;
 import 'package:pulchowkx_app/widgets/theme_switcher.dart';
+import 'package:pulchowkx_app/pages/marketplace/blocked_users.dart';
+import 'package:pulchowkx_app/pages/marketplace/my_reports.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -474,6 +476,44 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: _clearCache,
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+
+                      _buildSectionHeader('Trust & Safety'),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.block_rounded,
+                          color: AppColors.error,
+                        ),
+                        title: const Text('Blocked Users'),
+                        subtitle: const Text('Manage people you have blocked'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const BlockedUsersPage(),
+                            ),
+                          );
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.report_gmailerrorred_rounded,
+                          color: AppColors.warning,
+                        ),
+                        title: const Text('My Reports'),
+                        subtitle: const Text('View status of your reports'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const MarketplaceReportsPage(),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: AppSpacing.xl),
 

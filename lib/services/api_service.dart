@@ -9,6 +9,8 @@ import 'package:pulchowkx_app/models/classroom.dart';
 import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:pulchowkx_app/models/chat.dart';
+import 'package:pulchowkx_app/models/notice.dart';
+import 'package:pulchowkx_app/models/trust.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -43,8 +45,8 @@ class ApiResult<T> {
 }
 
 class ApiService {
-  static const String baseUrl = 'https://pulchowk-x.vercel.app/api/events';
-  static const String apiBaseUrl = 'https://pulchowk-x.vercel.app/api';
+  static const String baseUrl = 'https://smart-pulchowk.vercel.app/api/events';
+  static const String apiBaseUrl = 'https://smart-pulchowk.vercel.app/api';
 
   static const String _dbUserIdKey = 'database_user_id';
   static const String _userRoleKey = 'user_role';
@@ -218,7 +220,6 @@ class ApiService {
         if (data != null && data['success'] == true && data['user'] != null) {
           final databaseUserId = data['user']['id'] as String;
           final userRole = data['user']['role'] as String? ?? 'student';
-          // Store the database user ID and role for future API calls
           await _storeDatabaseUserId(databaseUserId);
           await _storeUserRole(userRole);
           return databaseUserId;
@@ -228,6 +229,22 @@ class ApiService {
     } catch (e) {
       return null;
     }
+  }
+
+  // ==================== HEADER HELPERS ====================
+
+  /// Get authentication header with Bearer token
+  Future<Map<String, String>> _getAuthHeader() async {
+    final userId = await getDatabaseUserId();
+    return {
+      'Content-Type': 'application/json',
+      if (userId != null) 'Authorization': 'Bearer $userId',
+    };
+  }
+
+  /// Get standard JSON header
+  Map<String, String> _getJsonHeader() {
+    return {'Content-Type': 'application/json'};
   }
 
   // ==================== CACHING & CONNECTIVITY ====================
@@ -2713,5 +2730,438 @@ class ApiService {
       debugPrint('Error deleting conversation: $e');
       return {'success': false, 'message': 'Error: $e'};
     }
+  }
+
+  // ==================== NOTICES API ====================
+
+  /// Get notices with optional filters
+  Future<List<Notice>> getNotices([NoticeFilters? filters]) async {
+    final String cacheKey =
+        'notices_${filters?.section?.value ?? 'all'}_${filters?.subsection?.value ?? 'all'}_cache';
+    bool isOnline = await _hasInternetConnection();
+
+    if (isOnline) {
+      try {
+        final queryParams = filters?.toQueryParams() ?? {};
+        final uri = Uri.parse(
+          '$apiBaseUrl/notices',
+        ).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+
+        final response = await http.get(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+
+          // Handle both response formats
+          if (json['success'] == true && json['data'] != null) {
+            return (json['data'] as List)
+                .map((e) => Notice.fromJson(e as Map<String, dynamic>))
+                .toList();
+          }
+          // Legacy format
+          if (json['data']?['success'] == true &&
+              json['data']?['notices'] != null) {
+            return (json['data']['notices'] as List)
+                .map((e) => Notice.fromJson(e as Map<String, dynamic>))
+                .toList();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching notices online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map((e) => Notice.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+        if (json['data']?['success'] == true &&
+            json['data']?['notices'] != null) {
+          return (json['data']['notices'] as List)
+              .map((e) => Notice.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      } catch (e) {
+        debugPrint('Error parsing cached notices: $e');
+      }
+    }
+
+    return [];
+  }
+
+  /// Get notice statistics
+  Future<NoticeStats?> getNoticeStats() async {
+    const String cacheKey = 'notice_stats_cache';
+    bool isOnline = await _hasInternetConnection();
+
+    if (isOnline) {
+      try {
+        final response = await http.get(
+          Uri.parse('$apiBaseUrl/notices/stats'),
+          headers: _getJsonHeader(),
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+
+          if (json['success'] == true && json['data'] != null) {
+            return NoticeStats.fromJson(json['data'] as Map<String, dynamic>);
+          }
+          // Legacy format
+          if (json['data']?['success'] == true &&
+              json['data']?['stats'] != null) {
+            return NoticeStats.fromJson(
+              json['data']['stats'] as Map<String, dynamic>,
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching notice stats online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
+        if (json['success'] == true && json['data'] != null) {
+          return NoticeStats.fromJson(json['data'] as Map<String, dynamic>);
+        }
+        if (json['data']?['success'] == true &&
+            json['data']?['stats'] != null) {
+          return NoticeStats.fromJson(
+            json['data']['stats'] as Map<String, dynamic>,
+          );
+        }
+      } catch (e) {
+        debugPrint('Error parsing cached notice stats: $e');
+      }
+    }
+
+    return null;
+  }
+
+  // ==================== GLOBAL SEARCH API ====================
+
+  /// Search across all content types (clubs, events, books, notices, places)
+  Future<GlobalSearchResult?> searchEverything(
+    String query, {
+    int limit = 6,
+  }) async {
+    if (query.trim().length < 2) return null;
+
+    try {
+      final uri = Uri.parse('$apiBaseUrl/search').replace(
+        queryParameters: {'q': query.trim(), 'limit': limit.toString()},
+      );
+
+      final response = await http.get(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return GlobalSearchResult.fromJson(
+            json['data'] as Map<String, dynamic>,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error performing global search: $e');
+    }
+
+    return null;
+  }
+
+  // ==================== TRUST SYSTEM API ====================
+
+  /// Get seller reputation and recent ratings
+  Future<SellerReputation?> getSellerReputation(String sellerId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/books/trust/sellers/$sellerId/reputation'),
+        headers: await _getAuthHeader(),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return SellerReputation.fromJson(
+            json['data'] as Map<String, dynamic>,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error getting seller reputation: $e');
+    }
+    return null;
+  }
+
+  /// Rate a seller for a specific listing
+  Future<Map<String, dynamic>> rateSeller({
+    required String sellerId,
+    required int listingId,
+    required int rating,
+    String? review,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/books/trust/sellers/$sellerId/rate'),
+        headers: await _getAuthHeader(),
+        body: jsonEncode({
+          'listingId': listingId,
+          'rating': rating,
+          'review': review,
+        }),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      debugPrint('Error rating seller: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  /// Block a user in the marketplace
+  Future<Map<String, dynamic>> blockMarketplaceUser(
+    String userId, {
+    String? reason,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/books/trust/users/$userId/block'),
+        headers: await _getAuthHeader(),
+        body: jsonEncode({'reason': reason}),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      debugPrint('Error blocking user: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  /// Unblock a previously blocked user
+  Future<Map<String, dynamic>> unblockMarketplaceUser(String userId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$apiBaseUrl/books/trust/users/$userId/block'),
+        headers: await _getAuthHeader(),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      debugPrint('Error unblocking user: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  /// Get list of users blocked by the current user
+  Future<List<BlockedUser>> getBlockedMarketplaceUsers() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/books/trust/blocked-users'),
+        headers: await _getAuthHeader(),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map((e) => BlockedUser.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error getting blocked users: $e');
+    }
+    return [];
+  }
+
+  /// Create a report for a user or listing
+  Future<Map<String, dynamic>> createMarketplaceReport({
+    required String reportedUserId,
+    int? listingId,
+    required ReportCategory category,
+    required String description,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/books/trust/reports'),
+        headers: await _getAuthHeader(),
+        body: jsonEncode({
+          'reportedUserId': reportedUserId,
+          'listingId': listingId,
+          'category': category.value,
+          'description': description,
+        }),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      debugPrint('Error creating marketplace report: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  /// Get reports created by the current user
+  Future<List<MarketplaceReport>> getMyMarketplaceReports() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/books/trust/reports/my'),
+        headers: await _getAuthHeader(),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map((e) => MarketplaceReport.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error getting my reports: $e');
+    }
+    return [];
+  }
+}
+
+/// Global search result containing matches from all content types
+class GlobalSearchResult {
+  final String query;
+  final List<Club> clubs;
+  final List<ClubEvent> events;
+  final List<BookListing> books;
+  final List<Notice> notices;
+  final List<SearchPlace> places;
+  final int total;
+
+  GlobalSearchResult({
+    required this.query,
+    required this.clubs,
+    required this.events,
+    required this.books,
+    required this.notices,
+    required this.places,
+    required this.total,
+  });
+
+  factory GlobalSearchResult.fromJson(Map<String, dynamic> json) {
+    return GlobalSearchResult(
+      query: json['query'] as String? ?? '',
+      clubs:
+          (json['clubs'] as List?)
+              ?.map((e) => Club.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      events:
+          (json['events'] as List?)
+              ?.map((e) => ClubEvent.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      books:
+          (json['books'] as List?)
+              ?.map((e) => BookListing.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      notices:
+          (json['notices'] as List?)
+              ?.map((e) => Notice.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      places:
+          (json['places'] as List?)
+              ?.map((e) => SearchPlace.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      total: json['total'] as int? ?? 0,
+    );
+  }
+}
+
+/// Campus location from search results
+class SearchPlace {
+  final String id;
+  final String name;
+  final String description;
+  final SearchCoordinates coordinates;
+  final String icon;
+  final List<SearchService> services;
+
+  SearchPlace({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.coordinates,
+    required this.icon,
+    required this.services,
+  });
+
+  factory SearchPlace.fromJson(Map<String, dynamic> json) {
+    return SearchPlace(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      coordinates: SearchCoordinates.fromJson(
+        json['coordinates'] as Map<String, dynamic>? ?? {},
+      ),
+      icon: json['icon'] as String? ?? '',
+      services:
+          (json['services'] as List?)
+              ?.map((e) => SearchService.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+}
+
+/// Coordinates for a search place
+class SearchCoordinates {
+  final double lat;
+  final double lng;
+
+  SearchCoordinates({required this.lat, required this.lng});
+
+  factory SearchCoordinates.fromJson(Map<String, dynamic> json) {
+    return SearchCoordinates(
+      lat: (json['lat'] as num?)?.toDouble() ?? 0.0,
+      lng: (json['lng'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+}
+
+/// Service information for a search place
+class SearchService {
+  final String name;
+  final String purpose;
+  final String location;
+
+  SearchService({
+    required this.name,
+    required this.purpose,
+    required this.location,
+  });
+
+  factory SearchService.fromJson(Map<String, dynamic> json) {
+    return SearchService(
+      name: json['name'] as String? ?? '',
+      purpose: json['purpose'] as String? ?? '',
+      location: json['location'] as String? ?? '',
+    );
   }
 }
