@@ -1479,7 +1479,9 @@ class _MapPageState extends State<MapPage> {
               onMapClick: _onMapClick,
               myLocationEnabled: _showMyLocation,
               myLocationTrackingMode: MyLocationTrackingMode.none,
-              myLocationRenderMode: MyLocationRenderMode.compass,
+              myLocationRenderMode: _showMyLocation
+                  ? MyLocationRenderMode.compass
+                  : MyLocationRenderMode.normal,
               trackCameraPosition: true,
               compassEnabled: false,
               onCameraIdle: () {

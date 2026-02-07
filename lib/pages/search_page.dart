@@ -56,15 +56,11 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     // Theme colors for consistent look
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark
-        ? AppColors.backgroundDark
-        : AppColors.background;
-    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surface;
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: surfaceColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
@@ -96,18 +92,34 @@ class _SearchPageState extends State<SearchPage> {
             ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error.isNotEmpty
-          ? Center(
-              child: Text(
-                _error,
-                style: const TextStyle(color: AppColors.error),
-              ),
-            )
-          : _searchResult == null
-          ? _buildInitialState()
-          : _buildResults(),
+      body: Stack(
+        children: [
+          // Background Gradient
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: isDark
+                  ? AppColors.heroGradientDark
+                  : AppColors.heroGradient,
+            ),
+          ),
+          SafeArea(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error.isNotEmpty
+                ? Center(
+                    child: Text(
+                      _error,
+                      style: const TextStyle(color: AppColors.error),
+                    ),
+                  )
+                : _searchResult == null
+                ? _buildInitialState()
+                : _buildResults(),
+          ),
+        ],
+      ),
     );
   }
 

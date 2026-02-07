@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
-import 'package:pulchowkx_app/pages/search_page.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:pulchowkx_app/services/haptic_service.dart';
@@ -15,270 +14,247 @@ class HomePage extends StatelessWidget {
 
     return Scaffold(
       appBar: const CustomAppBar(isHomePage: true, currentPage: AppPage.home),
-      body: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: isDark
-              ? AppColors.heroGradientDark
-              : AppColors.heroGradient,
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.md,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildHeroSection(context),
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildStatsPanel(context),
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildMissionControl(context),
-                ],
-              ),
+      extendBodyBehindAppBar: true,
+      body: Stack(
+        children: [
+          // Background (Matching other pages)
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: isDark
+                  ? AppColors.heroGradientDark
+                  : AppColors.heroGradient,
             ),
           ),
-        ),
+
+          SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xl,
+                        vertical: 60,
+                      ),
+                      child: Column(
+                        children: [
+                          _buildHeroSection(context),
+                          const SizedBox(height: 48),
+                          _buildPrimaryNavigation(context),
+                          const SizedBox(height: 24),
+                          _buildFeaturePills(context),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildHeroSection(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color?.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppRadius.full),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.2),
+    return Column(
+      children: [
+        // Badge
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardTheme.color,
+            borderRadius: BorderRadius.circular(AppRadius.full),
+            border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 5,
-                  height: 5,
-                  decoration: const BoxDecoration(
-                    color: AppColors.success,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'STUDENT PRODUCTIVITY LAYER',
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.1,
-                    fontSize: 9,
-                  ),
-                ),
-              ],
-            ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.md),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final fontSize = constraints.maxWidth < 350 ? 24.0 : 28.0;
-              return RichText(
-                text: TextSpan(
-                  style: AppTextStyles.h1.copyWith(
-                    fontSize: fontSize,
-                    height: 1.1,
-                    color: Theme.of(context).textTheme.displayLarge?.color,
-                  ),
-                  children: [
-                    const TextSpan(text: 'Your Campus,\n'),
-                    TextSpan(
-                      text: 'fully connected',
-                      style: TextStyle(
-                        foreground: Paint()
-                          ..shader = AppColors.primaryGradient.createShader(
-                            const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0),
-                          ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Smart Pulchowk brings maps, clubs, books, events, and notices into one fast interface.',
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  label: 'Open Map',
-                  icon: Icons.map_rounded,
-                  isPrimary: true,
-                  onPressed: () => MainLayout.of(context)?.setSelectedIndex(1),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: StreamBuilder<User?>(
-                  stream: FirebaseAuth.instance.authStateChanges(),
-                  builder: (context, snapshot) {
-                    final isLoggedIn = snapshot.hasData;
-                    return _buildActionButton(
-                      context,
-                      label: isLoggedIn ? 'Dashboard' : 'Register',
-                      icon: isLoggedIn
-                          ? Icons.dashboard_rounded
-                          : Icons.person_add_rounded,
-                      isPrimary: false,
-                      onPressed: () {
-                        if (isLoggedIn) {
-                          MainLayout.of(context)?.setSelectedIndex(4);
-                        } else {
-                          MainLayout.of(context)?.setSelectedIndex(7);
-                        }
-                      },
-                    );
-                  },
+              _PulsingDot(),
+              const SizedBox(width: 8),
+              Text(
+                'Smart Pulchowk v2.0',
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.2,
                 ),
               ),
             ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 32),
+
+        // Main Title
+        Text(
+          'Your Campus.',
+          textAlign: TextAlign.center,
+          style: AppTextStyles.h1.copyWith(
+            fontSize: 42,
+            fontWeight: FontWeight.w900,
+            height: 1.1,
+            letterSpacing: -1.2,
+          ),
+        ),
+        ShaderMask(
+          shaderCallback: (bounds) => const LinearGradient(
+            colors: [
+              Color(0xFF0891B2), // Cyan-600
+              Color(0xFF2563EB), // Blue-600
+              Color(0xFF4F46E5), // Indigo-600
+            ],
+          ).createShader(Rect.fromLTWH(0, 0, bounds.width, bounds.height)),
+          child: Text(
+            'Unified.',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.h1.copyWith(
+              fontSize: 42,
+              fontWeight: FontWeight.w900,
+              height: 1.1,
+              letterSpacing: -1.2,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Subtitle
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 300),
+          child: Text(
+            'Everything you need for Pulchowk Campus, organized in one beautiful interface.',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodyLarge.copyWith(
+              color: AppColors.textSecondary,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildStatsPanel(BuildContext context) {
-    final stats = [
-      {'label': 'Mapped Spots', 'value': '100+'},
-      {'label': 'Utility Modules', 'value': '8'},
-      {'label': 'Search Domains', 'value': '5'},
-    ];
+  Widget _buildPrimaryNavigation(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        final isLoggedIn = snapshot.hasData;
 
-    return Row(
-      children: stats.map((stat) {
-        return Expanded(
+        return InkWell(
+          onTap: () {
+            haptics.mediumImpact();
+            if (isLoggedIn) {
+              MainLayout.of(context)?.setSelectedIndex(4); // Dashboard
+            } else {
+              MainLayout.of(context)?.setSelectedIndex(7); // Login/Register
+            }
+          },
+          borderRadius: BorderRadius.circular(20),
           child: Container(
-            margin: EdgeInsets.only(
-              right: stat == stats.last ? 0 : AppSpacing.sm,
-            ),
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
             decoration: BoxDecoration(
-              color: Theme.of(context).cardTheme.color?.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.05),
-              ),
+              color: isLoggedIn
+                  ? Theme.of(context).cardTheme.color
+                  : AppColors.primary,
+              borderRadius: BorderRadius.circular(20),
+              border: isLoggedIn ? Border.all(color: AppColors.border) : null,
+              boxShadow: [
+                BoxShadow(
+                  color: isLoggedIn
+                      ? Colors.black.withValues(alpha: 0.05)
+                      : AppColors.primary.withValues(alpha: 0.2),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
+                if (isLoggedIn) ...[
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF10B981), // Emerald-500
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
                 Text(
-                  stat['value']!,
-                  style: AppTextStyles.h3.copyWith(
-                    color: Theme.of(context).textTheme.displaySmall?.color,
-                    fontWeight: FontWeight.w900,
+                  isLoggedIn ? 'Open Dashboard' : 'Get Started',
+                  style: TextStyle(
+                    color: isLoggedIn
+                        ? Theme.of(context).textTheme.bodyLarge?.color
+                        : Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
-                Text(
-                  stat['label']!,
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.textSecondary,
-                    fontSize: 10,
+                if (!isLoggedIn) ...[
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white,
+                    size: 18,
                   ),
-                ),
+                ],
               ],
             ),
           ),
         );
-      }).toList(),
+      },
     );
   }
 
-  Widget _buildMissionControl(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'LIVE CONTROL PANEL',
-            style: AppTextStyles.labelSmall.copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.1,
-              fontSize: 9,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Campus Mission Control',
-            style: AppTextStyles.h4.copyWith(
-              fontWeight: FontWeight.w900,
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _buildMissionItem(
-            context,
-            title: 'Try global search',
-            subtitle: 'dean office, robotics, notices',
-            icon: Icons.search_rounded,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SearchPage()),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          _buildMissionItem(
-            context,
-            title: 'Explore events',
-            subtitle: 'Workshops and seminars',
-            icon: Icons.event_rounded,
-            onTap: () => MainLayout.of(context)?.setSelectedIndex(6),
-          ),
-        ],
-      ),
+  Widget _buildFeaturePills(BuildContext context) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        _buildPill(
+          context,
+          label: 'Map',
+          icon: Icons.location_on_rounded,
+          onTap: () => MainLayout.of(context)?.setSelectedIndex(1),
+        ),
+        _buildPill(
+          context,
+          label: 'Books',
+          icon: Icons.menu_book_rounded,
+          onTap: () => MainLayout.of(context)?.setSelectedIndex(3),
+        ),
+        _buildPill(
+          context,
+          label: 'Events',
+          icon: Icons.event_rounded,
+          onTap: () => MainLayout.of(context)?.setSelectedIndex(6),
+        ),
+        _buildPill(
+          context,
+          label: 'Clubs',
+          icon: Icons.groups_rounded,
+          onTap: () => MainLayout.of(context)?.setSelectedIndex(5),
+        ),
+      ],
     );
   }
 
-  Widget _buildMissionItem(
+  Widget _buildPill(
     BuildContext context, {
-    required String title,
-    required String subtitle,
+    required String label,
     required IconData icon,
     required VoidCallback onTap,
   }) {
@@ -289,107 +265,94 @@ class HomePage extends StatelessWidget {
       },
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.8)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+            Icon(icon, color: AppColors.textSecondary, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: AppTextStyles.labelMedium.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
               ),
-              child: Icon(icon, color: AppColors.primary, size: 20),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: AppColors.textMuted.withValues(alpha: 0.5),
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildActionButton(
-    BuildContext context, {
-    required String label,
-    required IconData icon,
-    required bool isPrimary,
-    required VoidCallback onPressed,
-  }) {
-    return Container(
-      height: 50,
-      decoration: BoxDecoration(
-        gradient: isPrimary ? AppColors.primaryGradient : null,
-        color: isPrimary ? null : Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(16),
-        border: isPrimary ? null : Border.all(color: AppColors.border),
-        boxShadow: isPrimary
-            ? [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
-                ),
-              ]
-            : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            haptics.mediumImpact();
-            onPressed();
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: isPrimary ? Colors.white : AppColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Icon(
-                  icon,
-                  color: isPrimary ? Colors.white : AppColors.textPrimary,
-                  size: 16,
-                ),
-              ],
+class _PulsingDot extends StatefulWidget {
+  @override
+  State<_PulsingDot> createState() => _PulsingDotState();
+}
+
+class _PulsingDotState extends State<_PulsingDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        ScaleTransition(
+          scale: Tween(begin: 1.0, end: 2.2).animate(
+            CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+          ),
+          child: FadeTransition(
+            opacity: Tween(begin: 0.5, end: 0.0).animate(
+              CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+            ),
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: Color(0xFF06B6D4), // Cyan-500
+                shape: BoxShape.circle,
+              ),
             ),
           ),
         ),
-      ),
+        Container(
+          width: 7,
+          height: 7,
+          decoration: const BoxDecoration(
+            color: Color(0xFF06B6D4), // Cyan-500
+            shape: BoxShape.circle,
+          ),
+        ),
+      ],
     );
   }
 }
