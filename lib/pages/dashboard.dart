@@ -375,10 +375,10 @@ class _DashboardPageState extends State<DashboardPage> {
           child: Column(
             children: [
               TabBar(
-                tabs: const [
-                  Tab(text: 'Assignments'),
-                  Tab(text: 'Events'),
-                  Tab(text: 'Books'),
+                tabs: [
+                  Tab(text: _isAdmin ? 'Pending Tasks' : 'Assignments'),
+                  const Tab(text: 'Events'),
+                  const Tab(text: 'Books'),
                 ],
                 labelStyle: AppTextStyles.labelMedium.copyWith(
                   fontWeight: FontWeight.bold,
@@ -391,11 +391,17 @@ class _DashboardPageState extends State<DashboardPage> {
               Expanded(
                 child: TabBarView(
                   children: [
-                    _buildActivityTabList(
-                      _pendingAssignments,
-                      Icons.assignment_outlined,
-                      'No pending assignments',
-                    ),
+                    _isAdmin
+                        ? _buildActivityTabList(
+                            [],
+                            Icons.task_alt_rounded,
+                            'Admin: Check Reports/Verifications',
+                          )
+                        : _buildActivityTabList(
+                            _pendingAssignments,
+                            Icons.assignment_outlined,
+                            'No pending assignments',
+                          ),
                     _buildActivityTabList(
                       _upcomingEvents,
                       Icons.event_outlined,
@@ -585,7 +591,10 @@ class _DashboardPageState extends State<DashboardPage> {
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
-                              'Student Dashboard'.toUpperCase(),
+                              (_isAdmin
+                                      ? 'Admin Dashboard'
+                                      : 'Student Dashboard')
+                                  .toUpperCase(),
                               style: AppTextStyles.labelSmall.copyWith(
                                 color: AppColors.primary,
                                 fontSize: 10,
@@ -653,7 +662,7 @@ class _DashboardPageState extends State<DashboardPage> {
           childAspectRatio: isWide ? 2.2 : 2.4,
           children: [
             StatCard(
-              label: 'Assignments',
+              label: _isAdmin ? 'Pending Tasks' : 'Assignments',
               value: _pendingAssignmentsCount.toString(),
               icon: Icons.assignment_outlined,
               color: AppColors.primary,

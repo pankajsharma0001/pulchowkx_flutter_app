@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:pulchowkx_app/models/in_app_notification.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
@@ -104,6 +103,7 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
           return n;
         }).toList();
       });
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('All notifications marked as read')),
       );
@@ -400,7 +400,7 @@ class _NotificationCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: notification.isRead
             ? (isDark ? Colors.grey[800] : Colors.grey[200])
-            : AppColors.primary.withOpacity(0.1),
+            : AppColors.primary.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
       child: Icon(

@@ -326,9 +326,13 @@ class NotificationService {
         debugPrint('Error navigating to chat: $e');
       }
     } else if (type == 'notice_created' || type == 'notice_updated') {
-      MainLayout.of(context)?.setSelectedIndex(8); // Notices tab
+      if (context.mounted) {
+        MainLayout.of(context)?.setSelectedIndex(8);
+      } // Notices tab
     } else if (type == 'new_event' || type == 'event_cancelled') {
-      MainLayout.of(context)?.setSelectedIndex(6); // Events tab
+      if (context.mounted) {
+        MainLayout.of(context)?.setSelectedIndex(6);
+      } // Events tab
     } else if (type == 'purchase_request_received' ||
         type == 'purchase_request_response' ||
         type == 'new_book') {
@@ -344,9 +348,13 @@ class NotificationService {
           return;
         }
       }
-      MainLayout.of(context)?.setSelectedIndex(3); // Marketplace tab
+      if (context.mounted) {
+        MainLayout.of(context)?.setSelectedIndex(3);
+      } // Marketplace tab
     } else if (type == 'new_assignment' || type == 'assignment_graded') {
-      MainLayout.of(context)?.setSelectedIndex(2); // Classroom tab
+      if (context.mounted) {
+        MainLayout.of(context)?.setSelectedIndex(2);
+      } // Classroom tab
     }
   }
 

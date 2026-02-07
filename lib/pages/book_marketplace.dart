@@ -582,7 +582,7 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.65,
+          childAspectRatio: 0.6,
           crossAxisSpacing: AppSpacing.md,
           mainAxisSpacing: AppSpacing.md,
         ),
@@ -744,7 +744,10 @@ class _BookCard extends StatelessWidget {
             // Content
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.sm),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: 6,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

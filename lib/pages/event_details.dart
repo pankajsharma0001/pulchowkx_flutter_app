@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -50,10 +51,93 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
   bool _isEditingDetails = false;
   bool _isUploadingBanner = false;
 
+  // Countdown timer
+  Timer? _countdownTimer;
+  Map<String, int> _countdown = {
+    'days': 0,
+    'hours': 0,
+    'minutes': 0,
+    'seconds': 0,
+  };
+  String? _countdownLabel;
+  bool _showCountdown = false;
+
   @override
   void initState() {
     super.initState();
     _loadFullEventData();
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startCountdownTimer() {
+    _updateCountdown();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _updateCountdown();
+    });
+  }
+
+  void _updateCountdown() {
+    if (_fullEvent == null || !mounted) {
+      setState(() {
+        _showCountdown = false;
+        _countdownLabel = null;
+      });
+      return;
+    }
+
+    final event = _fullEvent!;
+    if (event.status == 'draft' || event.status == 'cancelled') {
+      setState(() {
+        _showCountdown = false;
+        _countdownLabel = null;
+      });
+      return;
+    }
+
+    final now = DateTime.now();
+    final start = event.eventStartTime;
+    final end = event.eventEndTime;
+
+    DateTime? target;
+    String? label;
+
+    if (now.isBefore(start)) {
+      target = start;
+      label = 'Starts in';
+    } else if (now.isBefore(end) || now.isAtSameMomentAs(end)) {
+      target = end;
+      label = 'Ends in';
+    } else {
+      setState(() {
+        _showCountdown = false;
+        _countdownLabel = null;
+      });
+      _countdownTimer?.cancel();
+      return;
+    }
+
+    final diff = target.difference(now);
+    final totalSeconds = diff.inSeconds.clamp(0, double.maxFinite.toInt());
+    final days = totalSeconds ~/ (24 * 60 * 60);
+    final hours = (totalSeconds % (24 * 60 * 60)) ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+    final seconds = totalSeconds % 60;
+
+    setState(() {
+      _countdown = {
+        'days': days,
+        'hours': hours,
+        'minutes': minutes,
+        'seconds': seconds,
+      };
+      _countdownLabel = label;
+      _showCountdown = true;
+    });
   }
 
   /// Fetch the complete event data from API
@@ -84,6 +168,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         _checkRegistrationStatus();
         _checkAdminStatus();
         _loadExtraDetails();
+        _startCountdownTimer();
       }
     } catch (e) {
       if (mounted) {
@@ -917,6 +1002,56 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                   ],
                 ),
 
+                // Countdown Timer
+                if (_showCountdown) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _countdownLabel?.toUpperCase() ?? '',
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _CountdownBox(
+                              value: _countdown['days']!,
+                              label: 'Days',
+                            ),
+                            _CountdownBox(
+                              value: _countdown['hours']!,
+                              label: 'Hours',
+                            ),
+                            _CountdownBox(
+                              value: _countdown['minutes']!,
+                              label: 'Min',
+                            ),
+                            _CountdownBox(
+                              value: _countdown['seconds']!,
+                              label: 'Sec',
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: AppSpacing.md),
                 Row(
                   children: [
@@ -1656,6 +1791,55 @@ class _InfoCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CountdownBox extends StatelessWidget {
+  final int value;
+  final String label;
+
+  const _CountdownBox({required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 56,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Text(
+            value.toString().padLeft(2, '0'),
+            textAlign: TextAlign.center,
+            style: AppTextStyles.h3.copyWith(
+              fontWeight: FontWeight.w900,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label.toUpperCase(),
+          style: AppTextStyles.labelSmall.copyWith(
+            fontSize: 9,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.0,
+            color: Theme.of(context).textTheme.bodySmall?.color,
+          ),
+        ),
+      ],
     );
   }
 }

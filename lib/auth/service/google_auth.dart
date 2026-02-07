@@ -69,14 +69,18 @@ class FirebaseServices {
     // Get Firebase ID token before signing out (needed for API authentication)
     final firebaseIdToken = await auth.currentUser?.getIdToken();
 
-    // Clear FCM token from server before signing out
-    await _apiService.clearFcmToken(firebaseIdToken);
-
-    // Clear stored user data
-    await _apiService.clearStoredUserId();
-
-    // Unsubscribe from notification topics to prevent duplicate notifications
-    await NotificationService.unsubscribeFromAllTopics();
+    // Run cleanup operations in parallel with timeouts to avoid blocking
+    // These operations can fail silently - the server will clean up stale tokens eventually
+    await Future.wait([
+      _apiService
+          .clearFcmToken(firebaseIdToken)
+          .timeout(const Duration(seconds: 2))
+          .catchError((_) => debugPrint('FCM token clear timed out')),
+      _apiService.clearStoredUserId(),
+      NotificationService.unsubscribeFromAllTopics()
+          .timeout(const Duration(seconds: 2))
+          .catchError((_) => debugPrint('Topic unsubscribe timed out')),
+    ]);
 
     // Sign out from Google and Firebase
     await googleSignIn.signOut();

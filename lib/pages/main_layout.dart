@@ -12,6 +12,8 @@ import 'package:pulchowkx_app/pages/clubs.dart';
 import 'package:pulchowkx_app/pages/events.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pulchowkx_app/pages/login.dart';
+import 'package:pulchowkx_app/pages/admin/admin_dashboard.dart';
+import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/main.dart' show themeProvider;
 
 class MainLayout extends StatefulWidget {
@@ -27,6 +29,8 @@ class MainLayout extends StatefulWidget {
 
 class MainLayoutState extends State<MainLayout> {
   late int _selectedIndex;
+  bool _isAdmin = false;
+  final ApiService _apiService = ApiService();
 
   /// ValueNotifier to notify children when tab changes
   final ValueNotifier<int> tabIndexNotifier = ValueNotifier<int>(0);
@@ -47,11 +51,31 @@ class MainLayoutState extends State<MainLayout> {
     GlobalKey<NavigatorState>(), // 8: Notices
   ];
 
+  final GlobalKey<NavigatorState> _adminNavigatorKey =
+      GlobalKey<NavigatorState>();
+
+  GlobalKey<NavigatorState> _getNavigatorKey(int index) {
+    if (index == 2 && _isAdmin) {
+      return _adminNavigatorKey;
+    }
+    return _navigatorKeys[index];
+  }
+
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
     tabIndexNotifier.value = _selectedIndex;
+    _checkAdminStatus();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final isAdmin = await _apiService.isAdmin();
+    if (mounted) {
+      setState(() {
+        _isAdmin = isAdmin;
+      });
+    }
   }
 
   @override
@@ -85,7 +109,7 @@ class MainLayoutState extends State<MainLayout> {
 
     if (_selectedIndex == index) {
       // If tapping the same tab, pop to root of that tab
-      _navigatorKeys[index].currentState?.popUntil((route) => route.isFirst);
+      _getNavigatorKey(index).currentState?.popUntil((route) => route.isFirst);
     } else {
       setState(() {
         _selectedIndex = index;
@@ -101,8 +125,9 @@ class MainLayoutState extends State<MainLayout> {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
 
-        final NavigatorState? currentNavigator =
-            _navigatorKeys[_selectedIndex].currentState;
+        final NavigatorState? currentNavigator = _getNavigatorKey(
+          _selectedIndex,
+        ).currentState;
 
         if (currentNavigator != null && currentNavigator.canPop()) {
           // If the nested navigator can pop, do it
@@ -131,8 +156,11 @@ class MainLayoutState extends State<MainLayout> {
               rootPage: const MapPage(),
             ),
             _TabNavigator(
-              navigatorKey: _navigatorKeys[2],
-              rootPage: const ClassroomPage(),
+              key: ValueKey(_isAdmin),
+              navigatorKey: _isAdmin ? _adminNavigatorKey : _navigatorKeys[2],
+              rootPage: _isAdmin
+                  ? const AdminDashboardPage()
+                  : const ClassroomPage(),
             ),
             _TabNavigator(
               navigatorKey: _navigatorKeys[3],
@@ -162,6 +190,7 @@ class MainLayoutState extends State<MainLayout> {
         ),
         bottomNavigationBar: _BottomNavBar(
           selectedIndex: _selectedIndex,
+          isAdmin: _isAdmin,
           onItemSelected: setSelectedIndex,
         ),
       ),
@@ -173,7 +202,11 @@ class _TabNavigator extends StatelessWidget {
   final GlobalKey<NavigatorState> navigatorKey;
   final Widget rootPage;
 
-  const _TabNavigator({required this.navigatorKey, required this.rootPage});
+  const _TabNavigator({
+    super.key,
+    required this.navigatorKey,
+    required this.rootPage,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -191,10 +224,12 @@ class _TabNavigator extends StatelessWidget {
 
 class _BottomNavBar extends StatelessWidget {
   final int selectedIndex;
+  final bool isAdmin;
   final Function(int) onItemSelected;
 
   const _BottomNavBar({
     required this.selectedIndex,
+    required this.isAdmin,
     required this.onItemSelected,
   });
 
@@ -267,8 +302,10 @@ class _BottomNavBar extends StatelessWidget {
                       onTap: () => onItemSelected(1),
                     ),
                     _NavIcon(
-                      icon: Icons.school_rounded,
-                      label: 'Class',
+                      icon: isAdmin
+                          ? Icons.admin_panel_settings_rounded
+                          : Icons.school_rounded,
+                      label: isAdmin ? 'Admin' : 'Class',
                       isActive: selectedIndex == 2,
                       onTap: () => onItemSelected(2),
                     ),

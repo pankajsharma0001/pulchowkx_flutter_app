@@ -1134,7 +1134,10 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('User blocked')));
-          Navigator.pop(context); // Go back as we shouldn't see this listing
+          Navigator.pop(
+            context,
+            true,
+          ); // Return true to signal marketplace refresh
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

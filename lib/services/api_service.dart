@@ -180,10 +180,138 @@ class ApiService {
     return 'student';
   }
 
+  /// Get overview statistics for admin dashboard
+  Future<Map<String, dynamic>> getAdminOverview() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/admin/overview'),
+        headers: await _getAuthHeader(),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return json['data'];
+        }
+      }
+      return {'success': false, 'message': 'Failed to load admin overview'};
+    } catch (e) {
+      debugPrint('Error getting admin overview: $e');
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
   /// Check if user is admin
   Future<bool> isAdmin() async {
     final role = await getUserRole();
     return role == 'admin';
+  }
+
+  /// Get list of users for admin
+  Future<Map<String, dynamic>> getAdminUsers({
+    String? search,
+    String? role,
+    int? limit,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
+      if (role != null && role.isNotEmpty) queryParams['role'] = role;
+      if (limit != null) queryParams['limit'] = limit.toString();
+
+      final uri = Uri.parse(
+        '$apiBaseUrl/admin/users',
+      ).replace(queryParameters: queryParams);
+
+      final response = await http.get(uri, headers: await _getAuthHeader());
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return json; // Backend returns { success, data: { users, pagination } }
+      }
+      return {'success': false, 'message': 'Failed to load users'};
+    } catch (e) {
+      debugPrint('Error getting admin users: $e');
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Update user role
+  Future<bool> updateAdminUserRole(String userId, String newRole) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$apiBaseUrl/admin/users/$userId/role'),
+        headers: await _getAuthHeader(),
+        body: jsonEncode({'role': newRole}),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error updating user role: $e');
+      return false;
+    }
+  }
+
+  /// Toggle seller verification
+  Future<bool> toggleSellerVerification(String userId, bool verified) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$apiBaseUrl/admin/users/$userId/verify-seller'),
+        headers: await _getAuthHeader(),
+        body: jsonEncode({'verified': verified}),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error toggling seller verification: $e');
+      return false;
+    }
+  }
+
+  /// Get moderation reports
+  Future<Map<String, dynamic>> getModerationReports({String? status}) async {
+    try {
+      final queryParams = <String, String>{};
+      if (status != null) queryParams['status'] = status;
+
+      final uri = Uri.parse(
+        '$apiBaseUrl/admin/reports',
+      ).replace(queryParameters: queryParams);
+
+      final response = await http.get(uri, headers: await _getAuthHeader());
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return json;
+      }
+      return {'success': false, 'message': 'Failed to load reports'};
+    } catch (e) {
+      debugPrint('Error getting moderation reports: $e');
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Update moderation report status
+  Future<bool> updateModerationReport(
+    int reportId,
+    String status,
+    String? resolutionNotes,
+  ) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$apiBaseUrl/admin/reports/$reportId'),
+        headers: await _getAuthHeader(),
+        body: jsonEncode({
+          'status': status,
+          'resolutionNotes': resolutionNotes,
+        }),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error updating moderation report: $e');
+      return false;
+    }
   }
 
   /// Store the user role securely
@@ -2793,7 +2921,7 @@ class ApiService {
       };
     } catch (e) {
       debugPrint('Error sending message: $e');
-      return {'success': false, 'message': ' Error: $e'};
+      return {'success': false, 'message': 'Error: $e'};
     }
   }
 
@@ -3147,7 +3275,11 @@ class ApiService {
         headers: await _getAuthHeader(),
       );
 
-      return jsonDecode(response.body);
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) {
+        await invalidateBookListingsCache();
+      }
+      return json;
     } catch (e) {
       debugPrint('Error unblocking user: $e');
       return {'success': false, 'message': e.toString()};
