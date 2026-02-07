@@ -399,7 +399,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildStatusBadge(),
+                  _buildConditionBadge(),
                   const SizedBox(height: AppSpacing.sm),
                   Text(_book!.title, style: AppTextStyles.h3),
                   const SizedBox(height: AppSpacing.xs),
@@ -411,16 +411,23 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                           AppColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildPriceSection(),
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildInfoCards(),
-                  if (_book!.description != null) ...[
-                    const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    _book!.formattedPrice,
+                    style: AppTextStyles.h2.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  _buildMetadataGrid(),
+                  if (_book!.description != null &&
+                      _book!.description!.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.xl),
                     _buildDescription(),
                   ],
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildSellerSection(),
+                  const SizedBox(height: AppSpacing.xl),
+                  _buildSellerTrustProfile(),
                 ],
               ),
             ),
@@ -428,6 +435,73 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildConditionBadge() {
+    final style = _getConditionStyle(_book!.condition);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: style.bgColor,
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        border: Border.all(color: style.borderColor),
+      ),
+      child: Text(
+        _book!.condition.label,
+        style: AppTextStyles.labelSmall.copyWith(
+          color: style.textColor,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  _ConditionStyle _getConditionStyle(BookCondition condition) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    switch (condition) {
+      case BookCondition.newBook:
+        return _ConditionStyle(
+          bgColor: isDark
+              ? const Color(0xFF065F46).withValues(alpha: 0.3)
+              : const Color(0xFFD1FAE5),
+          textColor: isDark ? const Color(0xFF34D399) : const Color(0xFF047857),
+          borderColor: isDark
+              ? const Color(0xFF059669)
+              : const Color(0xFFA7F3D0),
+        );
+      case BookCondition.likeNew:
+        return _ConditionStyle(
+          bgColor: isDark
+              ? const Color(0xFF1E3A8A).withValues(alpha: 0.3)
+              : const Color(0xFFDBEAFE),
+          textColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
+          borderColor: isDark
+              ? const Color(0xFF2563EB)
+              : const Color(0xFFBFDBFE),
+        );
+      case BookCondition.good:
+      case BookCondition.fair:
+        return _ConditionStyle(
+          bgColor: isDark
+              ? const Color(0xFF78350F).withValues(alpha: 0.3)
+              : const Color(0xFFFEF3C7),
+          textColor: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+          borderColor: isDark
+              ? const Color(0xFFD97706)
+              : const Color(0xFFFDE68A),
+        );
+      case BookCondition.poor:
+        return _ConditionStyle(
+          bgColor: isDark
+              ? const Color(0xFF7F1D1D).withValues(alpha: 0.3)
+              : const Color(0xFFFFE4E6),
+          textColor: isDark ? const Color(0xFFFB7185) : const Color(0xFFB91C1C),
+          borderColor: isDark
+              ? const Color(0xFFE11D48)
+              : const Color(0xFFFECDD3),
+        );
+    }
   }
 
   Widget _buildImageGallery() {
@@ -497,108 +571,89 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     );
   }
 
-  Widget _buildStatusBadge() {
-    final color = _book!.isAvailable
-        ? AppColors.success
-        : _book!.status == BookStatus.sold
-        ? AppColors.error
-        : Colors.orange;
-
+  Widget _buildMetadataGrid() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppRadius.full),
-      ),
-      child: Text(
-        _book!.status.label,
-        style: AppTextStyles.labelSmall.copyWith(
-          color: color,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPriceSection() {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Text(
-                'Price',
-                style: AppTextStyles.bodySmall.copyWith(color: Colors.white70),
-              ),
-              Text(
-                _book!.formattedPrice,
-                style: AppTextStyles.h2.copyWith(color: Colors.white),
-              ),
+              _buildMetadataCell('Edition', _book!.edition ?? 'N/A'),
+              _buildMetadataDivider(),
+              _buildMetadataCell('Publisher', _book!.publisher ?? 'N/A'),
             ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Text(
-              _book!.condition.label,
-              style: AppTextStyles.labelMedium.copyWith(color: Colors.white),
-            ),
+          _buildMetadataHorizontalDivider(),
+          Row(
+            children: [
+              _buildMetadataCell(
+                'Year',
+                _book!.publicationYear?.toString() ?? 'N/A',
+              ),
+              _buildMetadataDivider(),
+              _buildMetadataCell('Course', _book!.courseCode ?? 'N/A'),
+            ],
+          ),
+          _buildMetadataHorizontalDivider(),
+          Row(
+            children: [
+              _buildMetadataCell('Category', _book!.category?.name ?? 'N/A'),
+              _buildMetadataDivider(),
+              _buildMetadataCell('ISBN', _book!.isbn ?? 'N/A'),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoCards() {
-    return Wrap(
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.sm,
-      children: [
-        if (_book!.isbn != null) _InfoChip(label: 'ISBN', value: _book!.isbn!),
-        if (_book!.edition != null)
-          _InfoChip(label: 'Edition', value: _book!.edition!),
-        if (_book!.publisher != null)
-          _InfoChip(label: 'Publisher', value: _book!.publisher!),
-        if (_book!.publicationYear != null)
-          _InfoChip(label: 'Year', value: _book!.publicationYear.toString()),
-        if (_book!.courseCode != null)
-          _InfoChip(label: 'Course', value: _book!.courseCode!),
-        if (_book!.category != null)
-          _InfoChip(label: 'Category', value: _book!.category!.name),
-      ],
-    );
-  }
-
-  Widget _buildDescription() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Description', style: AppTextStyles.labelLarge),
-        const SizedBox(height: AppSpacing.sm),
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: Theme.of(context).dividerColor),
-          ),
-          child: Text(_book!.description!, style: AppTextStyles.bodyMedium),
+  Widget _buildMetadataCell(String label, String value) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label.toUpperCase(),
+              style: AppTextStyles.labelSmall.copyWith(
+                color: Theme.of(context).disabledColor,
+                fontSize: 9,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: AppTextStyles.bodyMedium.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildSellerSection() {
+  Widget _buildMetadataDivider() {
+    return Container(
+      width: 1,
+      height: 40,
+      color: Theme.of(context).dividerColor,
+    );
+  }
+
+  Widget _buildMetadataHorizontalDivider() {
+    return Divider(height: 1, color: Theme.of(context).dividerColor);
+  }
+
+  Widget _buildSellerTrustProfile() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -622,14 +677,13 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         borderRadius: BorderRadius.circular(AppRadius.xl),
         border: Border.all(
           color: isDark
-              ? const Color(0xFF0891B2).withValues(alpha: 0.3) // cyan-600
-              : const Color(0xFFCFFAFE), // cyan-100
+              ? const Color(0xFF0891B2).withValues(alpha: 0.3)
+              : const Color(0xFFCFFAFE),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with verified badge
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -637,214 +691,27 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 'Seller Trust Profile',
                 style: AppTextStyles.labelLarge.copyWith(
                   color: isDark
-                      ? const Color(0xFF94A3B8) // slate-400
-                      : const Color(0xFF475569), // slate-600
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFF475569),
                   fontWeight: FontWeight.w600,
                 ),
               ),
               if (_sellerReputation != null &&
                   _sellerReputation!.totalRatings >= 5)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? const Color(0xFF065F46).withValues(alpha: 0.5)
-                        : const Color(0xFFD1FAE5), // emerald-100
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                    border: Border.all(
-                      color: isDark
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFFA7F3D0), // emerald-200
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.check_rounded,
-                        size: 14,
-                        color: isDark
-                            ? const Color(0xFF34D399)
-                            : const Color(0xFF047857), // emerald-700
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Verified Seller',
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: isDark
-                              ? const Color(0xFF34D399)
-                              : const Color(0xFF047857), // emerald-700
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildVerifiedBadge(isDark),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-
-          // Seller info row
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: isDark
-                    ? const Color(0xFF1E40AF)
-                    : const Color(0xFFDBEAFE), // blue-100
-                backgroundImage: _book!.seller?.image != null
-                    ? CachedNetworkImageProvider(_book!.seller!.image!)
-                    : null,
-                child: _book!.seller?.image == null
-                    ? Text(
-                        (_book!.seller?.name ?? 'S')[0].toUpperCase(),
-                        style: TextStyle(
-                          color: isDark ? Colors.white : AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      )
-                    : null,
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _book!.seller?.name ?? 'Unknown Seller',
-                      style: AppTextStyles.labelLarge.copyWith(
-                        color: isDark ? Colors.white : const Color(0xFF0F172A),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    if (_book!.seller?.email != null)
-                      GestureDetector(
-                        onTap: () async {
-                          final email = _book!.seller?.email;
-                          if (email != null) {
-                            final emailUri = Uri.parse('mailto:$email');
-                            if (await canLaunchUrl(emailUri)) {
-                              await launchUrl(emailUri);
-                            }
-                          }
-                        },
-                        child: Text(
-                          _book!.seller!.email!,
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: isDark
-                                ? const Color(0xFF06B6D4) // cyan-500
-                                : const Color(0xFF0E7490), // cyan-700
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              if (_book!.isOwner)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.accentLight.withValues(
-                      alpha: isDark ? 0.3 : 1,
-                    ),
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                  ),
-                  child: Text(
-                    'You',
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: AppColors.accent,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-            ],
-          ),
+          _buildSellerHeader(isDark),
           const SizedBox(height: AppSpacing.lg),
-
-          // Reputation stats
-          Row(
-            children: [
-              Expanded(
-                child: _buildReputationStatCard(
-                  label: 'REPUTATION',
-                  value:
-                      _sellerReputation?.averageRating.toStringAsFixed(1) ??
-                      '0',
-                  suffix: '/5',
-                  isDark: isDark,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: _buildReputationStatCard(
-                  label: 'TOTAL RATINGS',
-                  value: _sellerReputation?.totalRatings.toString() ?? '0',
-                  isDark: isDark,
-                ),
-              ),
-            ],
-          ),
-
-          // Action buttons (only for non-owners)
+          _buildTrustStatsGrid(isDark),
           if (!_book!.isOwner) ...[
             const SizedBox(height: AppSpacing.lg),
-            Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              children: [
-                _buildTrustActionButton(
-                  label: 'Rate seller',
-                  onTap: _rateSeller,
-                  color: const Color(0xFF0891B2), // cyan-600
-                  bgColor: isDark
-                      ? const Color(0xFF164E63).withValues(alpha: 0.5)
-                      : Colors.white,
-                  borderColor: isDark
-                      ? const Color(0xFF06B6D4)
-                      : const Color(0xFFCFFAFE),
-                  isDark: isDark,
-                ),
-                _buildTrustActionButton(
-                  label: 'Report seller',
-                  onTap: _reportListing,
-                  color: const Color(0xFFD97706), // amber-600
-                  bgColor: isDark
-                      ? const Color(0xFF78350F).withValues(alpha: 0.5)
-                      : Colors.white,
-                  borderColor: isDark
-                      ? const Color(0xFFF59E0B)
-                      : const Color(0xFFFDE68A),
-                  isDark: isDark,
-                ),
-                _buildTrustActionButton(
-                  label: 'Block seller',
-                  onTap: _blockUser,
-                  color: const Color(0xFFDC2626), // red-600
-                  bgColor: isDark
-                      ? const Color(0xFF7F1D1D).withValues(alpha: 0.5)
-                      : Colors.white,
-                  borderColor: isDark
-                      ? const Color(0xFFEF4444)
-                      : const Color(0xFFFECACA),
-                  isDark: isDark,
-                ),
-              ],
-            ),
+            _buildSafetyActions(isDark),
           ],
-
           const SizedBox(height: AppSpacing.md),
           Divider(color: isDark ? Colors.white24 : Colors.black12),
           const SizedBox(height: AppSpacing.sm),
-
-          // Posted date and views
           Row(
             children: [
               Icon(
@@ -884,6 +751,184 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildVerifiedBadge(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF065F46).withValues(alpha: 0.5)
+            : const Color(0xFFD1FAE5),
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        border: Border.all(
+          color: isDark ? const Color(0xFF10B981) : const Color(0xFFA7F3D0),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.check_rounded,
+            size: 14,
+            color: isDark ? const Color(0xFF34D399) : const Color(0xFF047857),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            'Verified',
+            style: AppTextStyles.labelSmall.copyWith(
+              color: isDark ? const Color(0xFF34D399) : const Color(0xFF047857),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSellerHeader(bool isDark) {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 24,
+          backgroundColor: isDark
+              ? const Color(0xFF1E40AF)
+              : const Color(0xFFDBEAFE),
+          backgroundImage: _book!.seller?.image != null
+              ? CachedNetworkImageProvider(_book!.seller!.image!)
+              : null,
+          child: _book!.seller?.image == null
+              ? Text(
+                  (_book!.seller?.name ?? 'S')[0].toUpperCase(),
+                  style: TextStyle(
+                    color: isDark ? Colors.white : AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                )
+              : null,
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _book!.seller?.name ?? 'Unknown Seller',
+                style: AppTextStyles.labelLarge.copyWith(
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (_book!.seller?.email != null)
+                Text(
+                  _book!.seller!.email!,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: isDark
+                        ? const Color(0xFF06B6D4)
+                        : const Color(0xFF0E7490),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTrustStatsGrid(bool isDark) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildReputationStatCard(
+            label: 'REPUTATION',
+            value: _sellerReputation?.averageRating.toStringAsFixed(1) ?? '0.0',
+            suffix: '/5.0',
+            isDark: isDark,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: _buildReputationStatCard(
+            label: 'TOTAL RATINGS',
+            value: _sellerReputation?.totalRatings.toString() ?? '0',
+            isDark: isDark,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSafetyActions(bool isDark) {
+    return Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      children: [
+        _buildTrustActionButton(
+          label: 'Rate Seller',
+          onTap: _rateSeller,
+          color: const Color(0xFF0891B2),
+          bgColor: isDark
+              ? const Color(0xFF164E63).withValues(alpha: 0.5)
+              : Colors.white,
+          borderColor: isDark
+              ? const Color(0xFF06B6D4)
+              : const Color(0xFFCFFAFE),
+          isDark: isDark,
+        ),
+        _buildTrustActionButton(
+          label: 'Report Safety',
+          onTap: _reportListing,
+          color: const Color(0xFFD97706),
+          bgColor: isDark
+              ? const Color(0xFF78350F).withValues(alpha: 0.5)
+              : Colors.white,
+          borderColor: isDark
+              ? const Color(0xFFF59E0B)
+              : const Color(0xFFFDE68A),
+          isDark: isDark,
+        ),
+        _buildTrustActionButton(
+          label: 'Block User',
+          onTap: _blockUser,
+          color: const Color(0xFFDC2626),
+          bgColor: isDark
+              ? const Color(0xFF7F1D1D).withValues(alpha: 0.5)
+              : Colors.white,
+          borderColor: isDark
+              ? const Color(0xFFEF4444)
+              : const Color(0xFFFECACA),
+          isDark: isDark,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDescription() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Description',
+          style: AppTextStyles.labelLarge.copyWith(
+            color: Theme.of(context).disabledColor,
+            fontSize: 10,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          _book!.description!,
+          style: AppTextStyles.bodyMedium.copyWith(
+            height: 1.5,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white70
+                : Colors.black87,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1476,33 +1521,14 @@ class _RatingDialogState extends State<_RatingDialog> {
   }
 }
 
-class _InfoChip extends StatelessWidget {
-  final String label;
-  final String value;
+class _ConditionStyle {
+  final Color bgColor;
+  final Color textColor;
+  final Color borderColor;
 
-  const _InfoChip({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: AppTextStyles.labelSmall.copyWith(
-              color: Theme.of(context).disabledColor,
-            ),
-          ),
-          Text(value, style: AppTextStyles.labelMedium),
-        ],
-      ),
-    );
-  }
+  _ConditionStyle({
+    required this.bgColor,
+    required this.textColor,
+    required this.borderColor,
+  });
 }
