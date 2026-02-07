@@ -3062,33 +3062,71 @@ class GlobalSearchResult {
   });
 
   factory GlobalSearchResult.fromJson(Map<String, dynamic> json) {
+    // Parse each category with try-catch to prevent one failure from breaking all
+    List<Club> clubs = [];
+    if (json['clubs'] is List) {
+      for (final item in json['clubs'] as List) {
+        try {
+          clubs.add(Club.fromJson(item as Map<String, dynamic>));
+        } catch (e) {
+          debugPrint('Error parsing club in search: $e');
+        }
+      }
+    }
+
+    List<ClubEvent> events = [];
+    if (json['events'] is List) {
+      for (final item in json['events'] as List) {
+        try {
+          // Use partial json parser since search returns minimal data
+          events.add(ClubEvent.fromPartialJson(item as Map<String, dynamic>));
+        } catch (e) {
+          debugPrint('Error parsing event in search: $e');
+        }
+      }
+    }
+
+    List<BookListing> books = [];
+    if (json['books'] is List) {
+      for (final item in json['books'] as List) {
+        try {
+          // Use partial json parser since search returns minimal data
+          books.add(BookListing.fromPartialJson(item as Map<String, dynamic>));
+        } catch (e) {
+          debugPrint('Error parsing book in search: $e');
+        }
+      }
+    }
+
+    List<Notice> notices = [];
+    if (json['notices'] is List) {
+      for (final item in json['notices'] as List) {
+        try {
+          notices.add(Notice.fromJson(item as Map<String, dynamic>));
+        } catch (e) {
+          debugPrint('Error parsing notice in search: $e');
+        }
+      }
+    }
+
+    List<SearchPlace> places = [];
+    if (json['places'] is List) {
+      for (final item in json['places'] as List) {
+        try {
+          places.add(SearchPlace.fromJson(item as Map<String, dynamic>));
+        } catch (e) {
+          debugPrint('Error parsing place in search: $e');
+        }
+      }
+    }
+
     return GlobalSearchResult(
       query: json['query'] as String? ?? '',
-      clubs:
-          (json['clubs'] as List?)
-              ?.map((e) => Club.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-      events:
-          (json['events'] as List?)
-              ?.map((e) => ClubEvent.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-      books:
-          (json['books'] as List?)
-              ?.map((e) => BookListing.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-      notices:
-          (json['notices'] as List?)
-              ?.map((e) => Notice.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-      places:
-          (json['places'] as List?)
-              ?.map((e) => SearchPlace.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
+      clubs: clubs,
+      events: events,
+      books: books,
+      notices: notices,
+      places: places,
       total: json['total'] as int? ?? 0,
     );
   }

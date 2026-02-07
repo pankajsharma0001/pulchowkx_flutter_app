@@ -11,6 +11,7 @@ import 'package:pulchowkx_app/pages/dashboard.dart';
 import 'package:pulchowkx_app/pages/events.dart';
 import 'package:pulchowkx_app/pages/login.dart';
 import 'package:pulchowkx_app/pages/map.dart';
+import 'package:pulchowkx_app/pages/notices.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 
 enum AppPage {
@@ -77,7 +78,18 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.search_rounded),
+                          icon: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                            ),
+                            child: Icon(
+                              Icons.search_rounded,
+                              size: 20,
+                              color: AppColors.primary,
+                            ),
+                          ),
                           onPressed: () {
                             Navigator.push(
                               context,
@@ -137,10 +149,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                           isActive: currentPage == AppPage.map,
                           onTap: () => _navigateToMap(context, currentPage),
                         ),
-                        const SizedBox(width: AppSpacing.md),
                         IconButton(
                           icon: const Icon(Icons.search_rounded),
-                          tooltip: 'Global Search',
+                          tooltip: 'Search',
                           onPressed: () {
                             Navigator.push(
                               context,
@@ -150,7 +161,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                             );
                           },
                         ),
-                        const SizedBox(width: AppSpacing.xs),
                         if (isLoggedIn)
                           _UserAvatar(
                             photoUrl: user?.photoURL,
@@ -560,15 +570,11 @@ class _MobileMoreMenu extends StatelessWidget {
         } else if (value == 'events') {
           CustomAppBar._navigateToEvents(context, isLoggedIn, currentPage);
         } else if (value == 'notices') {
-          // Navigate to notices page via MainLayout
-          final mainLayout = MainLayout.of(context);
-          if (mainLayout != null) {
-            // Navigate to search with notices filter or notices section
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SearchPage()),
-            );
-          }
+          // Navigate to notices page
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const NoticesPage()),
+          );
         }
       },
       shape: RoundedRectangleBorder(

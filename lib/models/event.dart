@@ -47,25 +47,33 @@ class ClubEvent {
 
   factory ClubEvent.fromJson(Map<String, dynamic> json) {
     return ClubEvent(
-      id: _parseInt(json['id'])!,
-      clubId: _parseInt(json['clubId'])!,
-      title: json['title'] as String,
-      description: json['description'] as String?,
-      eventType: json['eventType'] as String,
-      status: json['status'] as String,
-      venue: json['venue'] as String?,
+      id: _parseInt(json['id']) ?? 0,
+      clubId: _parseInt(json['clubId']) ?? 0,
+      title: json['title']?.toString() ?? 'Untitled Event',
+      description: json['description']?.toString(),
+      eventType: json['eventType']?.toString() ?? 'event',
+      status: json['status']?.toString() ?? 'published',
+      venue: json['venue']?.toString(),
       maxParticipants: _parseInt(json['maxParticipants']),
       currentParticipants: _parseInt(json['currentParticipants']) ?? 0,
       registrationDeadline: json['registrationDeadline'] != null
-          ? DateTime.tryParse(json['registrationDeadline'] as String)
+          ? DateTime.tryParse(json['registrationDeadline'].toString())
           : null,
-      eventStartTime: DateTime.parse(json['eventStartTime'] as String),
-      eventEndTime: DateTime.parse(json['eventEndTime'] as String),
-      bannerUrl: json['bannerUrl'] as String?,
-      externalRegistrationLink: json['externalRegistrationLink'] as String?,
-      isRegistrationOpen: json['isRegistrationOpen'] as bool? ?? true,
+      eventStartTime: json['eventStartTime'] != null
+          ? (DateTime.tryParse(json['eventStartTime'].toString()) ??
+                DateTime.now())
+          : DateTime.now(),
+      eventEndTime: json['eventEndTime'] != null
+          ? (DateTime.tryParse(json['eventEndTime'].toString()) ??
+                DateTime.now().add(const Duration(hours: 2)))
+          : DateTime.now().add(const Duration(hours: 2)),
+      bannerUrl: json['bannerUrl']?.toString(),
+      externalRegistrationLink: json['externalRegistrationLink']?.toString(),
+      isRegistrationOpen: json['isRegistrationOpen'] is bool
+          ? json['isRegistrationOpen']
+          : true,
       createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'] as String)
+          ? (DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now())
           : DateTime.now(),
       club: json['club'] != null
           ? Club.fromJson(json['club'] as Map<String, dynamic>)

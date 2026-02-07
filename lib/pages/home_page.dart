@@ -23,20 +23,23 @@ class HomePage extends StatelessWidget {
               : AppColors.heroGradient,
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.md,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: _buildHeroSection(context)),
-                const SizedBox(height: AppSpacing.lg),
-                _buildStatsPanel(context),
-                const SizedBox(height: AppSpacing.lg),
-                _buildMissionControl(context),
-              ],
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.md,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildHeroSection(context),
+                  const SizedBox(height: AppSpacing.lg),
+                  _buildStatsPanel(context),
+                  const SizedBox(height: AppSpacing.lg),
+                  _buildMissionControl(context),
+                ],
+              ),
             ),
           ),
         ),

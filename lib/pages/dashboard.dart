@@ -6,15 +6,17 @@ import 'package:pulchowkx_app/auth/service/google_auth.dart';
 import 'package:pulchowkx_app/pages/marketplace/book_requests_page.dart';
 import 'package:pulchowkx_app/pages/book_marketplace.dart';
 import 'package:pulchowkx_app/models/event.dart';
-import 'package:pulchowkx_app/cards/my_enrollments.dart';
+import 'package:intl/intl.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
-import 'package:pulchowkx_app/pages/favorites_page.dart';
+import 'package:pulchowkx_app/pages/settings_page.dart';
+import 'package:pulchowkx_app/models/classroom.dart';
+import 'package:pulchowkx_app/models/notice.dart';
+import 'package:pulchowkx_app/models/book_listing.dart';
+import 'package:pulchowkx_app/pages/classroom/shared_widgets.dart';
 import 'package:pulchowkx_app/pages/admin/create_club_page.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
-import 'package:pulchowkx_app/pages/settings_page.dart';
-import 'package:pulchowkx_app/pages/notices.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -27,9 +29,18 @@ class _DashboardPageState extends State<DashboardPage> {
   final ApiService _apiService = ApiService();
   bool _isAdmin = false;
   bool _isLoading = true;
-  int _totalEnrollments = 0;
   int _upcomingEnrollments = 0;
-  int _attendedEnrollments = 0;
+
+  // Additional stats to match webapp
+  int _subjectsCount = 0;
+  int _pendingAssignmentsCount = 0;
+  int _newNoticesCount = 0;
+  int _myBooksCount = 0;
+
+  List<Assignment> _urgentAssignments = [];
+  List<Assignment> _pendingAssignments = [];
+  List<ClubEvent> _upcomingEvents = [];
+  List<BookListing> _myBooks = [];
 
   @override
   void initState() {
@@ -42,40 +53,75 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() => _isLoading = true);
 
     try {
-      final isAdmin = await _apiService.isAdmin();
       final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
 
-      if (user != null) {
-        final dbId = await _apiService.requireDatabaseUserId();
-        if (dbId != null) {
-          final enrollments = await _apiService.getEnrollments(dbId);
-          final now = DateTime.now();
+      final dbId = await _apiService.requireDatabaseUserId();
+      if (dbId == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
 
-          if (mounted) {
-            setState(() {
-              _isAdmin = isAdmin;
-              _totalEnrollments = enrollments.length;
-              _upcomingEnrollments = enrollments
-                  .where(
-                    (e) =>
-                        e.event != null &&
-                        e.event!.eventStartTime.isAfter(now) &&
-                        e.status == 'registered',
-                  )
-                  .length;
-              _attendedEnrollments = enrollments
-                  .where((e) => e.status.toLowerCase() == 'attended')
-                  .length;
-              _isLoading = false;
-            });
-            return;
+      // Fetch all data in parallel
+      final results = await Future.wait([
+        _apiService.isAdmin(),
+        _apiService.getEnrollments(dbId),
+        _apiService.getMySubjects(),
+        _apiService.getNoticeStats(),
+        _apiService.getMyBookListings(),
+        _apiService.getUpcomingEvents(),
+      ]);
+
+      final isAdminResult = results[0] as bool;
+      final enrollments = results[1] as List<EventRegistration>;
+      final subjects = results[2] as List<Subject>;
+      final noticeStats = results[3] as NoticeStats?;
+      final myBooksResult = results[4] as List<BookListing>;
+      final upcomingEventsResult = results[5] as List<ClubEvent>;
+
+      final now = DateTime.now();
+
+      // Aggregate assignments
+      List<Assignment> pendingAssignments = [];
+      List<Assignment> urgentAssignments = [];
+      for (var subject in subjects) {
+        if (subject.assignments != null) {
+          for (var assignment in subject.assignments!) {
+            if (assignment.submission == null) {
+              pendingAssignments.add(assignment);
+              if (assignment.isDueSoon || assignment.isOverdue) {
+                urgentAssignments.add(assignment);
+              }
+            }
           }
         }
       }
 
       if (mounted) {
         setState(() {
-          _isAdmin = isAdmin;
+          _isAdmin = isAdminResult;
+          _upcomingEnrollments = enrollments
+              .where(
+                (e) =>
+                    e.event != null &&
+                    e.event!.eventStartTime.isAfter(now) &&
+                    e.status == 'registered',
+              )
+              .length;
+
+          _subjectsCount = subjects.length;
+          _pendingAssignmentsCount = pendingAssignments.length;
+          _newNoticesCount = noticeStats?.newCount ?? 0;
+          _myBooksCount = myBooksResult.length;
+
+          _urgentAssignments = urgentAssignments;
+          _pendingAssignments = pendingAssignments;
+          _upcomingEvents = upcomingEventsResult;
+          _myBooks = myBooksResult;
+
           _isLoading = false;
         });
       }
@@ -85,10 +131,6 @@ class _DashboardPageState extends State<DashboardPage> {
         setState(() => _isLoading = false);
       }
     }
-  }
-
-  Future<void> _handleRefresh() async {
-    await _fetchDashboardData();
   }
 
   Future<void> _handleSignOut(BuildContext context) async {
@@ -122,7 +164,6 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ],
         ),
-        // removed titleTextStyle as we are styling the Text directly
         content: Text(
           'Are you sure you want to sign out?',
           style: AppTextStyles.bodyMedium.copyWith(
@@ -168,57 +209,46 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    User? user;
-    try {
-      user = FirebaseAuth.instance.currentUser;
-    } catch (_) {
-      // Offline/Auth not initialized
-    }
-
-    final String displayName = user?.displayName ?? 'User';
-    final String email = user?.email ?? 'No email';
-    final String? photoUrl = user?.photoURL;
-
-    return Scaffold(
-      appBar: const CustomAppBar(currentPage: AppPage.dashboard),
-      body: AnimatedContainer(
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-        decoration: BoxDecoration(
-          gradient: Theme.of(context).brightness == Brightness.light
-              ? AppColors.heroGradient
-              : AppColors.heroGradientDark,
-        ),
-        child: RefreshIndicator(
-          onRefresh: _handleRefresh,
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: const CustomAppBar(currentPage: AppPage.dashboard),
+        body: RefreshIndicator(
+          onRefresh: _fetchDashboardData,
+          displacement: 20,
           color: AppColors.primary,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(AppSpacing.lg),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.lg,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header area with User Profile
+                // Profile Header
                 _isLoading
                     ? const DashboardHeaderShimmer()
-                    : _buildProfileHeader(displayName, email, photoUrl),
+                    : _buildProfileHeader(
+                        FirebaseAuth.instance.currentUser?.displayName ??
+                            'Student',
+                        FirebaseAuth.instance.currentUser?.email ?? '',
+                        FirebaseAuth.instance.currentUser?.photoURL,
+                      ),
 
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: AppSpacing.xl),
 
                 // Stats Grid
                 _isLoading ? const StatsGridShimmer() : _buildStatsGrid(),
                 const SizedBox(height: AppSpacing.xl),
 
-                // Event Enrollments Section
-                const MyEnrollments(),
-
+                // Urgent Items
+                _buildUrgentItemsSection(),
                 const SizedBox(height: AppSpacing.xl),
 
-                // Next Up Section
-                _buildNextUpSection(),
-
-                const SizedBox(height: AppSpacing.xl),
-
+                // Quick Actions Header
+                _buildSectionHeader('Quick Actions'),
+                const SizedBox(height: AppSpacing.md),
                 _isLoading
                     ? GridView.count(
                         shrinkWrap: true,
@@ -226,7 +256,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         crossAxisCount: 2,
                         mainAxisSpacing: AppSpacing.md,
                         crossAxisSpacing: AppSpacing.md,
-                        childAspectRatio: 1.5,
+                        childAspectRatio: 1.4,
                         children: const [
                           QuickActionShimmer(),
                           QuickActionShimmer(),
@@ -234,151 +264,215 @@ class _DashboardPageState extends State<DashboardPage> {
                           QuickActionShimmer(),
                         ],
                       )
-                    : LayoutBuilder(
-                        builder: (context, constraints) {
-                          final isWide = constraints.maxWidth >= 600;
-                          final cards = [
-                            _QuickActionCard(
-                              icon: Icons.shopping_bag_outlined,
-                              title: 'Marketplace',
-                              description: 'Buy and sell books with others.',
-                              color: AppColors.primary,
-                              heroTag: 'hero-marketplace',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const BookMarketplacePage(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _QuickActionCard(
-                              icon: Icons.history_rounded,
-                              title: 'Requests',
-                              description: 'Track your book buy/sell requests.',
-                              color: AppColors.accent,
-                              heroTag: 'hero-requests',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const BookRequestsPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _QuickActionCard(
-                              icon: Icons.notification_important_outlined,
-                              title: 'IOE Notices',
-                              description:
-                                  'View exam results and routines from IOE.',
-                              color: AppColors.success,
-                              heroTag: 'hero-notices',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const NoticesPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _QuickActionCard(
-                              icon: Icons.favorite_outline_rounded,
-                              title: 'Favorites',
-                              description: 'Access your saved clubs and books.',
-                              color: Colors.orange,
-                              heroTag: 'hero-favorites',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const FavoritesPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _QuickActionCard(
-                              icon: Icons.settings_rounded,
-                              title: 'Settings',
-                              description: 'Account settings and preferences.',
-                              color: AppColors.textSecondary,
-                              heroTag: 'hero-settings',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const SettingsPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                            if (_isAdmin)
-                              _QuickActionCard(
-                                icon: Icons.admin_panel_settings_outlined,
-                                title: 'Create Club',
-                                description: 'Start a new club community.',
-                                color: Colors.purple,
-                                heroTag: 'hero-create-club',
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const CreateClubPage(),
-                                    ),
-                                  );
-                                },
+                    : GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: 2,
+                        mainAxisSpacing: AppSpacing.md,
+                        crossAxisSpacing: AppSpacing.md,
+                        childAspectRatio: 1.4,
+                        children: [
+                          _QuickActionCard(
+                            icon: Icons.book_rounded,
+                            title: 'My Books',
+                            description: 'Manage your book listings',
+                            color: Colors.blue,
+                            heroTag: 'my-books',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const BookMarketplacePage(),
                               ),
-                          ];
-
-                          if (isWide) {
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: cards
-                                  .asMap()
-                                  .entries
-                                  .map(
-                                    (entry) => Expanded(
-                                      child: Padding(
-                                        padding: EdgeInsets.only(
-                                          right: entry.key < cards.length - 1
-                                              ? AppSpacing.md
-                                              : 0,
-                                        ),
-                                        child: entry.value,
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                            );
-                          }
-
-                          return Column(
-                            children: cards
-                                .map(
-                                  (card) => Padding(
-                                    padding: const EdgeInsets.only(
-                                      bottom: AppSpacing.md,
-                                    ),
-                                    child: SizedBox(
-                                      width: double.infinity,
-                                      child: card,
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                          );
-                        },
+                            ),
+                          ),
+                          _QuickActionCard(
+                            icon: Icons.shopping_bag_rounded,
+                            title: 'Book Requests',
+                            description: 'View active book requests',
+                            color: Colors.orange,
+                            heroTag: 'book-requests',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const BookRequestsPage(),
+                              ),
+                            ),
+                          ),
+                          _QuickActionCard(
+                            icon: Icons.settings_rounded,
+                            title: 'Settings',
+                            description: 'App preferences and info',
+                            color: Colors.grey,
+                            heroTag: 'settings',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const SettingsPage(),
+                              ),
+                            ),
+                          ),
+                          if (_isAdmin)
+                            _QuickActionCard(
+                              icon: Icons.add_circle_outline_rounded,
+                              title: 'Create Club',
+                              description: 'Set up a new student organization',
+                              color: AppColors.primary,
+                              heroTag: 'create-club',
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => const CreateClubPage(),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
+
+                const SizedBox(height: AppSpacing.xxl),
+
+                // Activity Section
+                _buildActivitySection(),
+                const SizedBox(height: AppSpacing.xxl),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildActivitySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Recent Activity'),
+        const SizedBox(height: AppSpacing.md),
+        Container(
+          height: 400,
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardTheme.color,
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+            border: Border.all(
+              color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+            ),
+          ),
+          child: Column(
+            children: [
+              TabBar(
+                tabs: const [
+                  Tab(text: 'Assignments'),
+                  Tab(text: 'Events'),
+                  Tab(text: 'Books'),
+                ],
+                labelStyle: AppTextStyles.labelMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+                labelColor: AppColors.primary,
+                unselectedLabelColor: AppColors.textMuted,
+                indicatorColor: AppColors.primary,
+                dividerColor: Colors.transparent,
+              ),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildActivityTabList(
+                      _pendingAssignments,
+                      Icons.assignment_outlined,
+                      'No pending assignments',
+                    ),
+                    _buildActivityTabList(
+                      _upcomingEvents,
+                      Icons.event_outlined,
+                      'No upcoming events',
+                    ),
+                    _buildActivityTabList(
+                      _myBooks,
+                      Icons.library_books_outlined,
+                      'No books listed',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActivityTabList(List items, IconData icon, String emptyText) {
+    if (items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 48,
+              color: AppColors.textMuted.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              emptyText,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textMuted,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      itemCount: items.length > 10 ? 10 : items.length, // Limit for dashboard
+      separatorBuilder: (context, index) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final item = items[index];
+        String title = '';
+        String subtitle = '';
+
+        if (item is Assignment) {
+          title = item.title;
+          subtitle = item.dueAt != null
+              ? 'Due ${DateFormat('MMM dd').format(item.dueAt!)}'
+              : 'Pending';
+        } else if (item is ClubEvent) {
+          title = item.title;
+          subtitle = DateFormat('MMM dd, hh:mm a').format(item.eventStartTime);
+        } else if (item is BookListing) {
+          title = item.title;
+          subtitle = 'Rs. ${item.price} • ${item.condition}';
+        }
+
+        return ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 4,
+          ),
+          leading: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 20),
+          ),
+          title: Text(
+            title,
+            style: AppTextStyles.labelMedium.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            subtitle,
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+          ),
+          trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+          onTap: () {
+            // Add navigation if needed
+          },
+        );
+      },
     );
   }
 
@@ -395,39 +489,57 @@ class _DashboardPageState extends State<DashboardPage> {
               ? AppColors.borderDark.withValues(alpha: 0.5)
               : AppColors.border.withValues(alpha: 0.5),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Avatar
               Container(
-                width: 64,
-                height: 64,
+                width: 70,
+                height: 70,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                  ),
-                  image: photoUrl != null
-                      ? DecorationImage(
-                          image: CachedNetworkImageProvider(photoUrl),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  gradient: AppColors.primaryGradient,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                child: photoUrl == null
-                    ? const Center(
-                        child: Icon(
-                          Icons.person_rounded,
-                          size: 32,
-                          color: AppColors.primary,
-                        ),
-                      )
-                    : null,
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.xl - 2),
+                    child: photoUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: photoUrl,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                            ),
+                          )
+                        : Container(
+                            color: Colors.white,
+                            child: const Icon(
+                              Icons.person_rounded,
+                              size: 36,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                  ),
+                ),
               ),
-              const SizedBox(width: AppSpacing.md),
+              const SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,18 +552,26 @@ class _DashboardPageState extends State<DashboardPage> {
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppRadius.full),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.2),
-                        ),
                       ),
-                      child: Text(
-                        'Student Dashboard'.toUpperCase(),
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.primary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.verified_user_rounded,
+                            size: 12,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Student Dashboard'.toUpperCase(),
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: AppColors.primary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -459,6 +579,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       name,
                       style: AppTextStyles.h4.copyWith(
                         fontWeight: FontWeight.w900,
+                        fontSize: 22,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -467,6 +588,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       email,
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.textMuted,
+                        fontSize: 13,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -476,13 +598,12 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xl),
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(
+                child: ElevatedButton.icon(
                   onPressed: () {
-                    // Navigate to Classroom (Home usually)
                     Navigator.of(
                       context,
                       rootNavigator: true,
@@ -493,42 +614,37 @@ class _DashboardPageState extends State<DashboardPage> {
                       (route) => false,
                     );
                   },
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  icon: const Icon(Icons.class_outlined, size: 18),
+                  label: const Text('Go to Classroom'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
                     ),
-                    side: BorderSide(
-                      color:
-                          Theme.of(context).dividerTheme.color ??
-                          AppColors.border,
-                    ),
-                  ),
-                  child: Text(
-                    'Classroom',
-                    style: AppTextStyles.labelMedium.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    elevation: 0,
                   ),
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: ElevatedButton(
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  border: Border.all(
+                    color:
+                        Theme.of(context).dividerTheme.color ??
+                        AppColors.border,
+                  ),
+                ),
+                child: IconButton(
                   onPressed: () => _handleSignOut(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.textPrimary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    elevation: 0,
+                  icon: const Icon(
+                    Icons.logout_rounded,
+                    color: AppColors.error,
                   ),
-                  child: const Text(
-                    'Sign Out',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  tooltip: 'Sign Out',
+                  padding: const EdgeInsets.all(12),
                 ),
               ),
             ],
@@ -541,28 +657,46 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildStatsGrid() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double itemWidth = (constraints.maxWidth - AppSpacing.md * 2) / 3;
-        return Wrap(
-          spacing: AppSpacing.md,
-          runSpacing: AppSpacing.md,
+        final isWide = constraints.maxWidth > 600;
+        final int crossAxisCount = isWide ? 4 : 2;
+
+        return GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: crossAxisCount,
+          mainAxisSpacing: AppSpacing.md,
+          crossAxisSpacing: AppSpacing.md,
+          childAspectRatio: isWide ? 1.5 : 1.3,
           children: [
-            _buildStatCard(
-              'Total Enrollments',
-              _totalEnrollments.toString(),
-              AppColors.primary,
-              width: itemWidth,
+            StatCard(
+              label: 'Assignments',
+              value: _pendingAssignmentsCount.toString(),
+              icon: Icons.assignment_outlined,
+              color: AppColors.primary,
             ),
-            _buildStatCard(
-              'Upcoming Events',
-              _upcomingEnrollments.toString(),
-              AppColors.accent,
-              width: itemWidth,
+            StatCard(
+              label: 'Subjects',
+              value: _subjectsCount.toString(),
+              icon: Icons.book_outlined,
+              color: AppColors.accent,
             ),
-            _buildStatCard(
-              'Attended',
-              _attendedEnrollments.toString(),
-              AppColors.success,
-              width: itemWidth,
+            StatCard(
+              label: 'Notices',
+              value: _newNoticesCount.toString(),
+              icon: Icons.notification_important_outlined,
+              color: AppColors.success,
+            ),
+            StatCard(
+              label: 'Events',
+              value: _upcomingEnrollments.toString(),
+              icon: Icons.event_available_outlined,
+              color: Colors.orange,
+            ),
+            StatCard(
+              label: 'Books',
+              value: _myBooksCount.toString(),
+              icon: Icons.library_books_outlined,
+              color: Colors.purple,
             ),
           ],
         );
@@ -570,95 +704,105 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildStatCard(
-    String label,
-    String value,
-    Color color, {
-    double? width,
-  }) {
-    return Container(
-      width: width,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: color.withValues(alpha: 0.1)),
-      ),
-      child: Column(
+  Widget _buildUrgentItemsSection() {
+    if (_urgentAssignments.isEmpty && _upcomingEvents.isEmpty) {
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label.toUpperCase(),
-            style: AppTextStyles.labelSmall.copyWith(
-              color: AppColors.textMuted,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.1,
+          _buildSectionHeader('Urgent Items'),
+          const SizedBox(height: AppSpacing.md),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardTheme.color?.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(AppRadius.xl),
+              border: Border.all(
+                color: AppColors.success.withValues(alpha: 0.1),
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: AppTextStyles.h3.copyWith(
-              color: color,
-              fontWeight: FontWeight.w900,
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.check_circle_outline_rounded,
+                  color: AppColors.success,
+                  size: 24,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Text(
+                  'All caught up! No urgent tasks.',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
-      ),
-    );
-  }
+      );
+    }
 
-  Widget _buildNextUpSection() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return const SizedBox.shrink();
-
-    return FutureBuilder<String?>(
-      future: _apiService.requireDatabaseUserId(),
-      builder: (context, idSnapshot) {
-        if (!idSnapshot.hasData || idSnapshot.data == null) {
-          return const SizedBox.shrink();
-        }
-        final userId = idSnapshot.data!;
-
-        return FutureBuilder<List<EventRegistration>>(
-          future: _apiService.getEnrollments(userId),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const SizedBox.shrink();
-            }
-
-            final now = DateTime.now();
-            // Filter for upcoming events and sort by start time
-            final upcoming = snapshot.data!
-                .where(
-                  (reg) =>
-                      reg.status == 'registered' &&
-                      reg.event != null &&
-                      reg.event!.eventStartTime.isAfter(now),
-                )
-                .toList();
-
-            if (upcoming.isEmpty) return const SizedBox.shrink();
-
-            upcoming.sort(
-              (a, b) =>
-                  a.event!.eventStartTime.compareTo(b.event!.eventStartTime),
-            );
-
-            final nextEvent = upcoming.first.event!;
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSectionHeader('Up Next'),
-                const SizedBox(height: AppSpacing.md),
-                _NextUpCard(event: nextEvent),
-              ],
-            );
-          },
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildSectionHeader('Urgent Items'),
+            if (_urgentAssignments.length + _upcomingEvents.length > 1)
+              Text(
+                '${_urgentAssignments.length + _upcomingEvents.length} items',
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.textMuted,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(
+          height: 110,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              ..._urgentAssignments.map(
+                (a) => _UrgentItemCard(
+                  title: a.title,
+                  subtitle: a.dueAt != null
+                      ? 'Due ${DateFormat('MMM dd').format(a.dueAt!)}'
+                      : 'Homework',
+                  icon: Icons.assignment_late_rounded,
+                  color: AppColors.error,
+                  onTap: () {
+                    // Quick navigation to classroom
+                    Navigator.of(
+                      context,
+                      rootNavigator: true,
+                    ).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const MainLayout(initialIndex: 3),
+                      ),
+                      (route) => false,
+                    );
+                  },
+                ),
+              ),
+              ..._upcomingEvents.map(
+                (e) => _UrgentItemCard(
+                  title: e.title,
+                  subtitle:
+                      'Starting ${DateFormat('MMM dd').format(e.eventStartTime)}',
+                  icon: Icons.event_note_rounded,
+                  color: AppColors.primary,
+                  onTap: () {
+                    // Already in dashboard, maybe show details dialog if possible
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -683,100 +827,84 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
-class _NextUpCard extends StatelessWidget {
-  final ClubEvent event;
+class _UrgentItemCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
 
-  const _NextUpCard({required this.event});
+  const _UrgentItemCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final timeLeft = event.eventStartTime.difference(DateTime.now());
-
-    String timeText;
-    if (timeLeft.inDays > 0) {
-      timeText = 'In ${timeLeft.inDays} days';
-    } else if (timeLeft.inHours > 0) {
-      timeText = 'In ${timeLeft.inHours} hours';
-    } else {
-      timeText = 'In ${timeLeft.inMinutes} minutes';
-    }
-
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      width: 240,
+      margin: const EdgeInsets.only(right: AppSpacing.md),
       decoration: BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment.topLeft,
-          radius: 1.5,
-          colors: [
-            AppColors.primary.withValues(alpha: 0.15),
-            Theme.of(context).cardTheme.color?.withValues(alpha: 0.95) ??
-                Colors.white,
-            AppColors.primary.withValues(alpha: 0.05),
-          ],
-          stops: const [0.0, 0.5, 1.0],
-        ),
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
-        boxShadow: Theme.of(context).brightness == Brightness.light
-            ? AppShadows.sm
-            : null,
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: const Icon(
-              Icons.timer_outlined,
-              color: AppColors.primary,
-              size: 24,
-            ),
+        border: Border.all(color: color.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Row(
               children: [
-                Text(
-                  'Next Up'.toUpperCase(),
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 10,
-                    letterSpacing: 1.2,
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Icon(icon, color: color, size: 24),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTextStyles.labelLarge.copyWith(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        subtitle,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textMuted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                Text(
-                  event.title,
-                  style: AppTextStyles.labelLarge.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(timeText, style: AppTextStyles.bodySmall),
               ],
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppRadius.full),
-            ),
-            child: Text(
-              'Details',
-              style: AppTextStyles.labelSmall.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -813,7 +941,6 @@ class _QuickActionCardState extends State<_QuickActionCard> {
       onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        height: 140,
         decoration: BoxDecoration(
           color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(AppRadius.xl),
@@ -830,10 +957,9 @@ class _QuickActionCardState extends State<_QuickActionCard> {
         ),
         child: Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
           child: InkWell(
             onTap: widget.onTap,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
+            borderRadius: BorderRadius.circular(AppRadius.xl),
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
@@ -847,16 +973,21 @@ class _QuickActionCardState extends State<_QuickActionCard> {
                     ),
                     child: Hero(
                       tag: widget.heroTag,
-                      child: Icon(widget.icon, color: widget.color, size: 22),
+                      child: Icon(widget.icon, color: widget.color, size: 20),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  Text(widget.title, style: AppTextStyles.labelLarge),
-                  const SizedBox(height: 4),
+                  Text(
+                    widget.title,
+                    style: AppTextStyles.labelLarge.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
                   Expanded(
                     child: Text(
                       widget.description,
-                      style: AppTextStyles.bodySmall,
+                      style: AppTextStyles.bodySmall.copyWith(fontSize: 11),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),

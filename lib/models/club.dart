@@ -27,15 +27,17 @@ class Club {
 
   factory Club.fromJson(Map<String, dynamic> json) {
     return Club(
-      id: json['id'] is String ? int.parse(json['id']) : json['id'] as int,
-      authClubId: json['authClubId'] as String? ?? '',
-      name: json['name'] as String,
-      description: json['description'] as String?,
-      logoUrl: json['logoUrl'] as String?,
-      email: json['email'] as String?,
-      isActive: json['isActive'] as bool? ?? true,
+      id: json['id'] is int
+          ? json['id'] as int
+          : (json['id'] != null ? int.tryParse(json['id'].toString()) ?? 0 : 0),
+      authClubId: json['authClubId']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'Unknown Club',
+      description: json['description']?.toString(),
+      logoUrl: json['logoUrl']?.toString(),
+      email: json['email']?.toString(),
+      isActive: json['isActive'] is bool ? json['isActive'] as bool : true,
       createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt'] as String)
+          ? DateTime.tryParse(json['createdAt'].toString())
           : null,
       upcomingEvents: _parseInt(json['upcomingEvents']),
       completedEvents: _parseInt(json['completedEvents']),

@@ -55,11 +55,13 @@ class BookImage {
 
   factory BookImage.fromJson(Map<String, dynamic> json) {
     return BookImage(
-      id: json['id'] as int,
-      listingId: json['listingId'] as int,
-      imageUrl: json['imageUrl'] as String,
+      id: json['id'] as int? ?? 0,
+      listingId: json['listingId'] as int? ?? 0,
+      imageUrl: json['imageUrl'] as String? ?? '',
       imagePublicId: json['imagePublicId'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
+          : DateTime.now(),
     );
   }
 
@@ -237,6 +239,62 @@ class BookListing {
       isOwner: json['isOwner'] as bool? ?? false,
       buyerContactInfo: json['buyerContactInfo'] as String?,
       requestCount: json['requestCount'] as int? ?? 0,
+    );
+  }
+
+  /// Parse partial book data from search endpoint
+  /// The search endpoint returns only: id, title, author, price, status, sellerId
+  factory BookListing.fromPartialJson(Map<String, dynamic> json) {
+    return BookListing(
+      id: json['id'] is int
+          ? json['id'] as int
+          : int.tryParse(json['id'].toString()) ?? 0,
+      sellerId: json['sellerId']?.toString() ?? '',
+      title: json['title']?.toString() ?? 'Untitled',
+      author: json['author']?.toString() ?? 'Unknown Author',
+      isbn: json['isbn']?.toString(),
+      edition: json['edition']?.toString(),
+      publisher: json['publisher']?.toString(),
+      publicationYear: json['publicationYear'] is int
+          ? json['publicationYear'] as int
+          : int.tryParse(json['publicationYear']?.toString() ?? ''),
+      condition: BookCondition.fromString(json['condition']?.toString()),
+      description: json['description']?.toString(),
+      price: json['price']?.toString() ?? '0',
+      status: BookStatus.fromString(json['status']?.toString()),
+      courseCode: json['courseCode']?.toString(),
+      categoryId: json['categoryId'] is int
+          ? json['categoryId'] as int
+          : int.tryParse(json['categoryId']?.toString() ?? ''),
+      viewCount: json['viewCount'] is int
+          ? json['viewCount'] as int
+          : int.tryParse(json['viewCount']?.toString() ?? '') ?? 0,
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.tryParse(json['updatedAt'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      soldAt: json['soldAt'] != null
+          ? DateTime.tryParse(json['soldAt'].toString())
+          : null,
+      seller: json['seller'] != null
+          ? BookSeller.fromJson(json['seller'] as Map<String, dynamic>)
+          : null,
+      images: json['images'] != null
+          ? (json['images'] as List)
+                .map((e) => BookImage.fromJson(e as Map<String, dynamic>))
+                .toList()
+          : null,
+      category: json['category'] != null
+          ? BookCategory.fromJson(json['category'] as Map<String, dynamic>)
+          : null,
+      isSaved: json['isSaved'] as bool? ?? false,
+      isOwner: json['isOwner'] as bool? ?? false,
+      buyerContactInfo: json['buyerContactInfo']?.toString(),
+      requestCount: json['requestCount'] is int
+          ? json['requestCount'] as int
+          : int.tryParse(json['requestCount']?.toString() ?? '') ?? 0,
     );
   }
 
