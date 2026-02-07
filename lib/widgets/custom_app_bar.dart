@@ -6,6 +6,8 @@ import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/cards/logo.dart';
 import 'package:pulchowkx_app/pages/home_page.dart';
 import 'package:pulchowkx_app/pages/search_page.dart';
+import 'package:pulchowkx_app/pages/in_app_notifications_page.dart';
+import 'package:pulchowkx_app/services/in_app_notification_service.dart';
 import 'package:pulchowkx_app/pages/clubs.dart';
 import 'package:pulchowkx_app/pages/dashboard.dart';
 import 'package:pulchowkx_app/pages/events.dart';
@@ -24,6 +26,7 @@ enum AppPage {
   classroom,
   notices,
   login,
+  notifications,
 }
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -102,6 +105,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                             );
                           },
                         ),
+                        _NotificationBell(
+                          isActive: currentPage == AppPage.notifications,
+                        ),
                         if (isLoggedIn)
                           _UserAvatar(
                             photoUrl: user?.photoURL,
@@ -113,7 +119,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                           _CompactSignInButton(
                             onTap: () => _navigateToLogin(context, currentPage),
                           ),
-                        const SizedBox(width: AppSpacing.xs),
                         _MobileMoreMenu(
                           isLoggedIn: isLoggedIn,
                           currentPage: currentPage,
@@ -148,10 +153,11 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                         ),
                         _NavBarItem(
                           title: 'Map',
-                          icon: Icons.map_rounded,
+                          icon: Icons.map_outlined,
                           isActive: currentPage == AppPage.map,
                           onTap: () => _navigateToMap(context, currentPage),
                         ),
+                        const SizedBox(width: AppSpacing.sm),
                         IconButton(
                           icon: const Icon(Icons.search_rounded),
                           tooltip: 'Search',
@@ -163,6 +169,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                               ),
                             );
                           },
+                        ),
+                        _NotificationBell(
+                          isActive: currentPage == AppPage.notifications,
                         ),
                         if (isLoggedIn)
                           _UserAvatar(
@@ -266,6 +275,81 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         MaterialPageRoute(builder: (context) => const LoginPage()),
       );
     }
+  }
+
+  static void _navigateToNotifications(
+    BuildContext context,
+    AppPage? currentPage,
+  ) {
+    if (currentPage == AppPage.notifications) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const InAppNotificationsPage()),
+    );
+  }
+}
+
+class _NotificationBell extends StatelessWidget {
+  final bool isActive;
+
+  const _NotificationBell({this.isActive = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: inAppNotifications.unreadCount,
+      builder: (context, count, _) {
+        return IconButton(
+          icon: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Icon(
+                isActive
+                    ? Icons.notifications_rounded
+                    : Icons.notifications_none_rounded,
+                color: isActive ? AppColors.primary : null,
+              ),
+              if (count > 0)
+                Positioned(
+                  right: -2,
+                  top: -2,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color:
+                            Theme.of(context).appBarTheme.backgroundColor ??
+                            Colors.white,
+                        width: 1.5,
+                      ),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      count > 99 ? '99+' : count.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          tooltip: 'Notifications',
+          onPressed: () {
+            haptics.selectionClick();
+            CustomAppBar._navigateToNotifications(context, null);
+          },
+        );
+      },
+    );
   }
 }
 

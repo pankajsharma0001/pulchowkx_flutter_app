@@ -118,7 +118,7 @@ class MainLayoutState extends State<MainLayout> {
         }
       },
       child: Scaffold(
-        extendBody: false,
+        extendBody: true,
         body: IndexedStack(
           index: _selectedIndex,
           children: [

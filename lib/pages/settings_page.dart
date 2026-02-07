@@ -25,6 +25,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _upcomingEvents = true;
   bool _marketplaceAlerts = true;
   bool _universityAnnouncements = true;
+  bool _classroomAlerts = true;
   bool _chatMessages = true;
   bool _isLoading = true;
 
@@ -45,6 +46,8 @@ class _SettingsPageState extends State<SettingsPage> {
           hasPermission && (prefs.getBool('notify_books') ?? true);
       _universityAnnouncements =
           hasPermission && (prefs.getBool('notify_announcements') ?? true);
+      _classroomAlerts =
+          hasPermission && (prefs.getBool('notify_classroom') ?? true);
       _chatMessages = hasPermission && (prefs.getBool('notify_chat') ?? true);
       _isLoading = false;
     });
@@ -72,13 +75,15 @@ class _SettingsPageState extends State<SettingsPage> {
     await prefs.setBool(key, value);
 
     // Sync with Firebase Topics (for non-chat topics)
-    if (key != 'notify_chat') {
+    if (key != 'notify_chat' && key != 'notify_classroom') {
       final topic = key.replaceFirst('notify_', '');
       if (value) {
         await NotificationService.subscribeToTopic(topic);
       } else {
         await NotificationService.unsubscribeFromTopic(topic);
       }
+    } else if (key == 'notify_classroom') {
+      await NotificationService.updateClassroomSubscription(value);
     } else {
       // For chat, we only store locally since the backend check was removed
     }
@@ -87,6 +92,7 @@ class _SettingsPageState extends State<SettingsPage> {
       if (key == 'notify_events') _upcomingEvents = value;
       if (key == 'notify_books') _marketplaceAlerts = value;
       if (key == 'notify_announcements') _universityAnnouncements = value;
+      if (key == 'notify_classroom') _classroomAlerts = value;
       if (key == 'notify_chat') _chatMessages = value;
     });
   }
@@ -437,6 +443,14 @@ class _SettingsPageState extends State<SettingsPage> {
                         onChanged: (v) =>
                             _toggleNotification('notify_announcements', v),
                         icon: Icons.campaign_rounded,
+                      ),
+                      _buildSettingTile(
+                        title: 'Classroom Notifications',
+                        subtitle: 'Updates about assignments and grades',
+                        value: _classroomAlerts,
+                        onChanged: (v) =>
+                            _toggleNotification('notify_classroom', v),
+                        icon: Icons.class_rounded,
                       ),
                       _buildSettingTile(
                         title: 'Chat Messages',

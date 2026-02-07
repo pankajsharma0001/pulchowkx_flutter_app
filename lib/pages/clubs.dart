@@ -42,7 +42,7 @@ class _ClubsPageState extends State<ClubsPage> {
         child: RefreshIndicator(
           onRefresh: () async {
             haptics.mediumImpact();
-            _refreshClubs();
+            await _refreshClubs();
             final connectivityResult = await Connectivity().checkConnectivity();
             if (connectivityResult.first == ConnectivityResult.none) {
               if (context.mounted) {
@@ -257,9 +257,11 @@ class _ClubsPageState extends State<ClubsPage> {
     );
   }
 
-  void _refreshClubs() {
+  Future<void> _refreshClubs() async {
+    await _apiService.invalidateClubsCache();
     setState(() {
       _clubsFuture = _apiService.getClubs();
     });
+    await _clubsFuture;
   }
 }

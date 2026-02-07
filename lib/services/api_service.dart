@@ -253,7 +253,11 @@ class ApiService {
   Future<bool> _hasInternetConnection() async {
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
-      return connectivityResult.first != ConnectivityResult.none;
+      if (connectivityResult.contains(ConnectivityResult.none)) return false;
+
+      // On Windows/Web, connectivity_plus might return wifi/mobile even if no real internet.
+      // We don't want to over-engineer this with a ping, but we'll prioritize the try-catch in API calls.
+      return true;
     } catch (e) {
       return false;
     }
@@ -298,39 +302,59 @@ class ApiService {
     }
   }
 
+  /// Invalidate clubs cache to force fresh fetch
+  Future<void> invalidateClubsCache() async {
+    await _removeFromCache('clubs_cache');
+  }
+
+  /// Invalidate specific club cache
+  Future<void> invalidateClubCache(int clubId) async {
+    await _removeFromCache('club_${clubId}_cache');
+    await _removeFromCache('club_profile_${clubId}_cache');
+    await _removeFromCache('club_events_${clubId}_cache');
+  }
+
+  /// Invalidate all events caches to force fresh fetch
+  Future<void> invalidateEventsCache() async {
+    await _removeFromCache('all_events_cache');
+    await _removeFromCache('upcoming_events_cache');
+  }
+
+  /// Invalidate all club and event caches (for pull-to-refresh)
+  Future<void> invalidateAllClubEventCaches() async {
+    await invalidateClubsCache();
+    await invalidateEventsCache();
+  }
+
   // ==================== CLUBS ====================
 
   /// Get all clubs
   Future<List<Club>> getClubs() async {
     const String cacheKey = 'clubs_cache';
-    bool isOnline = await _hasInternetConnection();
+    try {
+      final userId = await getDatabaseUserId();
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/clubs'),
+            headers: {
+              'Content-Type': 'application/json',
+              if (userId != null) 'Authorization': 'Bearer $userId',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
 
-    if (isOnline) {
-      try {
-        final userId = await getDatabaseUserId();
-        final response = await http.get(
-          Uri.parse('$baseUrl/clubs'),
-          headers: {
-            'Content-Type': 'application/json',
-            if (userId != null) 'Authorization': 'Bearer $userId',
-          },
-        );
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final data = json['data'];
 
-        if (response.statusCode == 200) {
-          final json = jsonDecode(response.body);
-          final data = json['data'];
-
-          if (data['success'] == true && data['existingClub'] != null) {
-            // Cache specific part or entire body? Caching entire body is safer for structure match
-            await _saveToCache(cacheKey, response.body);
-            final List<dynamic> clubsJson = data['existingClub'];
-            return clubsJson.map((c) => Club.fromJson(c)).toList();
-          }
+        if (data['success'] == true && data['existingClub'] != null) {
+          await _saveToCache(cacheKey, response.body);
+          final List<dynamic> clubsJson = data['existingClub'];
+          return clubsJson.map((c) => Club.fromJson(c)).toList();
         }
-      } catch (e) {
-        debugPrint('Error fetching clubs online: $e');
-        // Fallback to cache if online request fails
       }
+    } catch (e) {
+      debugPrint('Error fetching clubs online: $e');
     }
 
     // Offline or fallback
@@ -354,31 +378,30 @@ class ApiService {
   /// Get a single club by ID
   Future<Club?> getClub(int clubId) async {
     String cacheKey = 'club_${clubId}_cache';
-    bool isOnline = await _hasInternetConnection();
 
-    if (isOnline) {
-      try {
-        final userId = await getDatabaseUserId();
-        final response = await http.get(
-          Uri.parse('$baseUrl/clubs/$clubId'),
-          headers: {
-            'Content-Type': 'application/json',
-            if (userId != null) 'Authorization': 'Bearer $userId',
-          },
-        );
+    try {
+      final userId = await getDatabaseUserId();
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/clubs/$clubId'),
+            headers: {
+              'Content-Type': 'application/json',
+              if (userId != null) 'Authorization': 'Bearer $userId',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
 
-        if (response.statusCode == 200) {
-          final json = jsonDecode(response.body);
-          final data = json['data'];
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final data = json['data'];
 
-          if (data['success'] == true && data['clubData'] != null) {
-            await _saveToCache(cacheKey, response.body);
-            return Club.fromJson(data['clubData']);
-          }
+        if (data['success'] == true && data['clubData'] != null) {
+          await _saveToCache(cacheKey, response.body);
+          return Club.fromJson(data['clubData']);
         }
-      } catch (e) {
-        debugPrint('Error fetching club online: $e');
       }
+    } catch (e) {
+      debugPrint('Error fetching club online: $e');
     }
 
     // Offline or fallback
@@ -401,37 +424,36 @@ class ApiService {
   /// Get club profile
   Future<ClubProfile?> getClubProfile(int clubId) async {
     String cacheKey = 'club_profile_${clubId}_cache';
-    bool isOnline = await _hasInternetConnection();
 
-    if (isOnline) {
-      try {
-        final userId = await getDatabaseUserId();
-        final response = await http.get(
-          Uri.parse('$apiBaseUrl/clubs/club-profile/$clubId'),
-          headers: {
-            'Content-Type': 'application/json',
-            if (userId != null) 'Authorization': 'Bearer $userId',
-          },
-        );
-        if (response.statusCode == 200) {
-          await _saveToCache(cacheKey, response.body);
-          final json = jsonDecode(response.body);
+    try {
+      final userId = await getDatabaseUserId();
+      final response = await http
+          .get(
+            Uri.parse('$apiBaseUrl/clubs/club-profile/$clubId'),
+            headers: {
+              'Content-Type': 'application/json',
+              if (userId != null) 'Authorization': 'Bearer $userId',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        await _saveToCache(cacheKey, response.body);
+        final json = jsonDecode(response.body);
 
-          // Handle nested response format
-          if (json['data'] != null) {
-            final data = json['data'];
-            if (data['success'] == true && data['profile'] != null) {
-              return ClubProfile.fromJson(data['profile']);
-            }
-          }
-          // Handle direct response format
-          if (json['success'] == true && json['profile'] != null) {
-            return ClubProfile.fromJson(json['profile']);
+        // Handle nested response format
+        if (json['data'] != null) {
+          final data = json['data'];
+          if (data['success'] == true && data['profile'] != null) {
+            return ClubProfile.fromJson(data['profile']);
           }
         }
-      } catch (e) {
-        debugPrint('Error fetching club profile online: $e');
+        // Handle direct response format
+        if (json['success'] == true && json['profile'] != null) {
+          return ClubProfile.fromJson(json['profile']);
+        }
       }
+    } catch (e) {
+      debugPrint('Error fetching club profile online: $e');
     }
 
     // Offline or fallback
@@ -461,32 +483,30 @@ class ApiService {
   /// Get all events
   Future<List<ClubEvent>> getAllEvents() async {
     const String cacheKey = 'all_events_cache';
-    bool isOnline = await _hasInternetConnection();
+    try {
+      final userId = await getDatabaseUserId();
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/all-events'),
+            headers: {
+              'Content-Type': 'application/json',
+              if (userId != null) 'Authorization': 'Bearer $userId',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
 
-    if (isOnline) {
-      try {
-        final userId = await getDatabaseUserId();
-        final response = await http.get(
-          Uri.parse('$baseUrl/all-events'),
-          headers: {
-            'Content-Type': 'application/json',
-            if (userId != null) 'Authorization': 'Bearer $userId',
-          },
-        );
+      if (response.statusCode == 200) {
+        await _saveToCache(cacheKey, response.body);
+        final json = jsonDecode(response.body);
+        final data = json['data'];
 
-        if (response.statusCode == 200) {
-          await _saveToCache(cacheKey, response.body);
-          final json = jsonDecode(response.body);
-          final data = json['data'];
-
-          if (data['success'] == true && data['allEvents'] != null) {
-            final List<dynamic> eventsJson = data['allEvents'];
-            return eventsJson.map((e) => ClubEvent.fromJson(e)).toList();
-          }
+        if (data['success'] == true && data['allEvents'] != null) {
+          final List<dynamic> eventsJson = data['allEvents'];
+          return eventsJson.map((e) => ClubEvent.fromJson(e)).toList();
         }
-      } catch (e) {
-        debugPrint('Error fetching events online: $e');
       }
+    } catch (e) {
+      debugPrint('Error fetching events online: $e');
     }
 
     // Offline or fallback
@@ -510,32 +530,30 @@ class ApiService {
   /// Get upcoming events
   Future<List<ClubEvent>> getUpcomingEvents() async {
     const String cacheKey = 'upcoming_events_cache';
-    bool isOnline = await _hasInternetConnection();
+    try {
+      final userId = await getDatabaseUserId();
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/get-upcoming-events'),
+            headers: {
+              'Content-Type': 'application/json',
+              if (userId != null) 'Authorization': 'Bearer $userId',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
 
-    if (isOnline) {
-      try {
-        final userId = await getDatabaseUserId();
-        final response = await http.get(
-          Uri.parse('$baseUrl/get-upcoming-events'),
-          headers: {
-            'Content-Type': 'application/json',
-            if (userId != null) 'Authorization': 'Bearer $userId',
-          },
-        );
+      if (response.statusCode == 200) {
+        await _saveToCache(cacheKey, response.body);
+        final json = jsonDecode(response.body);
+        final data = json['data'];
 
-        if (response.statusCode == 200) {
-          await _saveToCache(cacheKey, response.body);
-          final json = jsonDecode(response.body);
-          final data = json['data'];
-
-          if (data['success'] == true && data['upcomingEvents'] != null) {
-            final List<dynamic> eventsJson = data['upcomingEvents'];
-            return eventsJson.map((e) => ClubEvent.fromJson(e)).toList();
-          }
+        if (data['success'] == true && data['upcomingEvents'] != null) {
+          final List<dynamic> eventsJson = data['upcomingEvents'];
+          return eventsJson.map((e) => ClubEvent.fromJson(e)).toList();
         }
-      } catch (e) {
-        debugPrint('Error fetching upcoming events online: $e');
       }
+    } catch (e) {
+      debugPrint('Error fetching upcoming events online: $e');
     }
 
     // Offline or fallback
@@ -3179,6 +3197,9 @@ class ApiService {
     } catch (e) {
       debugPrint('Error getting my reports: $e');
     }
+    return [];
+  }
+
   // ==================== IN-APP NOTIFICATIONS API ====================
 
   /// Get in-app notifications with optional filters
@@ -3196,9 +3217,9 @@ class ApiService {
         if (unreadOnly) 'unreadOnly': 'true',
       };
 
-      final uri = Uri.parse('$apiBaseUrl/notifications').replace(
-        queryParameters: queryParams,
-      );
+      final uri = Uri.parse(
+        '$apiBaseUrl/notifications',
+      ).replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: await _getAuthHeader());
 

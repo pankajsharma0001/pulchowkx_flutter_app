@@ -70,6 +70,8 @@ class _ClassroomPageState extends State<ClassroomPage> {
     return Scaffold(
       appBar: const CustomAppBar(currentPage: AppPage.classroom),
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: BoxDecoration(
           gradient: Theme.of(context).brightness == Brightness.light
               ? AppColors.heroGradient

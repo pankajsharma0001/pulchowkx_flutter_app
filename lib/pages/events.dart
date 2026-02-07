@@ -30,10 +30,12 @@ class _EventsPageState extends State<EventsPage> {
     _eventsFuture = _apiService.getAllEvents();
   }
 
-  void _refreshEvents() {
+  Future<void> _refreshEvents() async {
+    await _apiService.invalidateEventsCache();
     setState(() {
       _eventsFuture = _apiService.getAllEvents();
     });
+    await _eventsFuture;
   }
 
   @override
@@ -49,7 +51,7 @@ class _EventsPageState extends State<EventsPage> {
         child: RefreshIndicator(
           onRefresh: () async {
             haptics.mediumImpact();
-            _refreshEvents();
+            await _refreshEvents();
             // Check connectivity on refresh
             final connectivityResult = await Connectivity().checkConnectivity();
             if (connectivityResult.first == ConnectivityResult.none) {

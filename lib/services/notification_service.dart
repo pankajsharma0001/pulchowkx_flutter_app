@@ -4,9 +4,11 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
+import 'package:pulchowkx_app/services/in_app_notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pulchowkx_app/main.dart' show navigatorKey;
 import 'package:pulchowkx_app/pages/marketplace/chat_room.dart';
+import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'dart:convert';
 
 class NotificationService {
@@ -71,9 +73,15 @@ class NotificationService {
       if (prefs.getBool('notify_announcements') ?? true) {
         await subscribeToTopic('announcements');
       }
+      if (prefs.getBool('notify_classroom') ?? true) {
+        await updateClassroomSubscription(true);
+      }
 
       // Sync FCM token if user is already logged in
       await syncToken();
+
+      // Refresh in-app unread count on start
+      await inAppNotifications.refreshUnreadCount();
 
       // Handle background messages
       FirebaseMessaging.onBackgroundMessage(
@@ -97,6 +105,31 @@ class NotificationService {
             return;
           }
         }
+
+        final type = data['type'];
+        final prefs = await SharedPreferences.getInstance();
+
+        // Filter based on user settings
+        if (type == 'chat_message' && !(prefs.getBool('notify_chat') ?? true)) {
+          debugPrint('Suppressing chat notification based on settings');
+          return;
+        }
+
+        if ((type == 'purchase_request_received' ||
+                type == 'purchase_request_response') &&
+            !(prefs.getBool('notify_books') ?? true)) {
+          debugPrint('Suppressing book notification based on settings');
+          return;
+        }
+
+        if (type == 'assignment_graded' &&
+            !(prefs.getBool('notify_classroom') ?? true)) {
+          debugPrint('Suppressing classroom notification based on settings');
+          return;
+        }
+
+        // New in-app notification arrived, refresh the unread count
+        inAppNotifications.refreshUnreadCount();
 
         final notification = message.notification;
         // If it's a data-only message with title/body in data
@@ -226,6 +259,26 @@ class NotificationService {
     await subscribeToTopic('faculty_$facultyId');
   }
 
+  static Future<void> unsubscribeFromFaculty(int facultyId) async {
+    await unsubscribeFromTopic('faculty_$facultyId');
+  }
+
+  static Future<void> updateClassroomSubscription(bool subscribe) async {
+    try {
+      final apiService = ApiService();
+      final profile = await apiService.getStudentProfile();
+      if (profile != null) {
+        if (subscribe) {
+          await subscribeToFaculty(profile.facultyId);
+        } else {
+          await unsubscribeFromFaculty(profile.facultyId);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error updating classroom subscription: $e');
+    }
+  }
+
   static Future<bool> hasPermission() async {
     final settings = await _messaging.getNotificationSettings();
     return settings.authorizationStatus == AuthorizationStatus.authorized ||
@@ -235,22 +288,23 @@ class NotificationService {
   static Future<void> _handleNotificationClick(
     Map<String, dynamic> data,
   ) async {
-    if (data['type'] == 'chat_message' && data['conversationId'] != null) {
+    // Ensure navigator is ready
+    int retries = 0;
+    while (navigatorKey.currentState == null && retries < 10) {
+      debugPrint('Waiting for navigator state... (retry $retries)');
+      await Future.delayed(const Duration(milliseconds: 500));
+      retries++;
+    }
+
+    if (navigatorKey.currentState == null) return;
+
+    final type = data['type'];
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+
+    if (type == 'chat_message' && data['conversationId'] != null) {
       final conversationId = int.tryParse(data['conversationId'].toString());
       if (conversationId == null) return;
-
-      // Ensure navigator is ready, especially on terminated launch
-      int retries = 0;
-      while (navigatorKey.currentState == null && retries < 10) {
-        debugPrint('Waiting for navigator state... (retry $retries)');
-        await Future.delayed(const Duration(milliseconds: 500));
-        retries++;
-      }
-
-      if (navigatorKey.currentState == null) {
-        debugPrint('Navigator state is still null after retries');
-        return;
-      }
 
       final apiService = ApiService();
       try {
@@ -266,12 +320,20 @@ class NotificationService {
                   ChatRoomPage(conversation: conversations[conversationIndex]),
             ),
           );
-        } else {
-          debugPrint('Conversation $conversationId not found in user list');
         }
       } catch (e) {
         debugPrint('Error navigating to chat: $e');
       }
+    } else if (type == 'notice_created' || type == 'notice_updated') {
+      MainLayout.of(context)?.setSelectedIndex(8); // Notices tab
+    } else if (type == 'new_event' || type == 'event_cancelled') {
+      MainLayout.of(context)?.setSelectedIndex(6); // Events tab
+    } else if (type == 'purchase_request_received' ||
+        type == 'purchase_request_response' ||
+        type == 'new_book') {
+      MainLayout.of(context)?.setSelectedIndex(3); // Marketplace tab
+    } else if (type == 'new_assignment' || type == 'assignment_graded') {
+      MainLayout.of(context)?.setSelectedIndex(2); // Classroom tab
     }
   }
 
@@ -315,27 +377,41 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   final data = message.data;
   final sellerId = data['sellerId'];
 
-  // If no sellerId, let it proceed (or handle other types)
-  // If sellerId is present, check against current user
-  if (sellerId != null) {
-    final apiService = ApiService();
-    // We need to initialize shared prefs or secure storage to get the user ID
-    // ApiService getDatabaseUserId uses SecureStorage, which should work in background isolation in most cases?
-    // Actually, background isolate might not share the same instance.
-    // But SecureStorage is disk-based.
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final type = data['type'];
 
-    try {
-      // Initialize necessary bindings for background execution
-      // WidgetsFlutterBinding.ensureInitialized(); // Should be done by Firebase
+    // Filter based on user settings
+    if (type == 'chat_message' && !(prefs.getBool('notify_chat') ?? true)) {
+      debugPrint('Suppressing background chat notification based on settings');
+      return;
+    }
 
+    if ((type == 'purchase_request_received' ||
+            type == 'purchase_request_response') &&
+        !(prefs.getBool('notify_books') ?? true)) {
+      debugPrint('Suppressing background book notification based on settings');
+      return;
+    }
+
+    if (type == 'assignment_graded' &&
+        !(prefs.getBool('notify_classroom') ?? true)) {
+      debugPrint(
+        'Suppressing background classroom notification based on settings',
+      );
+      return;
+    }
+
+    if (sellerId != null) {
+      final apiService = ApiService();
       final currentUserId = await apiService.getDatabaseUserId();
       if (currentUserId != null && currentUserId == sellerId) {
         debugPrint("Suppressing notification for own book listing.");
         return;
       }
-    } catch (e) {
-      debugPrint("Error checking user ID in background: $e");
     }
+  } catch (e) {
+    debugPrint("Error checking preferences in background: $e");
   }
 
   // If we shouldn't suppress, we need to show it manually because it's a data-only message now (mostly)
