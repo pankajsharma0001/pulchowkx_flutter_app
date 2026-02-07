@@ -16,7 +16,6 @@ import 'package:pulchowkx_app/models/book_listing.dart';
 import 'package:pulchowkx_app/pages/classroom/shared_widgets.dart';
 import 'package:pulchowkx_app/pages/admin/create_club_page.dart';
 import 'package:pulchowkx_app/pages/favorites_page.dart';
-import 'package:pulchowkx_app/pages/notices.dart';
 import 'package:pulchowkx_app/pages/event_details.dart';
 import 'package:pulchowkx_app/pages/classroom.dart';
 import 'package:pulchowkx_app/pages/events.dart';
@@ -675,9 +674,8 @@ class _DashboardPageState extends State<DashboardPage> {
               icon: Icons.notification_important_outlined,
               color: AppColors.success,
               onTap: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(builder: (context) => const NoticesPage()),
-                );
+                // Use tab switching for instant navigation
+                MainLayout.of(context)?.setSelectedIndex(8);
               },
             ),
             StatCard(

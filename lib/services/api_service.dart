@@ -10,6 +10,7 @@ import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:pulchowkx_app/models/chat.dart';
 import 'package:pulchowkx_app/models/notice.dart';
+import 'package:pulchowkx_app/models/in_app_notification.dart';
 import 'package:pulchowkx_app/models/trust.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -2825,60 +2826,24 @@ class ApiService {
 
   // ==================== NOTICES API ====================
 
-  /// Get notices with optional filters
+  /// Get notices with optional filters (cache-first for instant loading)
   Future<List<Notice>> getNotices([NoticeFilters? filters]) async {
     final String cacheKey =
         'notices_${filters?.section?.value ?? 'all'}_${filters?.subsection?.value ?? 'all'}_cache';
-    bool isOnline = await _hasInternetConnection();
 
-    if (isOnline) {
-      try {
-        final queryParams = filters?.toQueryParams() ?? {};
-        final uri = Uri.parse(
-          '$apiBaseUrl/notices',
-        ).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
-
-        final response = await http.get(
-          uri,
-          headers: {'Content-Type': 'application/json'},
-        );
-
-        if (response.statusCode == 200) {
-          await _saveToCache(cacheKey, response.body);
-          final json = jsonDecode(response.body);
-
-          // Handle both response formats
-          if (json['success'] == true && json['data'] != null) {
-            return (json['data'] as List)
-                .map((e) => Notice.fromJson(e as Map<String, dynamic>))
-                .toList();
-          }
-          // Legacy format
-          if (json['data']?['success'] == true &&
-              json['data']?['notices'] != null) {
-            return (json['data']['notices'] as List)
-                .map((e) => Notice.fromJson(e as Map<String, dynamic>))
-                .toList();
-          }
-        }
-      } catch (e) {
-        debugPrint('Error fetching notices online: $e');
-      }
-    }
-
-    // Offline or fallback
+    // Try cache first for instant display
     final cachedData = await _getFromCache(cacheKey);
+    List<Notice> cachedNotices = [];
     if (cachedData != null) {
       try {
         final json = jsonDecode(cachedData);
         if (json['success'] == true && json['data'] != null) {
-          return (json['data'] as List)
+          cachedNotices = (json['data'] as List)
               .map((e) => Notice.fromJson(e as Map<String, dynamic>))
               .toList();
-        }
-        if (json['data']?['success'] == true &&
+        } else if (json['data']?['success'] == true &&
             json['data']?['notices'] != null) {
-          return (json['data']['notices'] as List)
+          cachedNotices = (json['data']['notices'] as List)
               .map((e) => Notice.fromJson(e as Map<String, dynamic>))
               .toList();
         }
@@ -2887,52 +2852,89 @@ class ApiService {
       }
     }
 
+    // Return cached data immediately if available
+    if (cachedNotices.isNotEmpty) {
+      // Trigger background refresh without awaiting
+      _refreshNoticesInBackground(filters, cacheKey);
+      return cachedNotices;
+    }
+
+    // No cache, fetch from network
+    return _fetchNoticesFromNetwork(filters, cacheKey);
+  }
+
+  /// Refreshes notices in the background and updates the cache.
+  Future<void> _refreshNoticesInBackground(
+    NoticeFilters? filters,
+    String cacheKey,
+  ) async {
+    try {
+      await _fetchNoticesFromNetwork(filters, cacheKey);
+    } catch (e) {
+      debugPrint('Background notices refresh failed: $e');
+    }
+  }
+
+  /// Fetches notices from the network and saves to cache.
+  Future<List<Notice>> _fetchNoticesFromNetwork(
+    NoticeFilters? filters,
+    String cacheKey,
+  ) async {
+    bool isOnline = await _hasInternetConnection();
+    if (!isOnline) return [];
+
+    try {
+      final queryParams = filters?.toQueryParams() ?? {};
+      final uri = Uri.parse(
+        '$apiBaseUrl/notices',
+      ).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+
+      final response = await http.get(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        await _saveToCache(cacheKey, response.body);
+        final json = jsonDecode(response.body);
+
+        // Handle both response formats
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map((e) => Notice.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+        // Legacy format
+        if (json['data']?['success'] == true &&
+            json['data']?['notices'] != null) {
+          return (json['data']['notices'] as List)
+              .map((e) => Notice.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching notices online: $e');
+    }
     return [];
   }
 
-  /// Get notice statistics
+  /// Get notice statistics (cache-first for instant loading)
   Future<NoticeStats?> getNoticeStats() async {
     const String cacheKey = 'notice_stats_cache';
-    bool isOnline = await _hasInternetConnection();
 
-    if (isOnline) {
-      try {
-        final response = await http.get(
-          Uri.parse('$apiBaseUrl/notices/stats'),
-          headers: _getJsonHeader(),
-        );
-
-        if (response.statusCode == 200) {
-          await _saveToCache(cacheKey, response.body);
-          final json = jsonDecode(response.body);
-
-          if (json['success'] == true && json['data'] != null) {
-            return NoticeStats.fromJson(json['data'] as Map<String, dynamic>);
-          }
-          // Legacy format
-          if (json['data']?['success'] == true &&
-              json['data']?['stats'] != null) {
-            return NoticeStats.fromJson(
-              json['data']['stats'] as Map<String, dynamic>,
-            );
-          }
-        }
-      } catch (e) {
-        debugPrint('Error fetching notice stats online: $e');
-      }
-    }
-
-    // Offline or fallback
+    // Try cache first for instant display
     final cachedData = await _getFromCache(cacheKey);
+    NoticeStats? cachedStats;
     if (cachedData != null) {
       try {
         final json = jsonDecode(cachedData);
         if (json['success'] == true && json['data'] != null) {
-          return NoticeStats.fromJson(json['data'] as Map<String, dynamic>);
-        }
-        if (json['data']?['success'] == true &&
+          cachedStats = NoticeStats.fromJson(
+            json['data'] as Map<String, dynamic>,
+          );
+        } else if (json['data']?['success'] == true &&
             json['data']?['stats'] != null) {
-          return NoticeStats.fromJson(
+          cachedStats = NoticeStats.fromJson(
             json['data']['stats'] as Map<String, dynamic>,
           );
         }
@@ -2941,6 +2943,55 @@ class ApiService {
       }
     }
 
+    // Return cached data immediately if available
+    if (cachedStats != null) {
+      // Trigger background refresh without awaiting
+      _refreshNoticeStatsInBackground(cacheKey);
+      return cachedStats;
+    }
+
+    // No cache, fetch from network
+    return _fetchNoticeStatsFromNetwork(cacheKey);
+  }
+
+  /// Refreshes notice stats in the background and updates the cache.
+  Future<void> _refreshNoticeStatsInBackground(String cacheKey) async {
+    try {
+      await _fetchNoticeStatsFromNetwork(cacheKey);
+    } catch (e) {
+      debugPrint('Background notice stats refresh failed: $e');
+    }
+  }
+
+  /// Fetches notice stats from the network and saves to cache.
+  Future<NoticeStats?> _fetchNoticeStatsFromNetwork(String cacheKey) async {
+    bool isOnline = await _hasInternetConnection();
+    if (!isOnline) return null;
+
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/notices/stats'),
+        headers: _getJsonHeader(),
+      );
+
+      if (response.statusCode == 200) {
+        await _saveToCache(cacheKey, response.body);
+        final json = jsonDecode(response.body);
+
+        if (json['success'] == true && json['data'] != null) {
+          return NoticeStats.fromJson(json['data'] as Map<String, dynamic>);
+        }
+        // Legacy format
+        if (json['data']?['success'] == true &&
+            json['data']?['stats'] != null) {
+          return NoticeStats.fromJson(
+            json['data']['stats'] as Map<String, dynamic>,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching notice stats online: $e');
+    }
     return null;
   }
 
@@ -3128,7 +3179,97 @@ class ApiService {
     } catch (e) {
       debugPrint('Error getting my reports: $e');
     }
+  // ==================== IN-APP NOTIFICATIONS API ====================
+
+  /// Get in-app notifications with optional filters
+  Future<List<InAppNotification>> getInAppNotifications({
+    int limit = 20,
+    int offset = 0,
+    String? type,
+    bool unreadOnly = false,
+  }) async {
+    try {
+      final queryParams = {
+        'limit': limit.toString(),
+        'offset': offset.toString(),
+        if (type != null) 'type': type,
+        if (unreadOnly) 'unreadOnly': 'true',
+      };
+
+      final uri = Uri.parse('$apiBaseUrl/notifications').replace(
+        queryParameters: queryParams,
+      );
+
+      final response = await http.get(uri, headers: await _getAuthHeader());
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map((e) => InAppNotification.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error getting in-app notifications: $e');
+    }
     return [];
+  }
+
+  /// Get count of unread notifications
+  Future<int> getUnreadNotificationCount() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/notifications/unread-count'),
+        headers: await _getAuthHeader(),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['count'] != null) {
+          return json['count'] as int;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error getting unread notification count: $e');
+    }
+    return 0;
+  }
+
+  /// Mark a specific notification as read
+  Future<bool> markNotificationAsRead(int notificationId) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$apiBaseUrl/notifications/$notificationId/read'),
+        headers: await _getAuthHeader(),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return json['success'] == true;
+      }
+    } catch (e) {
+      debugPrint('Error marking notification as read: $e');
+    }
+    return false;
+  }
+
+  /// Mark all notifications as read for current user
+  Future<bool> markAllNotificationsAsRead() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/notifications/mark-all-read'),
+        headers: await _getAuthHeader(),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return json['success'] == true;
+      }
+    } catch (e) {
+      debugPrint('Error marking all notifications as read: $e');
+    }
+    return false;
   }
 }
 

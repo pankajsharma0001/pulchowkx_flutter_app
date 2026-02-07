@@ -573,11 +573,16 @@ class _MobileMoreMenu extends StatelessWidget {
         } else if (value == 'events') {
           CustomAppBar._navigateToEvents(context, isLoggedIn, currentPage);
         } else if (value == 'notices') {
-          // Navigate to notices page
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const NoticesPage()),
-          );
+          // Navigate to notices tab
+          final mainLayout = MainLayout.of(context);
+          if (mainLayout != null) {
+            mainLayout.setSelectedIndex(8);
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const NoticesPage()),
+            );
+          }
         }
       },
       shape: RoundedRectangleBorder(

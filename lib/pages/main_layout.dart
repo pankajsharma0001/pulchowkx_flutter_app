@@ -6,6 +6,7 @@ import 'package:pulchowkx_app/pages/classroom.dart';
 import 'package:pulchowkx_app/pages/dashboard.dart';
 import 'package:pulchowkx_app/pages/home_page.dart';
 import 'package:pulchowkx_app/pages/map.dart';
+import 'package:pulchowkx_app/pages/notices.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/pages/clubs.dart';
 import 'package:pulchowkx_app/pages/events.dart';
@@ -43,6 +44,7 @@ class MainLayoutState extends State<MainLayout> {
     GlobalKey<NavigatorState>(), // 5: Clubs
     GlobalKey<NavigatorState>(), // 6: Events
     GlobalKey<NavigatorState>(), // 7: Login
+    GlobalKey<NavigatorState>(), // 8: Notices
   ];
 
   @override
@@ -151,6 +153,10 @@ class MainLayoutState extends State<MainLayout> {
             _TabNavigator(
               navigatorKey: _navigatorKeys[7],
               rootPage: const LoginPage(),
+            ),
+            _TabNavigator(
+              navigatorKey: _navigatorKeys[8],
+              rootPage: const NoticesPage(),
             ),
           ],
         ),
