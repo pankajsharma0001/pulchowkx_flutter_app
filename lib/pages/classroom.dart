@@ -202,11 +202,6 @@ class _ClassroomPageState extends State<ClassroomPage> {
             ],
           ),
         ),
-        // if (_profile != null)
-        //   IconButton(
-        //     onPressed: _loadData,
-        //     icon: const Icon(Icons.refresh, color: AppColors.textSecondary),
-        //   ),
       ],
     );
   }

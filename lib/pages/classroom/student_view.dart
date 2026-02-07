@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:confetti/confetti.dart';
@@ -109,9 +110,11 @@ class _StudentViewState extends State<StudentView> {
   Widget _buildViewToggles() {
     return Center(
       child: Container(
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(AppSpacing.xs),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
+          color: Theme.of(context).brightness == Brightness.light
+              ? Colors.white.withValues(alpha: 0.8)
+              : AppColors.backgroundSecondaryDark.withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(AppRadius.xl),
           border: Border.all(
             color: Theme.of(context).dividerTheme.color ?? AppColors.border,
@@ -124,31 +127,37 @@ class _StudentViewState extends State<StudentView> {
             ),
           ],
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildToggleButton(
-              'To Do',
-              ClassroomView.todo,
-              AppColors.primary,
-              AppColors.primaryLight,
-              _todoAssignments.length,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildToggleButton(
+                  'To Do',
+                  ClassroomView.todo,
+                  AppColors.primary,
+                  AppColors.primary.withValues(alpha: 0.1),
+                  _todoAssignments.length,
+                ),
+                _buildToggleButton(
+                  'Completed',
+                  ClassroomView.completed,
+                  AppColors.success,
+                  AppColors.success.withValues(alpha: 0.1),
+                  null,
+                ),
+                _buildToggleButton(
+                  'Subjects',
+                  ClassroomView.subjects,
+                  const Color(0xFF3B82F6), // blue-500
+                  const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                  null,
+                ),
+              ],
             ),
-            _buildToggleButton(
-              'Done',
-              ClassroomView.completed,
-              AppColors.success,
-              AppColors.successLight,
-              null,
-            ),
-            _buildToggleButton(
-              'Subjects',
-              ClassroomView.subjects,
-              const Color(0xFF7C3AED), // purple-600
-              const Color(0xFFF5F3FF), // purple-50
-              null,
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -164,10 +173,6 @@ class _StudentViewState extends State<StudentView> {
     final bool isActive = _currentView == view;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Use blue theme for selected state as per image
-    final Color selectedColor = AppColors.primary;
-    final Color selectedBg = AppColors.primaryLight;
-
     return InkWell(
       onTap: () {
         haptics.selectionClick();
@@ -176,14 +181,18 @@ class _StudentViewState extends State<StudentView> {
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive
-              ? (isDark ? selectedColor.withValues(alpha: 0.1) : selectedBg)
-              : Colors.transparent,
+          color: isActive ? activeBg : Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: isActive
-              ? Border.all(color: selectedColor.withValues(alpha: 0.2))
+          boxShadow: isActive && !isDark
+              ? [
+                  BoxShadow(
+                    color: activeColor.withValues(alpha: 0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
               : null,
         ),
         child: Row(
@@ -192,23 +201,23 @@ class _StudentViewState extends State<StudentView> {
             Text(
               label,
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
-                color: isActive ? selectedColor : AppColors.textMuted,
+                fontSize: 12,
+                fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+                color: isActive ? activeColor : AppColors.textMuted,
               ),
             ),
             if (badgeCount != null && badgeCount > 0) ...[
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF7C3AED), // purple-600 for To Do badge
+                  color: activeColor,
                   borderRadius: BorderRadius.circular(AppRadius.full),
                 ),
                 child: Text(
                   badgeCount.toString(),
                   style: const TextStyle(
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: FontWeight.w900,
                     color: Colors.white,
                   ),
@@ -371,7 +380,8 @@ class _StudentViewState extends State<StudentView> {
               child: StatCard(
                 label: 'To Do',
                 value: todoCount.toString(),
-                color: const Color(0xFF7C3AED), // purple-600
+                color: const Color(0xFF7C3AED), // violet-600
+                icon: Icons.assignment_rounded,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -379,7 +389,8 @@ class _StudentViewState extends State<StudentView> {
               child: StatCard(
                 label: 'Overdue',
                 value: overdueCount.toString(),
-                color: const Color(0xFFFB7185), // rose-400
+                color: const Color(0xFFEF4444), // rose-500
+                icon: Icons.error_rounded,
               ),
             ),
           ],
@@ -392,6 +403,7 @@ class _StudentViewState extends State<StudentView> {
                 label: 'Done',
                 value: submittedCount.toString(),
                 color: const Color(0xFF10B981), // emerald-500
+                icon: Icons.check_circle_rounded,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -401,6 +413,7 @@ class _StudentViewState extends State<StudentView> {
                 value: '${(progress * 100).toInt()}%',
                 color: const Color(0xFFF59E0B), // amber-500
                 progress: progress,
+                icon: Icons.school_rounded,
               ),
             ),
           ],

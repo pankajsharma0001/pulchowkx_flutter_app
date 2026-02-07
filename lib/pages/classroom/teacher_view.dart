@@ -118,6 +118,7 @@ class TeacherView extends StatelessWidget {
                 label: 'Subjects',
                 value: subjects.length.toString(),
                 color: const Color(0xFF0891B2), // cyan-600
+                icon: Icons.auto_stories_rounded,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -126,6 +127,7 @@ class TeacherView extends StatelessWidget {
                 label: 'Active Tasks',
                 value: assignmentsCount.toString(),
                 color: const Color(0xFF6366F1), // indigo-500
+                icon: Icons.pending_actions_rounded,
               ),
             ),
           ],
@@ -137,7 +139,8 @@ class TeacherView extends StatelessWidget {
               child: StatCard(
                 label: 'Classwork',
                 value: classworkCount.toString(),
-                color: const Color(0xFF7C3AED), // purple-600
+                color: const Color(0xFF7C3AED), // violet-600
+                icon: Icons.class_rounded,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -146,6 +149,7 @@ class TeacherView extends StatelessWidget {
                 label: 'Homework',
                 value: homeworkCount.toString(),
                 color: const Color(0xFF10B981), // emerald-500
+                icon: Icons.home_work_rounded,
               ),
             ),
           ],
