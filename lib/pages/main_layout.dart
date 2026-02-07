@@ -87,7 +87,12 @@ class MainLayoutState extends State<MainLayout> {
   void setSelectedIndex(int index) {
     // Check if authentication is required for the target tab
     final bool isProtectedRoute =
-        index == 2 || index == 3 || index == 4 || index == 5 || index == 6;
+        index == 2 ||
+        index == 3 ||
+        index == 4 ||
+        index == 5 ||
+        index == 6 ||
+        index == 8;
 
     bool isLoggedIn = false;
     try {

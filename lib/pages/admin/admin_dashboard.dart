@@ -29,12 +29,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     _loadAdminData();
   }
 
-  Future<void> _loadAdminData() async {
+  Future<void> _loadAdminData({bool forceRefresh = false}) async {
     if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
-      final overview = await _apiService.getAdminOverview();
+      final overview = await _apiService.getAdminOverview(
+        forceRefresh: forceRefresh,
+      );
       if (mounted) {
         setState(() {
           _adminOverview = overview;
@@ -64,7 +66,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               : AppColors.heroGradient,
         ),
         child: RefreshIndicator(
-          onRefresh: _loadAdminData,
+          onRefresh: () => _loadAdminData(forceRefresh: true),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -314,7 +316,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           const SizedBox(height: AppSpacing.md),
           Text(_error ?? 'An error occurred', style: AppTextStyles.bodyMedium),
           const SizedBox(height: AppSpacing.md),
-          ElevatedButton(onPressed: _loadAdminData, child: const Text('Retry')),
+          ElevatedButton(
+            onPressed: () => _loadAdminData(forceRefresh: true),
+            child: const Text('Retry'),
+          ),
         ],
       ),
     );

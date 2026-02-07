@@ -677,6 +677,13 @@ class _MobileMoreMenu extends StatelessWidget {
           if (mainLayout != null) {
             mainLayout.setSelectedIndex(8);
           } else {
+            if (!isLoggedIn) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginPage()),
+              );
+              return;
+            }
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const NoticesPage()),

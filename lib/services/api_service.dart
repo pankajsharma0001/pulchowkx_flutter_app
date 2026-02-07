@@ -181,7 +181,26 @@ class ApiService {
   }
 
   /// Get overview statistics for admin dashboard
-  Future<Map<String, dynamic>> getAdminOverview() async {
+  Future<Map<String, dynamic>> getAdminOverview({
+    bool forceRefresh = false,
+  }) async {
+    const String cacheKey = 'admin_overview_cache';
+
+    // Try to get from cache first if not forcing refresh
+    if (!forceRefresh) {
+      final cachedData = await _getFromCache(cacheKey);
+      if (cachedData != null) {
+        try {
+          final json = jsonDecode(cachedData);
+          if (json['success'] == true && json['data'] != null) {
+            return json['data'];
+          }
+        } catch (e) {
+          debugPrint('Error parsing cached admin overview: $e');
+        }
+      }
+    }
+
     try {
       final response = await http.get(
         Uri.parse('$apiBaseUrl/admin/overview'),
@@ -191,12 +210,25 @@ class ApiService {
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
         if (json['success'] == true && json['data'] != null) {
+          await _saveToCache(cacheKey, response.body);
           return json['data'];
         }
       }
       return {'success': false, 'message': 'Failed to load admin overview'};
     } catch (e) {
       debugPrint('Error getting admin overview: $e');
+      // Fallback to cache if network fails, even if forceRefresh was true
+      if (forceRefresh) {
+        final cachedData = await _getFromCache(cacheKey);
+        if (cachedData != null) {
+          try {
+            final json = jsonDecode(cachedData);
+            if (json['success'] == true && json['data'] != null) {
+              return json['data'];
+            }
+          } catch (_) {}
+        }
+      }
       return {'success': false, 'message': 'Error: $e'};
     }
   }

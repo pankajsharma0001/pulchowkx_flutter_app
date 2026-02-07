@@ -19,6 +19,24 @@ import 'package:pulchowkx_app/pages/favorites_page.dart';
 import 'package:pulchowkx_app/pages/event_details.dart';
 import 'package:pulchowkx_app/pages/my_books.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
+import 'package:pulchowkx_app/pages/admin/admin_reports.dart';
+import 'package:pulchowkx_app/pages/admin/admin_users.dart';
+
+class _AdminTask {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  _AdminTask({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+}
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -36,12 +54,14 @@ class _DashboardPageState extends State<DashboardPage> {
 
   // Additional stats to match webapp
   int _pendingAssignmentsCount = 0;
+  int _adminPendingCount = 0;
   int _newNoticesCount = 0;
   int _myBooksCount = 0;
 
   List<Assignment> _pendingAssignments = [];
   List<ClubEvent> _upcomingEvents = [];
   List<BookListing> _myBooks = [];
+  List<_AdminTask> _adminTasks = [];
 
   @override
   void initState() {
@@ -67,8 +87,23 @@ class _DashboardPageState extends State<DashboardPage> {
       }
 
       // Fetch all data in parallel
+      // Fetch all data in parallel
+
+      // Temporary admin check to decide if we fetch admin stats
+      // We need to await isAdmin first effectively, or just handle it after
+      // But parallel is better. Let's do isAdmin first.
+      final isAdminResult = await _apiService.isAdmin();
+
+      Map<String, dynamic>? adminOverview;
+      if (isAdminResult) {
+        try {
+          adminOverview = await _apiService.getAdminOverview();
+        } catch (e) {
+          debugPrint('Error fetching admin overview: $e');
+        }
+      }
+
       final results = await Future.wait([
-        _apiService.isAdmin(),
         _apiService.getEnrollments(dbId),
         _apiService.getMySubjects(),
         _apiService.getNoticeStats(),
@@ -76,12 +111,11 @@ class _DashboardPageState extends State<DashboardPage> {
         _apiService.getUpcomingEvents(),
       ]);
 
-      final isAdminResult = results[0] as bool;
-      final enrollments = results[1] as List<EventRegistration>;
-      final subjects = results[2] as List<Subject>;
-      final noticeStats = results[3] as NoticeStats?;
-      final myBooksResult = results[4] as List<BookListing>;
-      final upcomingEventsResult = results[5] as List<ClubEvent>;
+      final enrollments = results[0] as List<EventRegistration>;
+      final subjects = results[1] as List<Subject>;
+      final noticeStats = results[2] as NoticeStats?;
+      final myBooksResult = results[3] as List<BookListing>;
+      final upcomingEventsResult = results[4] as List<ClubEvent>;
 
       final now = DateTime.now();
 
@@ -94,6 +128,51 @@ class _DashboardPageState extends State<DashboardPage> {
               pendingAssignments.add(assignment);
             }
           }
+        }
+      }
+
+      // Process Admin Tasks
+      List<_AdminTask> adminTasks = [];
+      if (isAdminResult && adminOverview != null) {
+        final openReports = adminOverview['openReports'] ?? 0;
+        final activeBlocks = adminOverview['activeBlocks'] ?? 0;
+
+        if (openReports > 0) {
+          adminTasks.add(
+            _AdminTask(
+              title: 'Review Reports',
+              subtitle: '$openReports open reports',
+              icon: Icons.flag_outlined,
+              color: AppColors.error,
+              onTap: () {
+                Navigator.of(context, rootNavigator: true)
+                    .push(
+                      MaterialPageRoute(
+                        builder: (_) => const AdminReportsPage(),
+                      ),
+                    )
+                    .then((_) => _fetchDashboardData());
+              },
+            ),
+          );
+        }
+
+        if (activeBlocks > 0) {
+          adminTasks.add(
+            _AdminTask(
+              title: 'User Management',
+              subtitle: '$activeBlocks Active Blocks',
+              icon: Icons.people_outline,
+              color: Colors.orange,
+              onTap: () {
+                Navigator.of(context, rootNavigator: true)
+                    .push(
+                      MaterialPageRoute(builder: (_) => const AdminUsersPage()),
+                    )
+                    .then((_) => _fetchDashboardData());
+              },
+            ),
+          );
         }
       }
 
@@ -113,12 +192,14 @@ class _DashboardPageState extends State<DashboardPage> {
           _enrolledEvents = comingEvents;
 
           _pendingAssignmentsCount = pendingAssignments.length;
+          _adminPendingCount = adminTasks.length;
           _newNoticesCount = noticeStats?.newCount ?? 0;
           _myBooksCount = myBooksResult.length;
 
           _pendingAssignments = pendingAssignments;
           _upcomingEvents = upcomingEventsResult;
           _myBooks = myBooksResult;
+          _adminTasks = adminTasks;
 
           _isLoading = false;
         });
@@ -393,9 +474,9 @@ class _DashboardPageState extends State<DashboardPage> {
                   children: [
                     _isAdmin
                         ? _buildActivityTabList(
-                            [],
+                            _adminTasks,
                             Icons.task_alt_rounded,
-                            'Admin: Check Reports/Verifications',
+                            'No pending admin tasks',
                           )
                         : _buildActivityTabList(
                             _pendingAssignments,
@@ -453,6 +534,8 @@ class _DashboardPageState extends State<DashboardPage> {
         final item = items[index];
         String title = '';
         String subtitle = '';
+        VoidCallback? onTap;
+        Color? itemColor;
 
         if (item is Assignment) {
           title = item.title;
@@ -465,6 +548,11 @@ class _DashboardPageState extends State<DashboardPage> {
         } else if (item is BookListing) {
           title = item.title;
           subtitle = 'Rs. ${item.price} • ${item.condition}';
+        } else if (item is _AdminTask) {
+          title = item.title;
+          subtitle = item.subtitle;
+          onTap = item.onTap;
+          itemColor = item.color;
         }
 
         return ListTile(
@@ -475,10 +563,14 @@ class _DashboardPageState extends State<DashboardPage> {
           leading: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.05),
+              color: (itemColor ?? AppColors.primary).withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 20),
+            child: Icon(
+              (item is _AdminTask) ? item.icon : icon,
+              color: itemColor ?? AppColors.primary,
+              size: 20,
+            ),
           ),
           title: Text(
             title,
@@ -495,9 +587,11 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
           trailing: const Icon(Icons.chevron_right_rounded, size: 18),
-          onTap: () {
-            // Add navigation if needed
-          },
+          onTap:
+              onTap ??
+              () {
+                // Add navigation if needed
+              },
         );
       },
     );
@@ -663,11 +757,20 @@ class _DashboardPageState extends State<DashboardPage> {
           children: [
             StatCard(
               label: _isAdmin ? 'Pending Tasks' : 'Assignments',
-              value: _pendingAssignmentsCount.toString(),
+              value: _isAdmin
+                  ? _adminPendingCount.toString()
+                  : _pendingAssignmentsCount.toString(),
               icon: Icons.assignment_outlined,
               color: AppColors.primary,
               onTap: () {
-                MainLayout.of(context)?.setSelectedIndex(2);
+                if (_isAdmin) {
+                  // For admins, scroll to activity section where tasks are listed
+                  // Or we could have a specific page.
+                  // Since we listed them in tabs below, let's just do nothing or scroll?
+                  // The user can scroll down.
+                } else {
+                  MainLayout.of(context)?.setSelectedIndex(2);
+                }
               },
             ),
             StatCard(
@@ -709,22 +812,24 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildComingUpSection() {
     final List<Widget> items = [];
 
-    // Add Assignments
-    for (var assignment in _pendingAssignments) {
-      items.add(
-        _ComingUpItem(
-          title: assignment.title,
-          subtitle: assignment.dueAt != null
-              ? 'Due: ${DateFormat('MMM dd').format(assignment.dueAt!)}'
-              : 'Pending',
-          icon: Icons.assignment_outlined,
-          color: assignment.isDueSoon ? AppColors.error : AppColors.primary,
-          onTap: () {
-            // Navigate to classroom tab
-            MainLayout.of(context)?.setSelectedIndex(2);
-          },
-        ),
-      );
+    // Add Assignments (only if not admin or if we want to show student stuff too? User asked to hide it)
+    if (!_isAdmin) {
+      for (var assignment in _pendingAssignments) {
+        items.add(
+          _ComingUpItem(
+            title: assignment.title,
+            subtitle: assignment.dueAt != null
+                ? 'Due: ${DateFormat('MMM dd').format(assignment.dueAt!)}'
+                : 'Pending',
+            icon: Icons.assignment_outlined,
+            color: assignment.isDueSoon ? AppColors.error : AppColors.primary,
+            onTap: () {
+              // Navigate to classroom tab
+              MainLayout.of(context)?.setSelectedIndex(2);
+            },
+          ),
+        );
+      }
     }
 
     // Add Enrolled Events
