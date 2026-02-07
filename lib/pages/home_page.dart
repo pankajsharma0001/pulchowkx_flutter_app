@@ -32,20 +32,25 @@ class HomePage extends StatelessWidget {
             child: Column(
               children: [
                 Expanded(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xl,
-                        vertical: 60,
-                      ),
-                      child: Column(
-                        children: [
-                          _buildHeroSection(context),
-                          const SizedBox(height: 48),
-                          _buildPrimaryNavigation(context),
-                          const SizedBox(height: 24),
-                          _buildFeaturePills(context),
-                        ],
+                  child: Center(
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xl,
+                          vertical: AppSpacing.xl,
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildHeroSection(context),
+                            const SizedBox(height: 48),
+                            _buildPrimaryNavigation(context),
+                            const SizedBox(height: 32),
+                            _buildSectionDivider(context),
+                            const SizedBox(height: 32),
+                            _buildFeaturePills(context),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -296,6 +301,17 @@ class HomePage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSectionDivider(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 4,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(2),
       ),
     );
   }

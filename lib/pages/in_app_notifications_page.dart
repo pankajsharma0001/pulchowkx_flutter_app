@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:pulchowkx_app/models/in_app_notification.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
@@ -10,6 +11,7 @@ import 'package:pulchowkx_app/pages/marketplace/chat_room.dart';
 import 'package:pulchowkx_app/pages/notices.dart';
 import 'package:pulchowkx_app/pages/book_details.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
+import 'package:pulchowkx_app/services/in_app_notification_service.dart';
 
 class InAppNotificationsPage extends StatefulWidget {
   const InAppNotificationsPage({super.key});
@@ -55,6 +57,7 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
 
     final success = await _apiService.markNotificationAsRead(notification.id);
     if (success) {
+      inAppNotifications.refreshUnreadCount();
       setState(() {
         _notifications = _notifications.map((n) {
           if (n.id == notification.id) {
@@ -81,6 +84,7 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
     haptics.mediumImpact();
     final success = await _apiService.markAllNotificationsAsRead();
     if (success) {
+      inAppNotifications.refreshUnreadCount();
       setState(() {
         _notifications = _notifications.map((n) {
           if (!n.isRead) {
@@ -168,10 +172,33 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.notifications_none_rounded,
-              size: 64,
-              color: isDark ? AppColors.textMutedDark : AppColors.textMuted,
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  Icons.notifications_none_rounded,
+                  size: 64,
+                  color: isDark
+                      ? AppColors.textMutedDark.withValues(alpha: 0.5)
+                      : AppColors.textMuted.withValues(alpha: 0.5),
+                ),
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Transform.rotate(
+                    angle: 0.2,
+                    child: Text(
+                      'Zzz',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             Text('No notifications yet', style: AppTextStyles.h3),
@@ -228,7 +255,8 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
           MaterialPageRoute(builder: (context) => const NoticesPage()),
         );
       }
-    } else if (notification.type.contains('book') &&
+    } else if ((notification.type.contains('book') ||
+            notification.type.contains('purchase_request')) &&
         notification.listingId != null) {
       navigator.push(
         MaterialPageRoute(

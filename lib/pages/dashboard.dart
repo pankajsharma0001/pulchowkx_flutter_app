@@ -17,8 +17,6 @@ import 'package:pulchowkx_app/pages/classroom/shared_widgets.dart';
 import 'package:pulchowkx_app/pages/admin/create_club_page.dart';
 import 'package:pulchowkx_app/pages/favorites_page.dart';
 import 'package:pulchowkx_app/pages/event_details.dart';
-import 'package:pulchowkx_app/pages/classroom.dart';
-import 'package:pulchowkx_app/pages/events.dart';
 import 'package:pulchowkx_app/pages/my_books.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 
@@ -248,8 +246,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
                   // Stats Grid
                   _isLoading ? const StatsGridShimmer() : _buildStatsGrid(),
-                  const SizedBox(height: AppSpacing.lg),
-
+                  const SizedBox(height: AppSpacing.md), // Reduced from lg
                   // Coming Up Section
                   _buildComingUpSection(),
                   const SizedBox(height: AppSpacing.lg),
@@ -653,7 +650,7 @@ class _DashboardPageState extends State<DashboardPage> {
           crossAxisCount: crossAxisCount,
           mainAxisSpacing: AppSpacing.md,
           crossAxisSpacing: AppSpacing.md,
-          childAspectRatio: isWide ? 2.2 : 2.0,
+          childAspectRatio: isWide ? 2.2 : 2.4,
           children: [
             StatCard(
               label: 'Assignments',
@@ -661,11 +658,7 @@ class _DashboardPageState extends State<DashboardPage> {
               icon: Icons.assignment_outlined,
               color: AppColors.primary,
               onTap: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(
-                    builder: (context) => const ClassroomPage(),
-                  ),
-                );
+                MainLayout.of(context)?.setSelectedIndex(2);
               },
             ),
             StatCard(
@@ -684,9 +677,7 @@ class _DashboardPageState extends State<DashboardPage> {
               icon: Icons.event_available_outlined,
               color: Colors.orange,
               onTap: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(builder: (context) => const EventsPage()),
-                );
+                MainLayout.of(context)?.setSelectedIndex(6);
               },
             ),
             StatCard(

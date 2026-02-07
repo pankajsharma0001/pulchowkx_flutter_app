@@ -172,6 +172,7 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
         child: RefreshIndicator(
           onRefresh: () async {
             haptics.mediumImpact();
+            await _apiService.invalidateBookListingsCache();
             await _loadListings();
           },
           child: CustomScrollView(
@@ -613,7 +614,9 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
                             initialBook: _listings[index],
                           ),
                         ),
-                      );
+                      ).then((_) {
+                        if (mounted) _loadListings();
+                      });
                     },
                   ),
                 ),

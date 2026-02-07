@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
@@ -108,6 +109,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                         _NotificationBell(
                           isActive: currentPage == AppPage.notifications,
                         ),
+                        const SizedBox(width: AppSpacing.sm),
                         if (isLoggedIn)
                           _UserAvatar(
                             photoUrl: user?.photoURL,
@@ -119,6 +121,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                           _CompactSignInButton(
                             onTap: () => _navigateToLogin(context, currentPage),
                           ),
+                        const SizedBox(width: AppSpacing.sm),
                         _MobileMoreMenu(
                           isLoggedIn: isLoggedIn,
                           currentPage: currentPage,
@@ -337,6 +340,19 @@ class _NotificationBell extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                       textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              else
+                Positioned(
+                  right: -4,
+                  top: -4,
+                  child: Text(
+                    'zzz',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: isActive ? AppColors.primary : AppColors.textMuted,
                     ),
                   ),
                 ),

@@ -326,6 +326,22 @@ class ApiService {
     await invalidateEventsCache();
   }
 
+  /// Invalidate book listings cache to force fresh fetch
+  Future<void> invalidateBookListingsCache() async {
+    try {
+      final box = Hive.box('api_cache');
+      final keys = box.keys.where(
+        (k) => k.toString().startsWith('book_listings_'),
+      );
+      for (final key in keys) {
+        await box.delete(key);
+      }
+      debugPrint('Invalidated ${keys.length} book listings cache entries');
+    } catch (e) {
+      debugPrint('Error invalidating book listings cache: $e');
+    }
+  }
+
   // ==================== CLUBS ====================
 
   /// Get all clubs
@@ -3107,6 +3123,14 @@ class ApiService {
         headers: await _getAuthHeader(),
         body: jsonEncode({'reason': reason}),
       );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true) {
+          await invalidateBookListingsCache();
+        }
+        return json;
+      }
 
       return jsonDecode(response.body);
     } catch (e) {

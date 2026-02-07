@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pulchowkx_app/main.dart' show navigatorKey;
 import 'package:pulchowkx_app/pages/marketplace/chat_room.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
+import 'package:pulchowkx_app/pages/book_details.dart';
 import 'dart:convert';
 
 class NotificationService {
@@ -331,6 +332,18 @@ class NotificationService {
     } else if (type == 'purchase_request_received' ||
         type == 'purchase_request_response' ||
         type == 'new_book') {
+      final listingId = data['listingId'];
+      if (listingId != null) {
+        final id = int.tryParse(listingId.toString());
+        if (id != null) {
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (context) => BookDetailsPage(bookId: id),
+            ),
+          );
+          return;
+        }
+      }
       MainLayout.of(context)?.setSelectedIndex(3); // Marketplace tab
     } else if (type == 'new_assignment' || type == 'assignment_graded') {
       MainLayout.of(context)?.setSelectedIndex(2); // Classroom tab
