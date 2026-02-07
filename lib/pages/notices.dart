@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pulchowkx_app/models/notice.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
+import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 
@@ -26,6 +28,9 @@ class _NoticesPageState extends State<NoticesPage>
   NoticeSection _activeSection = NoticeSection.results;
   NoticeSubsection _activeSubsection = NoticeSubsection.be;
 
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounce;
+
   @override
   void initState() {
     super.initState();
@@ -39,6 +44,8 @@ class _NoticesPageState extends State<NoticesPage>
   void dispose() {
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
+    _searchController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
@@ -53,10 +60,21 @@ class _NoticesPageState extends State<NoticesPage>
     }
   }
 
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _loadNotices();
+    });
+  }
+
   void _loadNotices() {
     setState(() {
       _noticesFuture = _apiService.getNotices(
-        NoticeFilters(section: _activeSection, subsection: _activeSubsection),
+        NoticeFilters(
+          section: _activeSection,
+          subsection: _activeSubsection,
+          search: _searchController.text.trim(),
+        ),
       );
     });
   }
@@ -75,6 +93,7 @@ class _NoticesPageState extends State<NoticesPage>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      appBar: const CustomAppBar(currentPage: AppPage.notices),
       body: Container(
         decoration: BoxDecoration(
           gradient: isDark
@@ -91,26 +110,15 @@ class _NoticesPageState extends State<NoticesPage>
             color: AppColors.primary,
             child: CustomScrollView(
               slivers: [
-                // App Bar
-                SliverAppBar(
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  floating: true,
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  title: Text(
-                    'Notices',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  centerTitle: true,
-                ),
-
-                // Header
+                // Header & Search
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      AppSpacing.xl,
+                      AppSpacing.lg,
+                      AppSpacing.sm,
+                    ),
                     child: Column(
                       children: [
                         Container(
@@ -121,7 +129,7 @@ class _NoticesPageState extends State<NoticesPage>
                             boxShadow: AppShadows.colored(AppColors.primary),
                           ),
                           child: const Icon(
-                            Icons.notifications_active_rounded,
+                            Icons.campaign_rounded,
                             size: 32,
                             color: Colors.white,
                           ),
@@ -129,39 +137,86 @@ class _NoticesPageState extends State<NoticesPage>
                         const SizedBox(height: AppSpacing.md),
                         Text(
                           'IOE Notices',
-                          style: Theme.of(context).textTheme.headlineMedium,
+                          style: AppTextStyles.h3.copyWith(
+                            color: isDark
+                                ? Colors.white
+                                : AppColors.textPrimary,
+                          ),
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
                           'Exam results & routines from IOE',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondary,
+                          ),
                           textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                        // Search Bar
+                        Container(
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? AppColors.surfaceDark
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(AppRadius.xl),
+                            boxShadow: AppShadows.sm,
+                            border: Border.all(
+                              color: isDark
+                                  ? AppColors.borderDark
+                                  : AppColors.border,
+                            ),
+                          ),
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: _onSearchChanged,
+                            decoration: InputDecoration(
+                              hintText: 'Search results, routines...',
+                              hintStyle: AppTextStyles.bodyMedium.copyWith(
+                                color: isDark
+                                    ? AppColors.textMutedDark
+                                    : AppColors.textMuted,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.search_rounded,
+                                color: isDark
+                                    ? AppColors.textMutedDark
+                                    : AppColors.textMuted,
+                              ),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear_rounded),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        _loadNotices();
+                                      },
+                                    )
+                                  : null,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
 
-                // Stats Row
-                if (_stats != null)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
-                      ),
-                      child: _buildStatsRow(),
-                    ),
-                  ),
-
                 // Section Tabs
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      AppSpacing.sm,
+                      AppSpacing.lg,
+                      AppSpacing.md,
+                    ),
                     child: Container(
                       decoration: BoxDecoration(
                         color: isDark
@@ -187,46 +242,35 @@ class _NoticesPageState extends State<NoticesPage>
                         unselectedLabelColor: isDark
                             ? AppColors.textSecondaryDark
                             : AppColors.textSecondary,
-                        labelStyle: AppTextStyles.labelLarge,
+                        labelStyle: AppTextStyles.labelSmall,
+                        unselectedLabelStyle: AppTextStyles.labelSmall,
                         tabs: [
                           Tab(
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.assignment_rounded, size: 18),
+                                const Icon(Icons.assignment_rounded, size: 16),
                                 const SizedBox(width: 8),
-                                const Text('Results'),
-                                if (_stats != null && _stats!.newCount > 0) ...[
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.error,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      '${_stats!.newCount}',
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                const Text(
+                                  'Results',
+                                  style: TextStyle(fontSize: 14),
+                                ),
                               ],
                             ),
                           ),
-                          const Tab(
+                          Tab(
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.calendar_today_rounded, size: 18),
-                                SizedBox(width: 8),
-                                Text('Routines'),
+                                const Icon(
+                                  Icons.calendar_month_rounded,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Routines',
+                                  style: TextStyle(fontSize: 14),
+                                ),
                               ],
                             ),
                           ),
@@ -243,17 +287,28 @@ class _NoticesPageState extends State<NoticesPage>
                       horizontal: AppSpacing.lg,
                     ),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _buildSubsectionChip(
                           NoticeSubsection.be,
-                          'B.E.',
+                          'B.E. Program',
                           Icons.engineering_rounded,
+                          _stats != null
+                              ? (_activeSection == NoticeSection.results
+                                    ? _stats!.beResults
+                                    : _stats!.beRoutines)
+                              : null,
                         ),
                         const SizedBox(width: AppSpacing.sm),
                         _buildSubsectionChip(
                           NoticeSubsection.msc,
-                          'M.Sc.',
+                          'M.Sc. Program',
                           Icons.school_rounded,
+                          _stats != null
+                              ? (_activeSection == NoticeSection.results
+                                    ? _stats!.mscResults
+                                    : _stats!.mscRoutines)
+                              : null,
                         ),
                       ],
                     ),
@@ -261,7 +316,7 @@ class _NoticesPageState extends State<NoticesPage>
                 ),
 
                 const SliverToBoxAdapter(
-                  child: SizedBox(height: AppSpacing.md),
+                  child: SizedBox(height: AppSpacing.sm),
                 ),
 
                 // Notices List
@@ -321,43 +376,11 @@ class _NoticesPageState extends State<NoticesPage>
     );
   }
 
-  Widget _buildStatsRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: _StatCard(
-            icon: Icons.assignment_rounded,
-            label: 'Results',
-            count: (_stats?.beResults ?? 0) + (_stats?.mscResults ?? 0),
-            color: AppColors.success,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: _StatCard(
-            icon: Icons.calendar_today_rounded,
-            label: 'Routines',
-            count: (_stats?.beRoutines ?? 0) + (_stats?.mscRoutines ?? 0),
-            color: AppColors.info,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: _StatCard(
-            icon: Icons.fiber_new_rounded,
-            label: 'New',
-            count: _stats?.newCount ?? 0,
-            color: AppColors.warning,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildSubsectionChip(
     NoticeSubsection subsection,
     String label,
     IconData icon,
+    int? count,
   ) {
     final isSelected = _activeSubsection == subsection;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -378,8 +401,11 @@ class _NoticesPageState extends State<NoticesPage>
               ? AppColors.primary
               : isDark
               ? AppColors.surfaceDark
-              : AppColors.surface,
+              : Colors.white,
           borderRadius: BorderRadius.circular(AppRadius.full),
+          boxShadow: isSelected
+              ? AppShadows.colored(AppColors.primary)
+              : AppShadows.sm,
           border: Border.all(
             color: isSelected
                 ? AppColors.primary
@@ -398,19 +424,43 @@ class _NoticesPageState extends State<NoticesPage>
                         ? AppColors.textSecondaryDark
                         : AppColors.textSecondary),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Text(
               label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+              style: AppTextStyles.labelMedium.copyWith(
                 color: isSelected
                     ? Colors.white
                     : (isDark
                           ? AppColors.textPrimaryDark
                           : AppColors.textPrimary),
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
               ),
             ),
+            if (count != null) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Colors.white.withValues(alpha: 0.2)
+                      : (isDark
+                            ? Colors.white10
+                            : Colors.black.withValues(alpha: 0.05)),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Text(
+                  '$count',
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: isSelected
+                        ? Colors.white
+                        : (isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -418,27 +468,40 @@ class _NoticesPageState extends State<NoticesPage>
   }
 
   Widget _buildEmptyState() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.notifications_off_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.surfaceDark : Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: AppShadows.sm,
+              ),
+              child: Icon(
+                Icons.notifications_off_outlined,
+                size: 48,
+                color: isDark ? AppColors.textMutedDark : AppColors.textMuted,
+              ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               'No Notices Found',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: AppTextStyles.h3.copyWith(
+                color: isDark ? Colors.white : AppColors.textPrimary,
+              ),
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               'There are no ${_activeSection.value} for ${_activeSubsection == NoticeSubsection.be ? "B.E." : "M.Sc."} yet.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -498,57 +561,6 @@ class _NoticesPageState extends State<NoticesPage>
   }
 }
 
-/// Stats card widget
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final int count;
-  final Color color;
-
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.count,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.border,
-        ),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(icon, size: 20, color: color),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            '$count',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-        ],
-      ),
-    );
-  }
-}
-
 /// Notice card widget
 class _NoticeCard extends StatelessWidget {
   final Notice notice;
@@ -563,8 +575,9 @@ class _NoticeCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        color: isDark ? AppColors.surfaceDark : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: AppShadows.sm,
         border: Border.all(
           color: isDark ? AppColors.borderDark : AppColors.border,
         ),
@@ -575,9 +588,9 @@ class _NoticeCard extends StatelessWidget {
           onTap: notice.attachmentUrl != null
               ? () => _openAttachment(context)
               : null,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
+          borderRadius: BorderRadius.circular(AppRadius.xl),
           child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -585,14 +598,17 @@ class _NoticeCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: _getSectionColor().withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        color: _getSectionColor().withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(
+                          color: _getSectionColor().withValues(alpha: 0.1),
+                        ),
                       ),
                       child: Icon(
                         _getAttachmentIcon(),
-                        size: 20,
+                        size: 24,
                         color: _getSectionColor(),
                       ),
                     ),
@@ -601,44 +617,53 @@ class _NoticeCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              if (notice.isNew) ...[
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.error,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Text(
-                                    'NEW',
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                          if (notice.isNew) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.error.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.full,
                                 ),
-                                const SizedBox(width: 8),
-                              ],
-                              Expanded(
-                                child: Text(
-                                  notice.title,
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w600),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
+                                border: Border.all(
+                                  color: AppColors.error.withValues(alpha: 0.2),
                                 ),
                               ),
-                            ],
+                              child: Text(
+                                'RECENTLY POSTED',
+                                style: AppTextStyles.labelSmall.copyWith(
+                                  color: AppColors.error,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                          ],
+                          Text(
+                            notice.title,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: isDark
+                                  ? Colors.white
+                                  : AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                              height: 1.3,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 6),
                           Text(
                             notice.content,
-                            style: Theme.of(context).textTheme.bodyMedium,
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondary,
+                              height: 1.4,
+                            ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -648,52 +673,56 @@ class _NoticeCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.access_time_rounded,
-                      size: 14,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      dateFormat.format(notice.createdAt),
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const Spacer(),
-                    if (notice.attachmentUrl != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppRadius.full),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              notice.attachmentType == NoticeAttachmentType.pdf
-                                  ? Icons.picture_as_pdf_rounded
-                                  : Icons.image_rounded,
-                              size: 14,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'View',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ],
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.black.withValues(alpha: 0.2)
+                        : AppColors.background,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today_rounded,
+                        size: 14,
+                        color: isDark
+                            ? AppColors.textMutedDark
+                            : AppColors.textMuted,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        dateFormat.format(notice.createdAt),
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
                         ),
                       ),
-                  ],
+                      const Spacer(),
+                      if (notice.attachmentUrl != null) ...[
+                        Text(
+                          notice.attachmentType == NoticeAttachmentType.pdf
+                              ? 'PDF DOCUMENT'
+                              : 'IMAGE ATTACHMENT',
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 9,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 10,
+                          color: AppColors.primary,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -750,10 +779,11 @@ class _NoticeCardShimmer extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        color: isDark ? AppColors.surfaceDark : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: AppShadows.sm,
         border: Border.all(
           color: isDark ? AppColors.borderDark : AppColors.border,
         ),
@@ -763,11 +793,11 @@ class _NoticeCardShimmer extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(AppRadius.md),
+                borderRadius: BorderRadius.circular(AppRadius.lg),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -775,17 +805,24 @@ class _NoticeCardShimmer extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(height: 14, width: 200, color: Colors.white),
-                  const SizedBox(height: 8),
+                  Container(height: 18, width: 220, color: Colors.white),
+                  const SizedBox(height: 10),
                   Container(
                     height: 12,
                     width: double.infinity,
                     color: Colors.white,
                   ),
-                  const SizedBox(height: 4),
-                  Container(height: 12, width: 150, color: Colors.white),
+                  const SizedBox(height: 6),
+                  Container(height: 12, width: 180, color: Colors.white),
                   const SizedBox(height: 12),
-                  Container(height: 10, width: 100, color: Colors.white),
+                  Container(
+                    height: 32,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                  ),
                 ],
               ),
             ),

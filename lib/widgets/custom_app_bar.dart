@@ -22,6 +22,7 @@ enum AppPage {
   dashboard,
   bookMarketplace,
   classroom,
+  notices,
   login,
 }
 
@@ -39,7 +40,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 600;
     final isMoreActive =
-        currentPage == AppPage.clubs || currentPage == AppPage.events;
+        currentPage == AppPage.clubs ||
+        currentPage == AppPage.events ||
+        currentPage == AppPage.notices;
 
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
@@ -640,10 +643,22 @@ class _MobileMoreMenu extends StatelessWidget {
               Icon(
                 Icons.campaign_rounded,
                 size: 20,
-                color: AppColors.textSecondary,
+                color: currentPage == AppPage.notices
+                    ? AppColors.primary
+                    : AppColors.textSecondary,
               ),
               const SizedBox(width: 12),
-              const Text('IOE Notices'),
+              Text(
+                'IOE Notices',
+                style: TextStyle(
+                  color: currentPage == AppPage.notices
+                      ? AppColors.primary
+                      : null,
+                  fontWeight: currentPage == AppPage.notices
+                      ? FontWeight.bold
+                      : null,
+                ),
+              ),
             ],
           ),
         ),

@@ -1060,7 +1060,10 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
@@ -1071,7 +1074,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
           style: ElevatedButton.styleFrom(
             backgroundColor: buttonColor,
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+            padding: const EdgeInsets.symmetric(vertical: 10),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
