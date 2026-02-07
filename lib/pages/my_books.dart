@@ -171,7 +171,7 @@ class _MyBooksPageState extends State<MyBooksPage>
               controller: _tabController,
               children: [
                 _buildMyListings(),
-                const BookRequestsPage(),
+                const BookRequestsPage(showAppBar: false),
                 _buildSavedBooks(),
               ],
             ),

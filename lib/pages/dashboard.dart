@@ -4,7 +4,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/auth/service/google_auth.dart';
 import 'package:pulchowkx_app/pages/marketplace/book_requests_page.dart';
-import 'package:pulchowkx_app/pages/book_marketplace.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:intl/intl.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
@@ -16,6 +15,12 @@ import 'package:pulchowkx_app/models/notice.dart';
 import 'package:pulchowkx_app/models/book_listing.dart';
 import 'package:pulchowkx_app/pages/classroom/shared_widgets.dart';
 import 'package:pulchowkx_app/pages/admin/create_club_page.dart';
+import 'package:pulchowkx_app/pages/favorites_page.dart';
+import 'package:pulchowkx_app/pages/notices.dart';
+import 'package:pulchowkx_app/pages/event_details.dart';
+import 'package:pulchowkx_app/pages/classroom.dart';
+import 'package:pulchowkx_app/pages/events.dart';
+import 'package:pulchowkx_app/pages/my_books.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -29,15 +34,14 @@ class _DashboardPageState extends State<DashboardPage> {
   final ApiService _apiService = ApiService();
   bool _isAdmin = false;
   bool _isLoading = true;
-  int _upcomingEnrollments = 0;
+  int _upcomingEnrollmentsCount = 0;
+  List<EventRegistration> _enrolledEvents = [];
 
   // Additional stats to match webapp
-  int _subjectsCount = 0;
   int _pendingAssignmentsCount = 0;
   int _newNoticesCount = 0;
   int _myBooksCount = 0;
 
-  List<Assignment> _urgentAssignments = [];
   List<Assignment> _pendingAssignments = [];
   List<ClubEvent> _upcomingEvents = [];
   List<BookListing> _myBooks = [];
@@ -86,15 +90,11 @@ class _DashboardPageState extends State<DashboardPage> {
 
       // Aggregate assignments
       List<Assignment> pendingAssignments = [];
-      List<Assignment> urgentAssignments = [];
       for (var subject in subjects) {
         if (subject.assignments != null) {
           for (var assignment in subject.assignments!) {
             if (assignment.submission == null) {
               pendingAssignments.add(assignment);
-              if (assignment.isDueSoon || assignment.isOverdue) {
-                urgentAssignments.add(assignment);
-              }
             }
           }
         }
@@ -103,21 +103,22 @@ class _DashboardPageState extends State<DashboardPage> {
       if (mounted) {
         setState(() {
           _isAdmin = isAdminResult;
-          _upcomingEnrollments = enrollments
+          final comingEvents = enrollments
               .where(
                 (e) =>
                     e.event != null &&
                     e.event!.eventStartTime.isAfter(now) &&
                     e.status == 'registered',
               )
-              .length;
+              .toList();
 
-          _subjectsCount = subjects.length;
+          _upcomingEnrollmentsCount = comingEvents.length;
+          _enrolledEvents = comingEvents;
+
           _pendingAssignmentsCount = pendingAssignments.length;
           _newNoticesCount = noticeStats?.newCount ?? 0;
           _myBooksCount = myBooksResult.length;
 
-          _urgentAssignments = urgentAssignments;
           _pendingAssignments = pendingAssignments;
           _upcomingEvents = upcomingEventsResult;
           _myBooks = myBooksResult;
@@ -209,128 +210,150 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         appBar: const CustomAppBar(currentPage: AppPage.dashboard),
-        body: RefreshIndicator(
-          onRefresh: _fetchDashboardData,
-          displacement: 20,
-          color: AppColors.primary,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.lg,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Profile Header
-                _isLoading
-                    ? const DashboardHeaderShimmer()
-                    : _buildProfileHeader(
-                        FirebaseAuth.instance.currentUser?.displayName ??
-                            'Student',
-                        FirebaseAuth.instance.currentUser?.email ?? '',
-                        FirebaseAuth.instance.currentUser?.photoURL,
-                      ),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: isDark
+                ? AppColors.heroGradientDark
+                : AppColors.heroGradient,
+          ),
+          child: RefreshIndicator(
+            onRefresh: _fetchDashboardData,
+            displacement: 20,
+            color: AppColors.primary,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.lg,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Profile Header
+                  _isLoading
+                      ? const DashboardHeaderShimmer()
+                      : _buildProfileHeader(
+                          FirebaseAuth.instance.currentUser?.displayName ??
+                              'Student',
+                          FirebaseAuth.instance.currentUser?.email ?? '',
+                          FirebaseAuth.instance.currentUser?.photoURL,
+                        ),
 
-                const SizedBox(height: AppSpacing.xl),
+                  const SizedBox(height: AppSpacing.lg),
 
-                // Stats Grid
-                _isLoading ? const StatsGridShimmer() : _buildStatsGrid(),
-                const SizedBox(height: AppSpacing.xl),
+                  // Stats Grid
+                  _isLoading ? const StatsGridShimmer() : _buildStatsGrid(),
+                  const SizedBox(height: AppSpacing.lg),
 
-                // Urgent Items
-                _buildUrgentItemsSection(),
-                const SizedBox(height: AppSpacing.xl),
+                  // Coming Up Section
+                  _buildComingUpSection(),
+                  const SizedBox(height: AppSpacing.lg),
 
-                // Quick Actions Header
-                _buildSectionHeader('Quick Actions'),
-                const SizedBox(height: AppSpacing.md),
-                _isLoading
-                    ? GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 2,
-                        mainAxisSpacing: AppSpacing.md,
-                        crossAxisSpacing: AppSpacing.md,
-                        childAspectRatio: 1.4,
-                        children: const [
-                          QuickActionShimmer(),
-                          QuickActionShimmer(),
-                          QuickActionShimmer(),
-                          QuickActionShimmer(),
-                        ],
-                      )
-                    : GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 2,
-                        mainAxisSpacing: AppSpacing.md,
-                        crossAxisSpacing: AppSpacing.md,
-                        childAspectRatio: 1.4,
-                        children: [
-                          _QuickActionCard(
-                            icon: Icons.book_rounded,
-                            title: 'My Books',
-                            description: 'Manage your book listings',
-                            color: Colors.blue,
-                            heroTag: 'my-books',
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const BookMarketplacePage(),
+                  // Quick Actions Header
+                  _buildSectionHeader('Quick Actions'),
+                  const SizedBox(height: AppSpacing.sm),
+                  _isLoading
+                      ? Column(
+                          children: const [
+                            QuickActionShimmer(),
+                            SizedBox(height: AppSpacing.md),
+                            QuickActionShimmer(),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            if (_isAdmin) ...[
+                              _QuickActionCard(
+                                icon: Icons.add_circle_outline_rounded,
+                                title: 'Create Club',
+                                description:
+                                    'Set up a new student organization',
+                                color: AppColors.primary,
+                                heroTag: 'create-club',
+                                onTap: () =>
+                                    Navigator.of(
+                                      context,
+                                      rootNavigator: true,
+                                    ).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const CreateClubPage(),
+                                      ),
+                                    ),
                               ),
-                            ),
-                          ),
-                          _QuickActionCard(
-                            icon: Icons.shopping_bag_rounded,
-                            title: 'Book Requests',
-                            description: 'View active book requests',
-                            color: Colors.orange,
-                            heroTag: 'book-requests',
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const BookRequestsPage(),
-                              ),
-                            ),
-                          ),
-                          _QuickActionCard(
-                            icon: Icons.settings_rounded,
-                            title: 'Settings',
-                            description: 'App preferences and info',
-                            color: Colors.grey,
-                            heroTag: 'settings',
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const SettingsPage(),
-                              ),
-                            ),
-                          ),
-                          if (_isAdmin)
+                              const SizedBox(height: AppSpacing.md),
+                            ],
                             _QuickActionCard(
-                              icon: Icons.add_circle_outline_rounded,
-                              title: 'Create Club',
-                              description: 'Set up a new student organization',
-                              color: AppColors.primary,
-                              heroTag: 'create-club',
-                              onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => const CreateClubPage(),
-                                ),
-                              ),
+                              icon: Icons.favorite_rounded,
+                              title: 'Favorites',
+                              description: 'View your saved events and clubs',
+                              color: Colors.redAccent,
+                              heroTag: 'favorites',
+                              onTap: () =>
+                                  Navigator.of(
+                                    context,
+                                    rootNavigator: true,
+                                  ).push(
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const FavoritesPage(),
+                                    ),
+                                  ),
                             ),
-                        ],
-                      ),
+                            const SizedBox(height: AppSpacing.md),
+                            _QuickActionCard(
+                              icon: Icons.shopping_bag_rounded,
+                              title: 'Book Requests',
+                              description: 'View active book requests',
+                              color: Colors.orange,
+                              heroTag: 'book-requests',
+                              onTap: () =>
+                                  Navigator.of(
+                                    context,
+                                    rootNavigator: true,
+                                  ).push(
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const BookRequestsPage(
+                                            showAppBar: true,
+                                          ),
+                                    ),
+                                  ),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            _QuickActionCard(
+                              icon: Icons.settings_rounded,
+                              title: 'Settings',
+                              description: 'App preferences and info',
+                              color: Colors.grey,
+                              heroTag: 'settings',
+                              onTap: () =>
+                                  Navigator.of(
+                                    context,
+                                    rootNavigator: true,
+                                  ).push(
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const SettingsPage(),
+                                    ),
+                                  ),
+                            ),
+                          ],
+                        ),
 
-                const SizedBox(height: AppSpacing.xxl),
+                  const SizedBox(height: AppSpacing.xxl),
 
-                // Activity Section
-                _buildActivitySection(),
-                const SizedBox(height: AppSpacing.xxl),
-              ],
+                  // Activity Section
+                  _buildActivitySection(),
+                  const SizedBox(height: AppSpacing.xxl),
+                ],
+              ),
             ),
           ),
         ),
@@ -562,13 +585,16 @@ class _DashboardPageState extends State<DashboardPage> {
                             color: AppColors.primary,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            'Student Dashboard'.toUpperCase(),
-                            style: AppTextStyles.labelSmall.copyWith(
-                              color: AppColors.primary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.1,
+                          Flexible(
+                            child: Text(
+                              'Student Dashboard'.toUpperCase(),
+                              style: AppTextStyles.labelSmall.copyWith(
+                                color: AppColors.primary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.1,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -579,7 +605,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       name,
                       style: AppTextStyles.h4.copyWith(
                         fontWeight: FontWeight.w900,
-                        fontSize: 22,
+                        fontSize: 17,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -588,7 +614,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       email,
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.textMuted,
-                        fontSize: 13,
+                        fontSize: 10,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -596,56 +622,16 @@ class _DashboardPageState extends State<DashboardPage> {
                   ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.of(
-                      context,
-                      rootNavigator: true,
-                    ).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (context) => const MainLayout(initialIndex: 3),
-                      ),
-                      (route) => false,
-                    );
-                  },
-                  icon: const Icon(Icons.class_outlined, size: 18),
-                  label: const Text('Go to Classroom'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.lg),
-                    ),
-                    elevation: 0,
-                  ),
-                ),
-              ),
               const SizedBox(width: AppSpacing.md),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  border: Border.all(
-                    color:
-                        Theme.of(context).dividerTheme.color ??
-                        AppColors.border,
-                  ),
+              IconButton(
+                onPressed: () => _handleSignOut(context),
+                icon: const Icon(
+                  Icons.logout_rounded,
+                  color: AppColors.error,
+                  size: 22,
                 ),
-                child: IconButton(
-                  onPressed: () => _handleSignOut(context),
-                  icon: const Icon(
-                    Icons.logout_rounded,
-                    color: AppColors.error,
-                  ),
-                  tooltip: 'Sign Out',
-                  padding: const EdgeInsets.all(12),
-                ),
+                tooltip: 'Sign Out',
+                padding: const EdgeInsets.only(left: 8, top: 8, bottom: 8),
               ),
             ],
           ),
@@ -666,37 +652,53 @@ class _DashboardPageState extends State<DashboardPage> {
           crossAxisCount: crossAxisCount,
           mainAxisSpacing: AppSpacing.md,
           crossAxisSpacing: AppSpacing.md,
-          childAspectRatio: isWide ? 1.5 : 1.3,
+          childAspectRatio: isWide ? 2.2 : 2.0,
           children: [
             StatCard(
               label: 'Assignments',
               value: _pendingAssignmentsCount.toString(),
               icon: Icons.assignment_outlined,
               color: AppColors.primary,
-            ),
-            StatCard(
-              label: 'Subjects',
-              value: _subjectsCount.toString(),
-              icon: Icons.book_outlined,
-              color: AppColors.accent,
+              onTap: () {
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (context) => const ClassroomPage(),
+                  ),
+                );
+              },
             ),
             StatCard(
               label: 'Notices',
               value: _newNoticesCount.toString(),
               icon: Icons.notification_important_outlined,
               color: AppColors.success,
+              onTap: () {
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(builder: (context) => const NoticesPage()),
+                );
+              },
             ),
             StatCard(
               label: 'Events',
-              value: _upcomingEnrollments.toString(),
+              value: _upcomingEnrollmentsCount.toString(),
               icon: Icons.event_available_outlined,
               color: Colors.orange,
+              onTap: () {
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(builder: (context) => const EventsPage()),
+                );
+              },
             ),
             StatCard(
               label: 'Books',
               value: _myBooksCount.toString(),
               icon: Icons.library_books_outlined,
               color: Colors.purple,
+              onTap: () {
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(builder: (context) => const MyBooksPage()),
+                );
+              },
             ),
           ],
         );
@@ -704,102 +706,92 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildUrgentItemsSection() {
-    if (_urgentAssignments.isEmpty && _upcomingEvents.isEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader('Urgent Items'),
-          const SizedBox(height: AppSpacing.md),
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardTheme.color?.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(AppRadius.xl),
-              border: Border.all(
-                color: AppColors.success.withValues(alpha: 0.1),
-              ),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.check_circle_outline_rounded,
-                  color: AppColors.success,
-                  size: 24,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Text(
-                  'All caught up! No urgent tasks.',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.textMuted,
-                    fontWeight: FontWeight.w600,
+  Widget _buildComingUpSection() {
+    final List<Widget> items = [];
+
+    // Add Assignments
+    for (var assignment in _pendingAssignments) {
+      items.add(
+        _ComingUpItem(
+          title: assignment.title,
+          subtitle: assignment.dueAt != null
+              ? 'Due: ${DateFormat('MMM dd').format(assignment.dueAt!)}'
+              : 'Pending',
+          icon: Icons.assignment_outlined,
+          color: assignment.isDueSoon ? AppColors.error : AppColors.primary,
+          onTap: () {
+            // Navigate to classroom tab
+            MainLayout.of(context)?.setSelectedIndex(2);
+          },
+        ),
+      );
+    }
+
+    // Add Enrolled Events
+    for (var enrollment in _enrolledEvents) {
+      if (enrollment.event != null) {
+        items.add(
+          _ComingUpItem(
+            title: enrollment.event!.title,
+            subtitle: DateFormat(
+              'MMM d, h:mm a',
+            ).format(enrollment.event!.eventStartTime),
+            icon: Icons.event_available_rounded,
+            color: Colors.orange,
+            onTap: () {
+              // Navigate to specific event details
+              Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(
+                  builder: (context) => EventDetailsPage(
+                    event: enrollment.event,
+                    eventId: enrollment.event!.id,
                   ),
                 ),
-              ],
-            ),
+              );
+            },
           ),
-        ],
+        );
+      }
+    }
+
+    if (items.isEmpty && !_isLoading) {
+      return Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardTheme.color?.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: AppColors.success.withValues(alpha: 0.1)),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.check_circle_outline_rounded,
+              color: AppColors.success,
+              size: 20,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Text(
+              'All caught up!',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
       );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildSectionHeader('Urgent Items'),
-            if (_urgentAssignments.length + _upcomingEvents.length > 1)
-              Text(
-                '${_urgentAssignments.length + _upcomingEvents.length} items',
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.textMuted,
-                ),
-              ),
-          ],
-        ),
+        _buildSectionHeader('Coming Up'),
         const SizedBox(height: AppSpacing.md),
         SizedBox(
-          height: 110,
-          child: ListView(
+          height: 70,
+          child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            children: [
-              ..._urgentAssignments.map(
-                (a) => _UrgentItemCard(
-                  title: a.title,
-                  subtitle: a.dueAt != null
-                      ? 'Due ${DateFormat('MMM dd').format(a.dueAt!)}'
-                      : 'Homework',
-                  icon: Icons.assignment_late_rounded,
-                  color: AppColors.error,
-                  onTap: () {
-                    // Quick navigation to classroom
-                    Navigator.of(
-                      context,
-                      rootNavigator: true,
-                    ).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (context) => const MainLayout(initialIndex: 3),
-                      ),
-                      (route) => false,
-                    );
-                  },
-                ),
-              ),
-              ..._upcomingEvents.map(
-                (e) => _UrgentItemCard(
-                  title: e.title,
-                  subtitle:
-                      'Starting ${DateFormat('MMM dd').format(e.eventStartTime)}',
-                  icon: Icons.event_note_rounded,
-                  color: AppColors.primary,
-                  onTap: () {
-                    // Already in dashboard, maybe show details dialog if possible
-                  },
-                ),
-              ),
-            ],
+            itemCount: items.length,
+            itemBuilder: (context, index) => items[index],
           ),
         ),
       ],
@@ -827,14 +819,14 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
-class _UrgentItemCard extends StatelessWidget {
+class _ComingUpItem extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
 
-  const _UrgentItemCard({
+  const _ComingUpItem({
     required this.title,
     required this.subtitle,
     required this.icon,
@@ -845,36 +837,32 @@ class _UrgentItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 240,
+      width: 200,
       margin: const EdgeInsets.only(right: AppSpacing.md),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: color.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(AppRadius.xl),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
-                  child: Icon(icon, color: color, size: 24),
+                  child: Icon(icon, color: color, size: 18),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
@@ -885,8 +873,8 @@ class _UrgentItemCard extends StatelessWidget {
                       Text(
                         title,
                         style: AppTextStyles.labelLarge.copyWith(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -895,7 +883,7 @@ class _UrgentItemCard extends StatelessWidget {
                         subtitle,
                         style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.textMuted,
-                          fontSize: 12,
+                          fontSize: 10,
                         ),
                       ),
                     ],
@@ -961,9 +949,11 @@ class _QuickActionCardState extends State<_QuickActionCard> {
             onTap: widget.onTap,
             borderRadius: BorderRadius.circular(AppRadius.xl),
             child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
@@ -976,21 +966,34 @@ class _QuickActionCardState extends State<_QuickActionCard> {
                       child: Icon(widget.icon, color: widget.color, size: 20),
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    widget.title,
-                    style: AppTextStyles.labelLarge.copyWith(
-                      fontWeight: FontWeight.w800,
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          widget.title,
+                          style: AppTextStyles.labelLarge.copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.description,
+                          style: AppTextStyles.bodySmall.copyWith(fontSize: 11),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Expanded(
-                    child: Text(
-                      widget.description,
-                      style: AppTextStyles.bodySmall.copyWith(fontSize: 11),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.textMuted.withValues(alpha: 0.5),
                   ),
                 ],
               ),

@@ -9,7 +9,8 @@ import 'package:pulchowkx_app/pages/marketplace/chat_room.dart';
 import 'package:pulchowkx_app/models/chat.dart';
 
 class BookRequestsPage extends StatefulWidget {
-  const BookRequestsPage({super.key});
+  final bool showAppBar;
+  const BookRequestsPage({super.key, this.showAppBar = true});
 
   @override
   State<BookRequestsPage> createState() => _BookRequestsPageState();
@@ -276,35 +277,58 @@ class _BookRequestsPageState extends State<BookRequestsPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Column(
-      children: [
-        Container(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          child: TabBar(
-            controller: _tabController,
-            labelColor: AppColors.primary,
-            unselectedLabelColor: Theme.of(context).textTheme.bodyMedium?.color,
-            indicatorColor: AppColors.primary,
-            tabs: const [
-              Tab(text: 'Sent'),
-              Tab(text: 'Received'),
-            ],
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final content = Container(
+      decoration: BoxDecoration(
+        gradient: isDark ? AppColors.heroGradientDark : AppColors.heroGradient,
+      ),
+      child: Column(
+        children: [
+          Container(
+            color: Colors.transparent,
+            child: TabBar(
+              controller: _tabController,
+              labelColor: AppColors.primary,
+              unselectedLabelColor: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.color,
+              indicatorColor: AppColors.primary,
+              tabs: const [
+                Tab(text: 'Sent'),
+                Tab(text: 'Received'),
+              ],
+            ),
           ),
-        ),
-        Expanded(
-          child: _isLoading
-              ? ListView.builder(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  itemCount: 3,
-                  itemBuilder: (context, index) => const RequestCardShimmer(),
-                )
-              : TabBarView(
-                  controller: _tabController,
-                  children: [_buildSentList(), _buildReceivedList()],
-                ),
-        ),
-      ],
+          Expanded(
+            child: _isLoading
+                ? ListView.builder(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    itemCount: 3,
+                    itemBuilder: (context, index) => const RequestCardShimmer(),
+                  )
+                : TabBarView(
+                    controller: _tabController,
+                    children: [_buildSentList(), _buildReceivedList()],
+                  ),
+          ),
+        ],
+      ),
     );
+
+    if (widget.showAppBar) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('Book Requests', style: AppTextStyles.h4),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: false,
+        ),
+        body: content,
+      );
+    } else {
+      return content;
+    }
   }
 
   Widget _buildSentList() {
