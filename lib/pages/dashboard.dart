@@ -435,7 +435,7 @@ class _DashboardPageState extends State<DashboardPage> {
             Text(
               emptyText,
               style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textMuted,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
               ),
             ),
           ],
@@ -488,7 +488,9 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           subtitle: Text(
             subtitle,
-            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+            style: AppTextStyles.bodySmall.copyWith(
+              color: Theme.of(context).textTheme.bodySmall?.color,
+            ),
           ),
           trailing: const Icon(Icons.chevron_right_rounded, size: 18),
           onTap: () {
@@ -613,7 +615,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     Text(
                       email,
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textMuted,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                         fontSize: 10,
                       ),
                       maxLines: 1,
@@ -773,7 +775,7 @@ class _DashboardPageState extends State<DashboardPage> {
             Text(
               'All caught up!',
               style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
           ],

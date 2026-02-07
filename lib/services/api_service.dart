@@ -1424,27 +1424,46 @@ class ApiService {
 
   /// Get a single book listing by ID
   Future<BookListing?> getBookListingById(int id) async {
-    try {
-      final userId = await getDatabaseUserId();
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/books/listings/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (userId != null) 'Authorization': 'Bearer $userId',
-        },
-      );
+    final String cacheKey = 'book_listing_${id}_cache';
+    bool isOnline = await _hasInternetConnection();
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
+    if (isOnline) {
+      try {
+        final userId = await getDatabaseUserId();
+        final response = await http.get(
+          Uri.parse('$apiBaseUrl/books/listings/$id'),
+          headers: {
+            'Content-Type': 'application/json',
+            if (userId != null) 'Authorization': 'Bearer $userId',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+          if (json['success'] == true && json['data'] != null) {
+            return BookListing.fromJson(json['data'] as Map<String, dynamic>);
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching book details online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
         if (json['success'] == true && json['data'] != null) {
           return BookListing.fromJson(json['data'] as Map<String, dynamic>);
         }
+      } catch (e) {
+        debugPrint('Error parsing cached book details: $e');
       }
-      return null;
-    } catch (e) {
-      debugPrint('Error fetching book details: $e');
-      return null;
     }
+
+    return null;
   }
 
   /// Create a new book listing
@@ -1878,20 +1897,44 @@ class ApiService {
 
   /// Get purchase requests for a specific listing (seller's view)
   Future<List<BookPurchaseRequest>> getListingRequests(int listingId) async {
-    try {
-      final userId = await getDatabaseUserId();
-      if (userId == null) return [];
+    final userId = await getDatabaseUserId();
+    if (userId == null) return [];
 
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/books/listings/$listingId/requests'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
-      );
+    final String cacheKey = 'listing_requests_${listingId}_cache';
+    bool isOnline = await _hasInternetConnection();
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
+    if (isOnline) {
+      try {
+        final response = await http.get(
+          Uri.parse('$apiBaseUrl/books/listings/$listingId/requests'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $userId',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+          if (json['success'] == true && json['data'] != null) {
+            return (json['data'] as List)
+                .map(
+                  (e) =>
+                      BookPurchaseRequest.fromJson(e as Map<String, dynamic>),
+                )
+                .toList();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching listing requests online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
         if (json['success'] == true && json['data'] != null) {
           return (json['data'] as List)
               .map(
@@ -1899,30 +1942,54 @@ class ApiService {
               )
               .toList();
         }
+      } catch (e) {
+        debugPrint('Error parsing cached listing requests: $e');
       }
-      return [];
-    } catch (e) {
-      debugPrint('Error fetching listing requests: $e');
-      return [];
     }
+
+    return [];
   }
 
   /// Get my outgoing purchase requests (buyer's view)
   Future<List<BookPurchaseRequest>> getMyPurchaseRequests() async {
-    try {
-      final userId = await getDatabaseUserId();
-      if (userId == null) return [];
+    final userId = await getDatabaseUserId();
+    if (userId == null) return [];
 
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/books/my-requests'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
-      );
+    final String cacheKey = 'my_purchase_requests_${userId}_cache';
+    bool isOnline = await _hasInternetConnection();
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
+    if (isOnline) {
+      try {
+        final response = await http.get(
+          Uri.parse('$apiBaseUrl/books/my-requests'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $userId',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+          if (json['success'] == true && json['data'] != null) {
+            return (json['data'] as List)
+                .map(
+                  (e) =>
+                      BookPurchaseRequest.fromJson(e as Map<String, dynamic>),
+                )
+                .toList();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching my requests online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
         if (json['success'] == true && json['data'] != null) {
           return (json['data'] as List)
               .map(
@@ -1930,12 +1997,12 @@ class ApiService {
               )
               .toList();
         }
+      } catch (e) {
+        debugPrint('Error parsing cached my requests: $e');
       }
-      return [];
-    } catch (e) {
-      debugPrint('Error fetching my requests: $e');
-      return [];
     }
+
+    return [];
   }
 
   /// Respond to a purchase request (Accept/Reject)
@@ -2463,22 +2530,46 @@ class ApiService {
   Future<List<AssignmentSubmission>> getAssignmentSubmissions(
     int assignmentId,
   ) async {
-    try {
-      final userId = await getDatabaseUserId();
-      if (userId == null) return [];
+    final userId = await getDatabaseUserId();
+    if (userId == null) return [];
 
-      final response = await http.get(
-        Uri.parse(
-          '$apiBaseUrl/classroom/assignments/$assignmentId/submissions',
-        ),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
-      );
+    final String cacheKey = 'assignment_submissions_${assignmentId}_cache';
+    bool isOnline = await _hasInternetConnection();
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
+    if (isOnline) {
+      try {
+        final response = await http.get(
+          Uri.parse(
+            '$apiBaseUrl/classroom/assignments/$assignmentId/submissions',
+          ),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $userId',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+          if (json['success'] == true && json['submissions'] != null) {
+            return (json['submissions'] as List)
+                .map(
+                  (e) =>
+                      AssignmentSubmission.fromJson(e as Map<String, dynamic>),
+                )
+                .toList();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching submissions online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
         if (json['success'] == true && json['submissions'] != null) {
           return (json['submissions'] as List)
               .map(
@@ -2486,12 +2577,12 @@ class ApiService {
               )
               .toList();
         }
+      } catch (e) {
+        debugPrint('Error parsing cached submissions: $e');
       }
-      return [];
-    } catch (e) {
-      debugPrint('Error fetching submissions: $e');
-      return [];
     }
+
+    return [];
   }
 
   /// Check if user is a teacher

@@ -84,7 +84,7 @@ class HomePage extends StatelessWidget {
               Text(
                 'Smart Pulchowk v2.0',
                 style: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).textTheme.bodySmall?.color,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.2,
                 ),
@@ -134,7 +134,7 @@ class HomePage extends StatelessWidget {
             'Everything you need for Pulchowk Campus, organized in one beautiful interface.',
             textAlign: TextAlign.center,
             style: AppTextStyles.bodyLarge.copyWith(
-              color: AppColors.textSecondary,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
               height: 1.5,
               fontWeight: FontWeight.w500,
             ),
@@ -281,12 +281,16 @@ class HomePage extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppColors.textSecondary, size: 18),
+            Icon(
+              icon,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+              size: 18,
+            ),
             const SizedBox(width: 8),
             Text(
               label,
               style: AppTextStyles.labelMedium.copyWith(
-                color: AppColors.textSecondary,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
                 fontWeight: FontWeight.w600,
               ),
             ),

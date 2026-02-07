@@ -12,10 +12,10 @@ class AppColors {
   static const Color accentLight = Color(0xFFEFF6FF); // Blue-50
 
   // Background colors (Light)
-  static const Color background = Color(0xFFF8FAFC);
-  static const Color backgroundSecondary = Color(0xFFF1F5F9);
-  static const Color surface = Colors.white;
-  static const Color cardBackground = Colors.white;
+  static const Color background = Color(0xFFF1F5F9); // Slate-100
+  static const Color backgroundSecondary = Color(0xFFF8FAFC); // Slate-50
+  static const Color surface = Color(0xFFF8FAFC); // Slate-50
+  static const Color cardBackground = Color(0xFFF8FAFC); // Slate-50
 
   // Background colors (Dark)
   static const Color backgroundDark = Color(0xFF0F172A);
@@ -30,8 +30,8 @@ class AppColors {
 
   // Text colors (Dark)
   static const Color textPrimaryDark = Color(0xFFF8FAFC);
-  static const Color textSecondaryDark = Color(0xFFCBD5E1);
-  static const Color textMutedDark = Color(0xFF64748B);
+  static const Color textSecondaryDark = Color(0xFF94A3B8); // Slate-400
+  static const Color textMutedDark = Color(0xFF64748B); // Slate-500
 
   // Status colors
   static const Color success = Color(0xFF10B981);
