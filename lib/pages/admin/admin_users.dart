@@ -111,12 +111,13 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             ElevatedButton(
               onPressed: () async {
                 Navigator.pop(dialogContext);
+                final messenger = ScaffoldMessenger.of(context);
                 final success = await _apiService.updateAdminUserRole(
                   user['id'],
                   selectedRole,
                 );
                 if (success && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(content: Text('User role updated')),
                   );
                   _loadUsers();

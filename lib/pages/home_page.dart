@@ -113,9 +113,8 @@ class HomePage extends StatelessWidget {
         ShaderMask(
           shaderCallback: (bounds) => const LinearGradient(
             colors: [
-              Color(0xFF0891B2), // Cyan-600
-              Color(0xFF2563EB), // Blue-600
-              Color(0xFF4F46E5), // Indigo-600
+              Color(0xFF2AABEE), // Telegram Blue
+              Color(0xFF229ED9), // Telegram Blue Dark
             ],
           ).createShader(Rect.fromLTWH(0, 0, bounds.width, bounds.height)),
           child: Text(
@@ -358,7 +357,7 @@ class _PulsingDotState extends State<_PulsingDot>
               width: 8,
               height: 8,
               decoration: const BoxDecoration(
-                color: Color(0xFF06B6D4), // Cyan-500
+                color: Color(0xFF2AABEE), // Telegram Blue
                 shape: BoxShape.circle,
               ),
             ),
@@ -368,7 +367,7 @@ class _PulsingDotState extends State<_PulsingDot>
           width: 7,
           height: 7,
           decoration: const BoxDecoration(
-            color: Color(0xFF06B6D4), // Cyan-500
+            color: Color(0xFF2AABEE), // Telegram Blue
             shape: BoxShape.circle,
           ),
         ),

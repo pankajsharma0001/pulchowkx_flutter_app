@@ -63,6 +63,7 @@ dependencies:
   path_provider: ^2.1.5
   confetti: ^0.8.0
   geolocator: ^14.0.2
+  pdfx: ^2.5.0
 
 dev_dependencies:
   flutter_test:

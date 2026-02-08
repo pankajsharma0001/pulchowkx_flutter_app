@@ -81,14 +81,12 @@ class Notice {
     final lowerUrl = attachmentUrl!.toLowerCase();
     final lowerName = (attachmentName ?? '').toLowerCase();
 
-    // Check for PDF
-    if (lowerUrl.endsWith('.pdf') || lowerName.endsWith('.pdf')) {
-      return NoticeAttachmentType.pdf;
-    }
-
-    // Check for Google Drive links
-    if (lowerUrl.contains('drive.google.com') ||
-        lowerUrl.contains('docs.google.com')) {
+    // Check for PDF (including Drive/Docs links)
+    if (lowerUrl.endsWith('.pdf') ||
+        lowerName.endsWith('.pdf') ||
+        lowerUrl.contains('drive.google.com') ||
+        lowerUrl.contains('docs.google.com') ||
+        lowerUrl.contains('dropbox.com')) {
       return NoticeAttachmentType.pdf;
     }
 
@@ -108,7 +106,13 @@ class Notice {
       }
     }
 
-    return NoticeAttachmentType.image; // Default to image
+    // If it's just a generic URL without extension, it's safer to open externally
+    if (!lowerUrl.contains('.') || lowerUrl.split('/').last.contains('?')) {
+      return NoticeAttachmentType.none;
+    }
+
+    return NoticeAttachmentType
+        .image; // Final fallback for anything else with an extension
   }
 
   static int? _parseInt(dynamic value) {

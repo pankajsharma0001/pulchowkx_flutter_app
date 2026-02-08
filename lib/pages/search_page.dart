@@ -5,6 +5,11 @@ import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:pulchowkx_app/models/book_listing.dart';
 import 'package:pulchowkx_app/models/notice.dart';
+import 'package:pulchowkx_app/pages/club_details.dart';
+import 'package:pulchowkx_app/pages/event_details.dart';
+import 'package:pulchowkx_app/pages/book_details.dart';
+import 'package:pulchowkx_app/pages/notices.dart';
+import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class SearchPage extends StatefulWidget {
@@ -255,8 +260,17 @@ class _SearchPageState extends State<SearchPage> {
         overflow: TextOverflow.ellipsis,
       ),
       onTap: () {
+        final mainLayout = MainLayout.of(context);
+        // Pop the search page first so that returning to the Home tab shows HomePage
         Navigator.pop(context);
-        // Map integration would go here
+
+        if (mainLayout != null) {
+          mainLayout.navigateToMapLocation(
+            place.coordinates.lat,
+            place.coordinates.lng,
+            place.name,
+          );
+        }
       },
     );
   }
@@ -283,7 +297,12 @@ class _SearchPageState extends State<SearchPage> {
         style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
       ),
       onTap: () {
-        // Navigate to club details
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ClubDetailsPage(clubId: club.id),
+          ),
+        );
       },
     );
   }
@@ -324,7 +343,12 @@ class _SearchPageState extends State<SearchPage> {
             )
           : null,
       onTap: () {
-        // Navigate to event details
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EventDetailsPage(eventId: event.id),
+          ),
+        );
       },
     );
   }
@@ -349,7 +373,12 @@ class _SearchPageState extends State<SearchPage> {
       ),
       subtitle: Text(book.author, style: AppTextStyles.bodySmall),
       onTap: () {
-        // Navigate to book details
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BookDetailsPage(bookId: book.id),
+          ),
+        );
       },
     );
   }
@@ -377,7 +406,10 @@ class _SearchPageState extends State<SearchPage> {
         style: AppTextStyles.bodySmall,
       ),
       onTap: () {
-        // Navigate to notices
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const NoticesPage()),
+        );
       },
     );
   }

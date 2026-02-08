@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:pdfx/pdfx.dart';
 import 'package:pulchowkx_app/models/notice.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/services/haptic_service.dart';
@@ -754,18 +757,373 @@ class _NoticeCard extends StatelessWidget {
 
     haptics.lightImpact();
 
+    // For images, show in-app fullscreen viewer
+    if (notice.attachmentType == NoticeAttachmentType.image) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => _FullscreenImageViewer(
+            imageUrl: notice.attachmentUrl!,
+            title: notice.title,
+          ),
+        ),
+      );
+      return;
+    }
+
+    // For PDFs, show in-app PDF viewer
+    if (notice.attachmentType == NoticeAttachmentType.pdf) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => _FullscreenPdfViewer(
+            pdfUrl: notice.attachmentUrl!,
+            title: notice.title,
+          ),
+        ),
+      );
+      return;
+    }
+
+    // For other files, open externally
     final uri = Uri.tryParse(notice.attachmentUrl!);
     if (uri == null) return;
 
+    final messenger = ScaffoldMessenger.of(context);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open attachment')),
-        );
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Could not open attachment')),
+      );
+    }
+  }
+}
+
+/// Fullscreen image viewer with zoom and pan
+class _FullscreenImageViewer extends StatelessWidget {
+  final String imageUrl;
+  final String title;
+
+  const _FullscreenImageViewer({required this.imageUrl, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.black.withValues(alpha: 0.5),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.open_in_browser_rounded,
+              color: Colors.white,
+            ),
+            tooltip: 'Open in browser',
+            onPressed: () async {
+              final uri = Uri.tryParse(imageUrl);
+              if (uri != null && await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+          ),
+        ],
+      ),
+      body: SizedBox.expand(
+        child: InteractiveViewer(
+          minScale: 1.0,
+          maxScale: 5.0,
+          clipBehavior: Clip.none,
+          child: Center(
+            child: CachedNetworkImage(
+              imageUrl: imageUrl,
+              fit: BoxFit.contain,
+              placeholder: (context, url) => const Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              ),
+              errorWidget: (context, url, error) => Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.broken_image_rounded,
+                    color: Colors.white54,
+                    size: 64,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Failed to load image',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Fullscreen PDF viewer with support for remote URLs
+class _FullscreenPdfViewer extends StatefulWidget {
+  final String pdfUrl;
+  final String title;
+
+  const _FullscreenPdfViewer({required this.pdfUrl, required this.title});
+
+  @override
+  State<_FullscreenPdfViewer> createState() => _FullscreenPdfViewerState();
+}
+
+class _FullscreenPdfViewerState extends State<_FullscreenPdfViewer> {
+  PdfControllerPinch? _pdfController;
+  bool _isLoading = true;
+  double _progress = 0;
+  String? _error;
+  StreamSubscription? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _downloadPdf();
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    _pdfController?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _downloadPdf() async {
+    try {
+      _subscription?.cancel();
+      String effectiveUrl = widget.pdfUrl;
+
+      // Transform Google Drive links to direct download links
+      if (effectiveUrl.contains('drive.google.com') &&
+          effectiveUrl.contains('/file/d/')) {
+        final regex = RegExp(r'/file/d/([^/]+)');
+        final match = regex.firstMatch(effectiveUrl);
+        if (match != null && match.groupCount >= 1) {
+          final fileId = match.group(1);
+          effectiveUrl =
+              'https://drive.google.com/uc?export=download&id=$fileId';
+          debugPrint('📍 Transformed Drive URL to direct link: $effectiveUrl');
+        }
+      }
+
+      final stream = DefaultCacheManager().getFileStream(
+        effectiveUrl,
+        withProgress: true,
+      );
+
+      _subscription = stream.listen(
+        (response) async {
+          if (response is DownloadProgress) {
+            if (mounted) {
+              setState(() {
+                _progress = response.progress ?? 0;
+              });
+            }
+          } else if (response is FileInfo) {
+            final file = response.file;
+
+            // Verify if it's actually a PDF by checking the file header
+            final bytes = await file.readAsBytes();
+            if (bytes.length >= 4) {
+              final header = String.fromCharCodes(bytes.take(4));
+              if (header != '%PDF') {
+                debugPrint('Downloaded file is not a PDF. Header: $header');
+                if (mounted) {
+                  setState(() {
+                    _error =
+                        'This attachment could not be loaded as a PDF. It might be a restricted Drive file or an image.';
+                    _isLoading = false;
+                  });
+                }
+                return;
+              }
+            }
+
+            if (mounted) {
+              setState(() {
+                _pdfController = PdfControllerPinch(
+                  document: PdfDocument.openFile(file.path),
+                );
+                _isLoading = false;
+                _progress = 1.0;
+              });
+            }
+          }
+        },
+        onError: (e) {
+          debugPrint('Error downloading PDF stream: $e');
+          if (mounted) {
+            setState(() {
+              _error = 'Failed to download PDF. Please check your connection.';
+              _isLoading = false;
+            });
+          }
+        },
+      );
+    } catch (e) {
+      debugPrint('Error initiating PDF download: $e');
+      if (mounted) {
+        setState(() {
+          _error = 'Unable to start download. Please try again.';
+          _isLoading = false;
+        });
       }
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[900],
+      appBar: AppBar(
+        backgroundColor: Colors.black.withValues(alpha: 0.5),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          widget.title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.open_in_browser_rounded,
+              color: Colors.white,
+            ),
+            tooltip: 'Open in browser',
+            onPressed: () async {
+              final uri = Uri.tryParse(widget.pdfUrl);
+              if (uri != null && await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+          ),
+        ],
+      ),
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                CircularProgressIndicator(
+                  value: _progress > 0 ? _progress : null,
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+                if (_progress > 0)
+                  Text(
+                    '${(_progress * 100).toInt()}%',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _progress > 0 ? 'Downloading...' : 'Initializing...',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                color: Colors.white,
+                size: 48,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _error!,
+                style: const TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _isLoading = true;
+                    _error = null;
+                  });
+                  _downloadPdf();
+                },
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_pdfController == null) {
+      return const Center(
+        child: Text(
+          'Could not load PDF document',
+          style: TextStyle(color: Colors.white),
+        ),
+      );
+    }
+
+    return PdfViewPinch(
+      controller: _pdfController!,
+      scrollDirection: Axis.vertical,
+    );
   }
 }
 

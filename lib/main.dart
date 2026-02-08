@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/pages/onboarding_page.dart';
@@ -13,6 +14,15 @@ import 'firebase_options.dart';
 import 'package:pulchowkx_app/services/analytics_service.dart';
 import 'package:pulchowkx_app/services/notification_service.dart';
 
+class GlobalHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
+  }
+}
+
 // Global ThemeProvider instance for easy access
 final themeProvider = ThemeProvider();
 
@@ -20,6 +30,7 @@ final themeProvider = ThemeProvider();
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
+  HttpOverrides.global = GlobalHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
   // FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 

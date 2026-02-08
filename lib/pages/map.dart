@@ -15,6 +15,7 @@ import 'package:pulchowkx_app/widgets/custom_app_bar.dart'
 import 'package:pulchowkx_app/widgets/location_details_sheet.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
+import 'package:pulchowkx_app/pages/main_layout.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -100,10 +101,62 @@ class _MapPageState extends State<MapPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final mainLayout = MainLayout.of(context);
+      if (mainLayout != null) {
+        mainLayout.mapFocusNotifier.addListener(_handleExternalFocusRequest);
+        // Check for immediate focus request (if we just switched to this tab)
+        _handleExternalFocusRequest();
+      }
+    });
+  }
+
+  void _handleExternalFocusRequest() {
+    if (!mounted) return;
+    final mainLayout = MainLayout.of(context);
+    final request = mainLayout?.mapFocusNotifier.value;
+    if (request == null) return;
+
+    // Only handle requests from the last 10 seconds to avoid accidental flies on revisit
+    if (DateTime.now().difference(request.timestamp).inSeconds > 10) return;
+
+    // Wait until style is loaded to fly
+    if (!_isStyleLoaded || _mapController == null) {
+      // Small delay and retry if map not ready
+      Future.delayed(
+        const Duration(milliseconds: 500),
+        _handleExternalFocusRequest,
+      );
+      return;
+    }
+
+    // Find location in existing data to get full metadata (description, images)
+    final location = _locations.firstWhere(
+      (loc) => loc['title'] == request.title,
+      orElse: () => {
+        'title': request.title,
+        'coordinates': [request.coords.dx, request.coords.dy],
+        'icon': 'marker',
+      },
+    );
+
+    _flyToLocation(location);
+
+    // Clear request so it doesn't trigger again on tab switch
+    // (Optional: depending on if we want persistent focus)
+    // mainLayout?.mapFocusNotifier.value = null;
   }
 
   @override
   void dispose() {
+    // Safely remove listener
+    try {
+      MainLayout.of(
+        context,
+      )?.mapFocusNotifier.removeListener(_handleExternalFocusRequest);
+    } catch (_) {}
+
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
@@ -310,7 +363,7 @@ class _MapPageState extends State<MapPage> {
         'campus-mask',
         FillLayerProperties(
           fillColor: '#FFFFFF',
-          fillOpacity: 0.98,
+          fillOpacity: _isSatellite ? 0.9 : 0.75,
           fillOutlineColor: '#4A5568',
         ),
         filter: [
@@ -966,11 +1019,11 @@ class _MapPageState extends State<MapPage> {
 
       final latLng = LatLng(position.latitude, position.longitude);
       _userLocation = latLng;
-      setState(() => _showMyLocation = true);
-      final isWithinCampus = _isWithinCampus(latLng);
 
-      // Check if within campus bounds
-      if (isWithinCampus) {
+      // Check if within campus bounds BEFORE changing icon state
+      if (_isWithinCampus(latLng)) {
+        // Only show location icon when within campus
+        setState(() => _showMyLocation = true);
         // Animate camera to user location
         if (mounted && _mapController != null) {
           await _mapController!.animateCamera(
@@ -978,7 +1031,7 @@ class _MapPageState extends State<MapPage> {
           );
         }
       } else {
-        // Show message if outside campus
+        // Don't change icon state when outside campus
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -1144,10 +1197,71 @@ class _MapPageState extends State<MapPage> {
       _routeDuration = '';
     });
 
-    // Try to get user location as start point
+    // Try to get user location as start point using geolocator
     try {
-      final latLng = await _mapController?.requestMyLocationLatLng();
-      if (latLng != null && _isWithinCampus(latLng)) {
+      // Check if location services are enabled
+      bool serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Please enable location services'),
+              backgroundColor: Colors.orange[700],
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        setState(() => _isNavigating = false);
+        return;
+      }
+
+      // Check and request permission
+      geo.LocationPermission permission =
+          await geo.Geolocator.checkPermission();
+      if (permission == geo.LocationPermission.denied) {
+        permission = await geo.Geolocator.requestPermission();
+        if (permission == geo.LocationPermission.denied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Location permission required'),
+                backgroundColor: Colors.orange[700],
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+          setState(() => _isNavigating = false);
+          return;
+        }
+      }
+
+      if (permission == geo.LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Location permission denied. Please enable in settings.',
+              ),
+              backgroundColor: Colors.orange[700],
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        setState(() => _isNavigating = false);
+        return;
+      }
+
+      // Get current position
+      final position = await geo.Geolocator.getCurrentPosition(
+        locationSettings: const geo.LocationSettings(
+          accuracy: geo.LocationAccuracy.high,
+          timeLimit: Duration(seconds: 15),
+        ),
+      );
+
+      final latLng = LatLng(position.latitude, position.longitude);
+
+      if (_isWithinCampus(latLng)) {
         _userLocation = latLng;
         setState(() {
           _startPoint = {
@@ -1160,11 +1274,7 @@ class _MapPageState extends State<MapPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                latLng == null
-                    ? 'Unable to get your location'
-                    : 'You are outside the campus area',
-              ),
+              content: const Text('You are outside the campus area'),
               backgroundColor: Colors.orange[700],
               behavior: SnackBarBehavior.floating,
             ),

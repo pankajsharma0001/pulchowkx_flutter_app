@@ -123,6 +123,25 @@ class MainLayoutState extends State<MainLayout> {
     }
   }
 
+  /// Global notifier for map focus requests (e.g. from search results)
+  final ValueNotifier<MapFocusRequest?> mapFocusNotifier =
+      ValueNotifier<MapFocusRequest?>(null);
+
+  /// Helper to navigate to map and focus on a specific location
+  void navigateToMapLocation(double lat, double lng, String title) {
+    // 1. Switch to map tab
+    setSelectedIndex(1);
+
+    // 2. Clear any nested navigation in the map tab to ensure MapPage is visible
+    _navigatorKeys[1].currentState?.popUntil((route) => route.isFirst);
+
+    // 3. Trigger focus request
+    mapFocusNotifier.value = MapFocusRequest(
+      coords: ui.Offset(lng, lat), // Using Offset as a simple lat/lng container
+      title: title,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -201,6 +220,16 @@ class MainLayoutState extends State<MainLayout> {
       ),
     );
   }
+}
+
+/// Simple model for focusing the map on a specific location
+class MapFocusRequest {
+  final ui.Offset coords; // lng, lat
+  final String title;
+  final DateTime timestamp;
+
+  MapFocusRequest({required this.coords, required this.title})
+    : timestamp = DateTime.now();
 }
 
 class _TabNavigator extends StatelessWidget {

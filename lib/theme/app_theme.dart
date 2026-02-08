@@ -1,97 +1,99 @@
 import 'package:flutter/material.dart';
 
-/// App color palette - consistent throughout the application
+/// App color palette - Telegram-style clean and modern theme
 class AppColors {
-  // Primary colors - more cyan/blue like the website
-  static const Color primary = Color(0xFF0891B2); // Cyan-600
-  static const Color primaryDark = Color(0xFF164E63); // Cyan-900
-  static const Color primaryLight = Color(0xFF22D3EE); // Cyan-400
+  // Primary colors - Telegram Blue
+  static const Color primary = Color(0xFF2AABEE); // Telegram Blue
+  static const Color primaryDark = Color(0xFF229ED9); // Darker Telegram Blue
+  static const Color primaryLight = Color(0xFF6EC6FF); // Lighter Telegram Blue
 
   // Secondary/Accent colors
-  static const Color accent = Color(0xFF2563EB); // Blue-600
-  static const Color accentLight = Color(0xFFEFF6FF); // Blue-50
+  static const Color accent = Color(
+    0xFF2AABEE,
+  ); // Same as primary for consistency
+  static const Color accentLight = Color(0xFFE7F5FF); // Very light blue
 
-  // Background colors (Light)
-  static const Color background = Color(0xFFF1F5F9); // Slate-100
-  static const Color backgroundSecondary = Color(0xFFF8FAFC); // Slate-50
-  static const Color surface = Color(0xFFF8FAFC); // Slate-50
-  static const Color cardBackground = Color(0xFFF8FAFC); // Slate-50
+  // Background colors (Light) - Clean white like Telegram
+  static const Color background = Color(0xFFFFFFFF); // Pure white
+  static const Color backgroundSecondary = Color(0xFFF7F7F8); // Slight gray
+  static const Color surface = Color(0xFFFFFFFF); // Pure white
+  static const Color cardBackground = Color(0xFFFFFFFF); // White cards
 
-  // Background colors (Dark)
-  static const Color backgroundDark = Color(0xFF0F172A);
-  static const Color backgroundSecondaryDark = Color(0xFF1E293B);
-  static const Color surfaceDark = Color(0xFF1E293B);
-  static const Color cardBackgroundDark = Color(0xFF1E293B);
+  // Background colors (Dark) - True black like Telegram
+  static const Color backgroundDark = Color(0xFF000000); // True black
+  static const Color backgroundSecondaryDark = Color(0xFF1C1C1D); // Near black
+  static const Color surfaceDark = Color(0xFF1C1C1D); // Dark surface
+  static const Color cardBackgroundDark = Color(0xFF1C1C1D); // Dark cards
 
   // Text colors (Light)
-  static const Color textPrimary = Color(0xFF0F172A);
-  static const Color textSecondary = Color(0xFF475569);
-  static const Color textMuted = Color(0xFF94A3B8);
+  static const Color textPrimary = Color(0xFF000000); // Black text
+  static const Color textSecondary = Color(0xFF8E8E93); // iOS gray
+  static const Color textMuted = Color(0xFFC7C7CC); // Light gray
 
   // Text colors (Dark)
-  static const Color textPrimaryDark = Color(0xFFF8FAFC);
-  static const Color textSecondaryDark = Color(0xFF94A3B8); // Slate-400
-  static const Color textMutedDark = Color(0xFF64748B); // Slate-500
+  static const Color textPrimaryDark = Color(0xFFFFFFFF); // White text
+  static const Color textSecondaryDark = Color(0xFF8E8E93); // Same gray
+  static const Color textMutedDark = Color(0xFF48484A); // Dark muted
 
-  // Status colors
-  static const Color success = Color(0xFF10B981);
-  static const Color successLight = Color(0xFFD1FAE5);
-  static const Color error = Color(0xFFEF4444);
-  static const Color errorLight = Color(0xFFFEE2E2);
-  static const Color warning = Color(0xFFF59E0B);
-  static const Color warningLight = Color(0xFFFEF3C7);
-  static const Color info = Color(0xFF3B82F6);
-  static const Color infoLight = Color(0xFFDBEAFE);
+  // Status colors - Telegram style
+  static const Color success = Color(0xFF34C759); // iOS green
+  static const Color successLight = Color(0xFFD4EDDA);
+  static const Color error = Color(0xFFFF3B30); // iOS red
+  static const Color errorLight = Color(0xFFFFE5E5);
+  static const Color warning = Color(0xFFFF9500); // iOS orange
+  static const Color warningLight = Color(0xFFFFF3CD);
+  static const Color info = Color(0xFF2AABEE); // Telegram blue
+  static const Color infoLight = Color(0xFFE7F5FF);
 
-  // Border colors
-  static const Color border = Color(0xFFE2E8F0);
-  static const Color borderLight = Color(0xFFF1F5F9);
-  static const Color borderDark = Color(0xFF334155);
+  // Border colors - Subtle like Telegram
+  static const Color border = Color(0xFFE5E5EA); // iOS separator
+  static const Color borderLight = Color(0xFFF2F2F7);
+  static const Color borderDark = Color(0xFF38383A); // Dark separator
 
-  // Gradients matching the website
+  // Gradients - More subtle, Telegram-inspired
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF0891B2), Color(0xFF2563EB)], // Cyan-600 to Blue-600
+    colors: [Color(0xFF2AABEE), Color(0xFF229ED9)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient heroGradient = LinearGradient(
-    colors: [Color(0xFFECFEFF), Color(0xFFEFF6FF)], // Cyan-50 to Blue-50
+    colors: [Color(0xFFFFFFFF), Color(0xFFF7F7F8)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
   static const LinearGradient heroGradientDark = LinearGradient(
-    colors: [Color(0xFF0F172A), Color(0xFF1E1B4B)],
+    colors: [Color(0xFF000000), Color(0xFF1C1C1D)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
   static const LinearGradient accentGradient = LinearGradient(
-    colors: [Color(0xFF0EA5E9), Color(0xFF6366F1)], // Sky-500 to Indigo-500
+    colors: [Color(0xFF2AABEE), Color(0xFF6EC6FF)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 }
 
-/// App text styles - consistent typography
+/// App text styles - Clean, minimal typography like Telegram
 class AppTextStyles {
   static const String fontFamily = 'Inter';
 
   // Master Text styles without hardcoded colors
-  static const TextStyle _base = TextStyle(fontFamily: fontFamily, height: 1.5);
+  static const TextStyle _base = TextStyle(fontFamily: fontFamily, height: 1.4);
 
   static final TextStyle h1 = _base.copyWith(
-    fontSize: 36,
-    fontWeight: FontWeight.w800,
+    fontSize: 34,
+    fontWeight: FontWeight.w700,
     height: 1.2,
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
   );
 
   static final TextStyle h2 = _base.copyWith(
     fontSize: 28,
-    fontWeight: FontWeight.w700,
-    height: 1.3,
+    fontWeight: FontWeight.w600,
+    height: 1.2,
     letterSpacing: -0.3,
   );
 
@@ -104,55 +106,55 @@ class AppTextStyles {
   static final TextStyle h4 = _base.copyWith(
     fontSize: 18,
     fontWeight: FontWeight.w600,
-    height: 1.4,
+    height: 1.3,
   );
 
   static final TextStyle bodyLarge = _base.copyWith(
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: FontWeight.w400,
-    height: 1.6,
+    height: 1.4,
   );
 
   static final TextStyle bodyMedium = _base.copyWith(
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: FontWeight.w400,
-    height: 1.5,
+    height: 1.4,
   );
 
   static final TextStyle bodySmall = _base.copyWith(
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: FontWeight.w400,
-    height: 1.5,
+    height: 1.4,
   );
 
   static final TextStyle labelLarge = _base.copyWith(
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: FontWeight.w600,
-    letterSpacing: 0.1,
+    letterSpacing: 0,
   );
 
   static final TextStyle labelMedium = _base.copyWith(
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: FontWeight.w500,
-    letterSpacing: 0.1,
+    letterSpacing: 0,
   );
 
   static final TextStyle labelSmall = _base.copyWith(
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: FontWeight.w500,
-    letterSpacing: 0.2,
+    letterSpacing: 0,
   );
 
   static final TextStyle button = _base.copyWith(
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: FontWeight.w600,
-    letterSpacing: 0.3,
+    letterSpacing: 0,
   );
 
   static final TextStyle buttonSmall = _base.copyWith(
-    fontSize: 13,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 0.2,
+    fontSize: 15,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0,
   );
 }
 
@@ -166,24 +168,24 @@ class AppSpacing {
   static const double xxl = 48;
 }
 
-/// App border radius constants
+/// App border radius constants - More rounded like Telegram
 class AppRadius {
   static const double xs = 4;
-  static const double sm = 6;
-  static const double md = 10;
-  static const double lg = 14;
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
   static const double xl = 20;
   static const double xxl = 24;
   static const double xxxl = 32;
   static const double full = 999;
 }
 
-/// App shadows
+/// App shadows - Subtle and clean
 class AppShadows {
   static List<BoxShadow> sm = [
     BoxShadow(
       color: Colors.black.withValues(alpha: 0.04),
-      blurRadius: 6,
+      blurRadius: 8,
       offset: const Offset(0, 2),
     ),
   ];
@@ -191,7 +193,7 @@ class AppShadows {
   static List<BoxShadow> md = [
     BoxShadow(
       color: Colors.black.withValues(alpha: 0.06),
-      blurRadius: 12,
+      blurRadius: 16,
       offset: const Offset(0, 4),
     ),
   ];
@@ -206,14 +208,14 @@ class AppShadows {
 
   static List<BoxShadow> colored(Color color) => [
     BoxShadow(
-      color: color.withValues(alpha: 0.3),
-      blurRadius: 12,
+      color: color.withValues(alpha: 0.25),
+      blurRadius: 16,
       offset: const Offset(0, 4),
     ),
   ];
 }
 
-/// App theme data
+/// App theme data - Telegram-inspired
 class AppTheme {
   static TextTheme _buildTextTheme(Brightness brightness) {
     final color = brightness == Brightness.light
@@ -262,11 +264,11 @@ class AppTheme {
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.surface,
         elevation: 0,
-        scrolledUnderElevation: 1,
-        iconTheme: IconThemeData(color: AppColors.textPrimary),
+        scrolledUnderElevation: 0,
+        iconTheme: IconThemeData(color: AppColors.primary),
         titleTextStyle: TextStyle(
           color: AppColors.textPrimary,
-          fontSize: 18,
+          fontSize: 17,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -275,8 +277,8 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          side: const BorderSide(color: AppColors.border),
         ),
+        margin: EdgeInsets.zero,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -292,8 +294,8 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.textPrimary,
-          side: const BorderSide(color: AppColors.border),
+          foregroundColor: AppColors.primary,
+          side: const BorderSide(color: AppColors.primary),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.md),
@@ -313,14 +315,14 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: AppColors.backgroundSecondary,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -333,8 +335,8 @@ class AppTheme {
       ),
       dividerTheme: const DividerThemeData(
         color: AppColors.border,
-        thickness: 1,
-        space: 1,
+        thickness: 0.5,
+        space: 0.5,
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.textPrimary,
@@ -364,8 +366,8 @@ class AppTheme {
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         brightness: Brightness.dark,
-        primary: AppColors.primaryLight,
-        onPrimary: AppColors.backgroundDark,
+        primary: AppColors.primary,
+        onPrimary: Colors.white,
         secondary: AppColors.accent,
         onSecondary: Colors.white,
         surface: AppColors.surfaceDark,
@@ -378,11 +380,11 @@ class AppTheme {
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.surfaceDark,
         elevation: 0,
-        scrolledUnderElevation: 1,
-        iconTheme: IconThemeData(color: AppColors.textPrimaryDark),
+        scrolledUnderElevation: 0,
+        iconTheme: IconThemeData(color: AppColors.primary),
         titleTextStyle: TextStyle(
           color: AppColors.textPrimaryDark,
-          fontSize: 18,
+          fontSize: 17,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -391,8 +393,8 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          side: const BorderSide(color: AppColors.borderDark),
         ),
+        margin: EdgeInsets.zero,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -408,8 +410,8 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.textPrimaryDark,
-          side: const BorderSide(color: AppColors.borderDark),
+          foregroundColor: AppColors.primary,
+          side: const BorderSide(color: AppColors.primary),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.md),
@@ -419,7 +421,7 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.primaryLight,
+          foregroundColor: AppColors.primary,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -429,18 +431,18 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF374151), // Grey fill instead of blue-dark
+        fillColor: AppColors.backgroundSecondaryDark,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: const BorderSide(color: AppColors.borderDark),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: const BorderSide(color: AppColors.borderDark),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: const BorderSide(color: AppColors.primaryLight, width: 2),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
@@ -449,8 +451,8 @@ class AppTheme {
       ),
       dividerTheme: const DividerThemeData(
         color: AppColors.borderDark,
-        thickness: 1,
-        space: 1,
+        thickness: 0.5,
+        space: 0.5,
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.surfaceDark,
