@@ -20,7 +20,7 @@ class LogoCard extends StatelessWidget {
         ),
         child: Center(
           child: Image.asset(
-            'assets/icons/foreground.png',
+            'assets/icons/logo.png',
             width: width,
             height: height,
             fit: BoxFit.contain,

@@ -398,12 +398,12 @@ class _BrandLogo extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              LogoCard(width: 40, height: 40),
+              LogoCard(width: 32, height: 32),
               SizedBox(width: 4),
               Text(
-                'PulchowkX',
+                'Smart Pulchowk',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0,
                 ),
