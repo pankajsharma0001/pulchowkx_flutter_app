@@ -83,8 +83,9 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icons/app_icon.png"
-  adaptive_icon_foreground: "assets/icons/foreground.png"
+  image_path: "assets/icons/logo.png"
+  adaptive_icon_foreground: "assets/icons/logo.png"
+  adaptive_icon_background: "#FFFFFF"
 
 flutter_native_splash:
   android: true
@@ -92,14 +93,14 @@ flutter_native_splash:
 
   color: "#f0f9ff"
   color_dark: "#1e1c46"
-  image: "assets/icons/foreground.png"
-  image_dark: "assets/icons/foreground.png"
+  image: "assets/icons/logo.png"
+  image_dark: "assets/icons/logo.png"
 
   android_12:
     color: "#f0f9ff"
     color_dark: "#1e1c46"
-    image: "assets/icons/foreground.png"
-    image_dark: "assets/icons/foreground.png"
+    image: "assets/icons/logo.png"
+    image_dark: "assets/icons/logo.png"
 
 # The following section is specific to Flutter packages.
 flutter:
