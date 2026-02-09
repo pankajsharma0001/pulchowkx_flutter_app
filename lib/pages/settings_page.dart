@@ -202,6 +202,46 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (confirmed != true) return;
 
+    // Show a beautiful, non-dismissible loading dialog
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => PopScope(
+          canPop: false,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+            ),
+            content: Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(
+                    color: AppColors.primary,
+                    strokeWidth: 3,
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  Text(
+                    'Signing Out',
+                    style: AppTextStyles.h4.copyWith(fontSize: 18),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Cleaning up your session...',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final FirebaseServices firebaseServices = FirebaseServices();
     await firebaseServices.googleSignOut();
     if (mounted) {

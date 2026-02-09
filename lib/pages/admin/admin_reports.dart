@@ -38,7 +38,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
     }
   }
 
-  Future<void> _loadReports() async {
+  Future<void> _loadReports({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
     });
@@ -46,6 +46,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
     try {
       final response = await _apiService.getModerationReports(
         status: _currentStatus,
+        forceRefresh: forceRefresh,
       );
       if (response['success'] == true && mounted) {
         setState(() {
@@ -81,7 +82,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Report updated successfully')),
         );
-        _loadReports(); // Refresh list
+        _loadReports(forceRefresh: true); // Refresh list
       }
     } catch (e) {
       if (mounted) {
@@ -185,15 +186,18 @@ class _AdminReportsPageState extends State<AdminReportsPage>
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _reports.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              itemCount: _reports.length,
-              itemBuilder: (context, index) {
-                final report = _reports[index];
-                return _buildReportCard(report);
-              },
+          : RefreshIndicator(
+              onRefresh: () => _loadReports(forceRefresh: true),
+              child: _reports.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      itemCount: _reports.length,
+                      itemBuilder: (context, index) {
+                        final report = _reports[index];
+                        return _buildReportCard(report);
+                      },
+                    ),
             ),
     );
   }
@@ -222,7 +226,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
     final reporter = report['reporter'];
     final reportedUser = report['reportedUser'];
     final listing = report['listing'];
-    final createdAt = DateTime.parse(report['createdAt']);
+    final createdAt = DateTime.parse(report['createdAt']).toLocal();
 
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),

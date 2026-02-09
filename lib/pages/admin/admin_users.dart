@@ -23,7 +23,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     _loadUsers();
   }
 
-  Future<void> _loadUsers() async {
+  Future<void> _loadUsers({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
     });
@@ -32,6 +32,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       final response = await _apiService.getAdminUsers(
         search: _searchController.text,
         role: _currentRoleFilter.isNotEmpty ? _currentRoleFilter : null,
+        forceRefresh: forceRefresh,
       );
 
       if (response['success'] == true && mounted) {
@@ -69,7 +70,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             ),
           ),
         );
-        _loadUsers();
+        _loadUsers(forceRefresh: true);
       }
     } catch (e) {
       if (mounted) {
@@ -120,7 +121,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                   messenger.showSnackBar(
                     const SnackBar(content: Text('User role updated')),
                   );
-                  _loadUsers();
+                  _loadUsers(forceRefresh: true);
                 }
               },
               child: const Text('Update'),
@@ -163,7 +164,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                         horizontal: 16,
                       ),
                     ),
-                    onSubmitted: (_) => _loadUsers(),
+                    onSubmitted: (_) => _loadUsers(forceRefresh: true),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -173,7 +174,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                     setState(() {
                       _currentRoleFilter = val;
                     });
-                    _loadUsers();
+                    _loadUsers(forceRefresh: true);
                   },
                   itemBuilder: (context) => [
                     const PopupMenuItem(value: '', child: Text('All Roles')),
@@ -195,14 +196,17 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _users.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              itemCount: _users.length,
-              itemBuilder: (context, index) {
-                return _buildUserCard(_users[index]);
-              },
+          : RefreshIndicator(
+              onRefresh: () => _loadUsers(forceRefresh: true),
+              child: _users.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      itemCount: _users.length,
+                      itemBuilder: (context, index) {
+                        return _buildUserCard(_users[index]);
+                      },
+                    ),
             ),
     );
   }

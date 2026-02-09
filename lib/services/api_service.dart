@@ -244,7 +244,25 @@ class ApiService {
     String? search,
     String? role,
     int? limit,
+    bool forceRefresh = false,
   }) async {
+    final String cacheKey =
+        'admin_users_cache_${search ?? ""}_${role ?? ""}_${limit ?? ""}';
+
+    if (!forceRefresh) {
+      final cachedData = await _getFromCache(cacheKey);
+      if (cachedData != null) {
+        try {
+          final json = jsonDecode(cachedData);
+          if (json['success'] == true) {
+            return json;
+          }
+        } catch (e) {
+          debugPrint('Error parsing cached admin users: $e');
+        }
+      }
+    }
+
     try {
       final queryParams = <String, String>{};
       if (search != null && search.isNotEmpty) queryParams['search'] = search;
@@ -259,11 +277,22 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
+        if (json['success'] == true) {
+          await _saveToCache(cacheKey, response.body);
+        }
         return json; // Backend returns { success, data: { users, pagination } }
       }
       return {'success': false, 'message': 'Failed to load users'};
     } catch (e) {
       debugPrint('Error getting admin users: $e');
+      if (!forceRefresh) {
+        final cachedData = await _getFromCache(cacheKey);
+        if (cachedData != null) {
+          try {
+            return jsonDecode(cachedData);
+          } catch (_) {}
+        }
+      }
       return {'success': false, 'message': 'Error: $e'};
     }
   }
@@ -301,7 +330,26 @@ class ApiService {
   }
 
   /// Get moderation reports
-  Future<Map<String, dynamic>> getModerationReports({String? status}) async {
+  Future<Map<String, dynamic>> getModerationReports({
+    String? status,
+    bool forceRefresh = false,
+  }) async {
+    final String cacheKey = 'moderation_reports_cache_${status ?? "all"}';
+
+    if (!forceRefresh) {
+      final cachedData = await _getFromCache(cacheKey);
+      if (cachedData != null) {
+        try {
+          final json = jsonDecode(cachedData);
+          if (json['success'] == true) {
+            return json;
+          }
+        } catch (e) {
+          debugPrint('Error parsing cached moderation reports: $e');
+        }
+      }
+    }
+
     try {
       final queryParams = <String, String>{};
       if (status != null) queryParams['status'] = status;
@@ -314,11 +362,22 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
+        if (json['success'] == true) {
+          await _saveToCache(cacheKey, response.body);
+        }
         return json;
       }
       return {'success': false, 'message': 'Failed to load reports'};
     } catch (e) {
       debugPrint('Error getting moderation reports: $e');
+      if (!forceRefresh) {
+        final cachedData = await _getFromCache(cacheKey);
+        if (cachedData != null) {
+          try {
+            return jsonDecode(cachedData);
+          } catch (_) {}
+        }
+      }
       return {'success': false, 'message': 'Error: $e'};
     }
   }
@@ -3020,40 +3079,188 @@ class ApiService {
 
   // ==================== NOTICES API ====================
 
+  /// Create a new notice (notice_manager/admin only)
+  Future<Map<String, dynamic>> createNotice(Map<String, dynamic> data) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/notices'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode(data),
+      );
+
+      final json = jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'data': json['data'],
+          'message': json['message'],
+        };
+      }
+      return {
+        'success': false,
+        'message': json['message'] ?? 'Failed to create notice',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  /// Update an existing notice (notice_manager/admin only)
+  Future<Map<String, dynamic>> updateNotice(
+    int id,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.put(
+        Uri.parse('$apiBaseUrl/notices/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode(data),
+      );
+
+      final json = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': json['data'],
+          'message': json['message'],
+        };
+      }
+      return {
+        'success': false,
+        'message': json['message'] ?? 'Failed to update notice',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  /// Delete a notice (notice_manager/admin only)
+  Future<Map<String, dynamic>> deleteNotice(int id) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.delete(
+        Uri.parse('$apiBaseUrl/notices/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      final json = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': json['message']};
+      }
+      return {
+        'success': false,
+        'message': json['message'] ?? 'Failed to delete notice',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  /// Upload notice attachment
+  Future<Map<String, dynamic>> uploadNoticeAttachment(File file) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$apiBaseUrl/notices/upload'),
+      );
+      request.headers['Authorization'] = 'Bearer $userId';
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          file.path,
+          contentType: file.path.endsWith('.pdf')
+              ? MediaType('application', 'pdf')
+              : MediaType('image', 'jpeg'),
+        ),
+      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      final json = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': json['data'], // { url, name }
+          'message': json['message'],
+        };
+      }
+      return {
+        'success': false,
+        'message': json['message'] ?? 'Failed to upload attachment',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
   /// Get notices with optional filters (cache-first for instant loading)
-  Future<List<Notice>> getNotices([NoticeFilters? filters]) async {
+  Future<List<Notice>> getNotices({
+    NoticeFilters? filters,
+    bool forceRefresh = false,
+  }) async {
     final String cacheKey =
         'notices_${filters?.section?.value ?? 'all'}_${filters?.subsection?.value ?? 'all'}_cache';
 
-    // Try cache first for instant display
-    final cachedData = await _getFromCache(cacheKey);
-    List<Notice> cachedNotices = [];
-    if (cachedData != null) {
-      try {
-        final json = jsonDecode(cachedData);
-        if (json['success'] == true && json['data'] != null) {
-          cachedNotices = (json['data'] as List)
-              .map((e) => Notice.fromJson(e as Map<String, dynamic>))
-              .toList();
-        } else if (json['data']?['success'] == true &&
-            json['data']?['notices'] != null) {
-          cachedNotices = (json['data']['notices'] as List)
-              .map((e) => Notice.fromJson(e as Map<String, dynamic>))
-              .toList();
+    if (!forceRefresh) {
+      // Try cache first for instant display
+      final cachedData = await _getFromCache(cacheKey);
+      List<Notice> cachedNotices = [];
+      if (cachedData != null) {
+        try {
+          final json = jsonDecode(cachedData);
+          if (json['success'] == true && json['data'] != null) {
+            cachedNotices = (json['data'] as List)
+                .map((e) => Notice.fromJson(e as Map<String, dynamic>))
+                .toList();
+          } else if (json['data']?['success'] == true &&
+              json['data']?['notices'] != null) {
+            cachedNotices = (json['data']['notices'] as List)
+                .map((e) => Notice.fromJson(e as Map<String, dynamic>))
+                .toList();
+          }
+        } catch (e) {
+          debugPrint('Error parsing cached notices: $e');
         }
-      } catch (e) {
-        debugPrint('Error parsing cached notices: $e');
+      }
+
+      // Return cached data immediately if available
+      if (cachedNotices.isNotEmpty) {
+        // Trigger background refresh without awaiting
+        _refreshNoticesInBackground(filters, cacheKey);
+        return cachedNotices;
       }
     }
 
-    // Return cached data immediately if available
-    if (cachedNotices.isNotEmpty) {
-      // Trigger background refresh without awaiting
-      _refreshNoticesInBackground(filters, cacheKey);
-      return cachedNotices;
-    }
-
-    // No cache, fetch from network
+    // No cache or forceRefresh, fetch from network
     return _fetchNoticesFromNetwork(filters, cacheKey);
   }
 
@@ -3113,38 +3320,40 @@ class ApiService {
   }
 
   /// Get notice statistics (cache-first for instant loading)
-  Future<NoticeStats?> getNoticeStats() async {
+  Future<NoticeStats?> getNoticeStats({bool forceRefresh = false}) async {
     const String cacheKey = 'notice_stats_cache';
 
-    // Try cache first for instant display
-    final cachedData = await _getFromCache(cacheKey);
-    NoticeStats? cachedStats;
-    if (cachedData != null) {
-      try {
-        final json = jsonDecode(cachedData);
-        if (json['success'] == true && json['data'] != null) {
-          cachedStats = NoticeStats.fromJson(
-            json['data'] as Map<String, dynamic>,
-          );
-        } else if (json['data']?['success'] == true &&
-            json['data']?['stats'] != null) {
-          cachedStats = NoticeStats.fromJson(
-            json['data']['stats'] as Map<String, dynamic>,
-          );
+    if (!forceRefresh) {
+      // Try cache first for instant display
+      final cachedData = await _getFromCache(cacheKey);
+      NoticeStats? cachedStats;
+      if (cachedData != null) {
+        try {
+          final json = jsonDecode(cachedData);
+          if (json['success'] == true && json['data'] != null) {
+            cachedStats = NoticeStats.fromJson(
+              json['data'] as Map<String, dynamic>,
+            );
+          } else if (json['data']?['success'] == true &&
+              json['data']?['stats'] != null) {
+            cachedStats = NoticeStats.fromJson(
+              json['data']['stats'] as Map<String, dynamic>,
+            );
+          }
+        } catch (e) {
+          debugPrint('Error parsing cached notice stats: $e');
         }
-      } catch (e) {
-        debugPrint('Error parsing cached notice stats: $e');
+      }
+
+      // Return cached data immediately if available
+      if (cachedStats != null) {
+        // Trigger background refresh without awaiting
+        _refreshNoticeStatsInBackground(cacheKey);
+        return cachedStats;
       }
     }
 
-    // Return cached data immediately if available
-    if (cachedStats != null) {
-      // Trigger background refresh without awaiting
-      _refreshNoticeStatsInBackground(cacheKey);
-      return cachedStats;
-    }
-
-    // No cache, fetch from network
+    // No cache or forceRefresh, fetch from network
     return _fetchNoticeStatsFromNetwork(cacheKey);
   }
 

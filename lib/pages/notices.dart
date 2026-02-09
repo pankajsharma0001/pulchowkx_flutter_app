@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -11,6 +12,7 @@ import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
 
 /// Notices page for displaying IOE exam results and routines
 class NoticesPage extends StatefulWidget {
@@ -27,6 +29,7 @@ class _NoticesPageState extends State<NoticesPage>
   late TabController _tabController;
   late Future<List<Notice>> _noticesFuture;
   NoticeStats? _stats;
+  bool _isManager = false;
 
   NoticeSection _activeSection = NoticeSection.results;
   NoticeSubsection _activeSubsection = NoticeSubsection.be;
@@ -39,8 +42,18 @@ class _NoticesPageState extends State<NoticesPage>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_onTabChanged);
+    _checkRole();
     _loadNotices();
     _loadStats();
+  }
+
+  Future<void> _checkRole() async {
+    final role = await _apiService.getUserRole();
+    if (mounted) {
+      setState(() {
+        _isManager = role == 'notice_manager';
+      });
+    }
   }
 
   @override
@@ -70,20 +83,21 @@ class _NoticesPageState extends State<NoticesPage>
     });
   }
 
-  void _loadNotices() {
+  void _loadNotices({bool forceRefresh = false}) {
     setState(() {
       _noticesFuture = _apiService.getNotices(
-        NoticeFilters(
+        filters: NoticeFilters(
           section: _activeSection,
           subsection: _activeSubsection,
           search: _searchController.text.trim(),
         ),
+        forceRefresh: forceRefresh,
       );
     });
   }
 
-  Future<void> _loadStats() async {
-    final stats = await _apiService.getNoticeStats();
+  Future<void> _loadStats({bool forceRefresh = false}) async {
+    final stats = await _apiService.getNoticeStats(forceRefresh: forceRefresh);
     if (mounted) {
       setState(() {
         _stats = stats;
@@ -107,8 +121,8 @@ class _NoticesPageState extends State<NoticesPage>
           child: RefreshIndicator(
             onRefresh: () async {
               haptics.mediumImpact();
-              _loadNotices();
-              await _loadStats();
+              _loadNotices(forceRefresh: true);
+              await _loadStats(forceRefresh: true);
             },
             color: AppColors.primary,
             child: CustomScrollView(
@@ -199,7 +213,7 @@ class _NoticesPageState extends State<NoticesPage>
                                       icon: const Icon(Icons.clear_rounded),
                                       onPressed: () {
                                         _searchController.clear();
-                                        _loadNotices();
+                                        _loadNotices(forceRefresh: true);
                                       },
                                     )
                                   : null,
@@ -358,8 +372,12 @@ class _NoticesPageState extends State<NoticesPage>
                       padding: const EdgeInsets.all(AppSpacing.lg),
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
-                          (context, index) =>
-                              _NoticeCard(notice: notices[index]),
+                          (context, index) => _NoticeCard(
+                            notice: notices[index],
+                            isManager: _isManager,
+                            onEdit: () => _showNoticeDialog(notices[index]),
+                            onDelete: () => _deleteNotice(notices[index]),
+                          ),
                           childCount: notices.length,
                         ),
                       ),
@@ -376,7 +394,673 @@ class _NoticesPageState extends State<NoticesPage>
           ),
         ),
       ),
+      floatingActionButton: _isManager
+          ? FloatingActionButton.extended(
+              onPressed: () => _showNoticeDialog(),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Create Notice'),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            )
+          : null,
     );
+  }
+
+  Future<void> _showNoticeDialog([Notice? notice]) async {
+    final isEdit = notice != null;
+    final titleController = TextEditingController(text: notice?.title);
+    final contentController = TextEditingController(text: notice?.content);
+    NoticeSection selectedSection = notice?.section ?? _activeSection;
+    NoticeSubsection selectedSubsection =
+        notice?.subsection ?? _activeSubsection;
+    String? attachmentUrl = notice?.attachmentUrl;
+    String? attachmentName = notice?.attachmentName;
+    bool isUploading = false;
+    bool isPublishing = false;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    await showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '',
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      transitionDuration: const Duration(milliseconds: 300),
+      transitionBuilder: (context, anim1, anim2, child) {
+        final curve = Curves.easeInOutBack.transform(anim1.value);
+        return Transform.scale(
+          scale: curve,
+          child: Opacity(
+            opacity: anim1.value,
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 500),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.surfaceDark : Colors.white,
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  boxShadow: AppShadows.lg,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  child: StatefulBuilder(
+                    builder: (context, setDialogState) => SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.lg,
+                              vertical: AppSpacing.md,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: isDark
+                                      ? AppColors.borderDark
+                                      : AppColors.border,
+                                  width: 0.5,
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.md,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    isEdit
+                                        ? Icons.edit_rounded
+                                        : Icons.add_rounded,
+                                    color: AppColors.primary,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.md),
+                                Expanded(
+                                  child: Text(
+                                    isEdit ? 'Edit Notice' : 'New Notice',
+                                    style: AppTextStyles.h4.copyWith(
+                                      color: isDark
+                                          ? AppColors.textPrimaryDark
+                                          : AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close_rounded),
+                                  onPressed: () => Navigator.pop(context),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          Padding(
+                            padding: const EdgeInsets.all(AppSpacing.lg),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Form Fields
+                                Text(
+                                  'General Details',
+                                  style: AppTextStyles.labelMedium.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                                TextField(
+                                  controller: titleController,
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    color: isDark
+                                        ? AppColors.textPrimaryDark
+                                        : AppColors.textPrimary,
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: 'Notice Title',
+                                    hintText:
+                                        'e.g., Computer Engineering Routine',
+                                    prefixIcon: const Icon(
+                                      Icons.title_rounded,
+                                      size: 20,
+                                    ),
+                                    fillColor: isDark
+                                        ? Colors.white.withValues(alpha: 0.05)
+                                        : AppColors.backgroundSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                                TextField(
+                                  controller: contentController,
+                                  maxLines: 4,
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    color: isDark
+                                        ? AppColors.textPrimaryDark
+                                        : AppColors.textPrimary,
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: 'Description',
+                                    hintText:
+                                        'Provide details about the notice...',
+                                    prefixIcon: Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 60,
+                                      ),
+                                      child: const Icon(
+                                        Icons.notes_rounded,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    fillColor: isDark
+                                        ? Colors.white.withValues(alpha: 0.05)
+                                        : AppColors.backgroundSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.xl),
+
+                                Text(
+                                  'Categorization',
+                                  style: AppTextStyles.labelMedium.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child:
+                                          DropdownButtonFormField<
+                                            NoticeSection
+                                          >(
+                                            initialValue: selectedSection,
+                                            isExpanded: true,
+                                            style: AppTextStyles.bodyMedium
+                                                .copyWith(
+                                                  color: isDark
+                                                      ? AppColors
+                                                            .textPrimaryDark
+                                                      : AppColors.textPrimary,
+                                                ),
+                                            decoration: const InputDecoration(
+                                              labelText: 'Section',
+                                              prefixIcon: Icon(
+                                                Icons.category_rounded,
+                                                size: 20,
+                                              ),
+                                            ),
+                                            items: NoticeSection.values
+                                                .map(
+                                                  (s) => DropdownMenuItem(
+                                                    value: s,
+                                                    child: Text(
+                                                      s.value.toUpperCase(),
+                                                    ),
+                                                  ),
+                                                )
+                                                .toList(),
+                                            onChanged: (v) => setDialogState(
+                                              () => selectedSection = v!,
+                                            ),
+                                          ),
+                                    ),
+                                    const SizedBox(width: AppSpacing.md),
+                                    Expanded(
+                                      child:
+                                          DropdownButtonFormField<
+                                            NoticeSubsection
+                                          >(
+                                            initialValue: selectedSubsection,
+                                            isExpanded: true,
+                                            style: AppTextStyles.bodyMedium
+                                                .copyWith(
+                                                  color: isDark
+                                                      ? AppColors
+                                                            .textPrimaryDark
+                                                      : AppColors.textPrimary,
+                                                ),
+                                            decoration: const InputDecoration(
+                                              labelText: 'Subsection',
+                                              prefixIcon: Icon(
+                                                Icons.layers_rounded,
+                                                size: 20,
+                                              ),
+                                            ),
+                                            items: NoticeSubsection.values
+                                                .map(
+                                                  (s) => DropdownMenuItem(
+                                                    value: s,
+                                                    child: Text(
+                                                      s.value.toUpperCase(),
+                                                    ),
+                                                  ),
+                                                )
+                                                .toList(),
+                                            onChanged: (v) => setDialogState(
+                                              () => selectedSubsection = v!,
+                                            ),
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: AppSpacing.xl),
+
+                                Text(
+                                  'Attachment',
+                                  style: AppTextStyles.labelMedium.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                                if (attachmentUrl != null)
+                                  Container(
+                                    padding: const EdgeInsets.all(
+                                      AppSpacing.md,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? Colors.white.withValues(alpha: 0.05)
+                                          : AppColors.primary.withValues(
+                                              alpha: 0.05,
+                                            ),
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.lg,
+                                      ),
+                                      border: Border.all(
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: isDark
+                                                ? AppColors.surfaceDark
+                                                : Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              AppRadius.md,
+                                            ),
+                                            boxShadow: AppShadows.sm,
+                                            border: Border.all(
+                                              color: isDark
+                                                  ? AppColors.borderDark
+                                                  : AppColors.border,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            attachmentName
+                                                        ?.toLowerCase()
+                                                        .endsWith('.pdf') ??
+                                                    false
+                                                ? Icons.picture_as_pdf_rounded
+                                                : Icons.image_rounded,
+                                            color: AppColors.primary,
+                                            size: 24,
+                                          ),
+                                        ),
+                                        const SizedBox(width: AppSpacing.md),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                attachmentName ??
+                                                    'Attached File',
+                                                style: AppTextStyles.bodySmall
+                                                    .copyWith(
+                                                      color: isDark
+                                                          ? AppColors
+                                                                .textPrimaryDark
+                                                          : AppColors
+                                                                .textPrimary,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                'Ready for publish',
+                                                style: AppTextStyles.labelSmall,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.delete_outline_rounded,
+                                            color: AppColors.error,
+                                            size: 22,
+                                          ),
+                                          onPressed: () => setDialogState(() {
+                                            attachmentUrl = null;
+                                            attachmentName = null;
+                                          }),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                else
+                                  InkWell(
+                                    onTap: isUploading
+                                        ? null
+                                        : () async {
+                                            final result = await FilePicker
+                                                .platform
+                                                .pickFiles(
+                                                  type: FileType.custom,
+                                                  allowedExtensions: [
+                                                    'pdf',
+                                                    'jpg',
+                                                    'jpeg',
+                                                    'png',
+                                                  ],
+                                                );
+
+                                            if (result != null &&
+                                                result.files.single.path !=
+                                                    null) {
+                                              setDialogState(
+                                                () => isUploading = true,
+                                              );
+                                              final uploadResult =
+                                                  await _apiService
+                                                      .uploadNoticeAttachment(
+                                                        File(
+                                                          result
+                                                              .files
+                                                              .single
+                                                              .path!,
+                                                        ),
+                                                      );
+                                              setDialogState(() {
+                                                isUploading = false;
+                                                if (uploadResult['success']) {
+                                                  attachmentUrl =
+                                                      uploadResult['data']['url'];
+                                                  attachmentName =
+                                                      uploadResult['data']['name'];
+                                                } else {
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        uploadResult['message'],
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+                                              });
+                                            }
+                                          },
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.lg,
+                                    ),
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(
+                                        AppSpacing.xl,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? Colors.white.withValues(
+                                                alpha: 0.03,
+                                              )
+                                            : AppColors.backgroundSecondary,
+                                        borderRadius: BorderRadius.circular(
+                                          AppRadius.lg,
+                                        ),
+                                        border: Border.all(
+                                          color: isDark
+                                              ? AppColors.borderDark
+                                              : AppColors.border,
+                                          style: BorderStyle.solid,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          if (isUploading)
+                                            const CircularProgressIndicator()
+                                          else ...[
+                                            Icon(
+                                              Icons.cloud_upload_rounded,
+                                              size: 32,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                            const SizedBox(
+                                              height: AppSpacing.sm,
+                                            ),
+                                            Text(
+                                              'Tap to upload Image or PDF',
+                                              style: AppTextStyles.labelMedium
+                                                  .copyWith(
+                                                    color: isDark
+                                                        ? AppColors
+                                                              .textPrimaryDark
+                                                        : AppColors.textPrimary,
+                                                  ),
+                                            ),
+                                            Text(
+                                              'Maximum file size: 10MB',
+                                              style: AppTextStyles.labelSmall,
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+
+                          // Action Buttons
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              AppSpacing.lg,
+                              0,
+                              AppSpacing.lg,
+                              AppSpacing.lg,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Cancel'),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.md),
+                                Expanded(
+                                  flex: 2,
+                                  child: ElevatedButton(
+                                    onPressed: (isUploading || isPublishing)
+                                        ? null
+                                        : () async {
+                                            if (titleController.text.isEmpty ||
+                                                contentController
+                                                    .text
+                                                    .isEmpty) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Please fill all required fields',
+                                                  ),
+                                                ),
+                                              );
+                                              return;
+                                            }
+
+                                            setDialogState(
+                                              () => isPublishing = true,
+                                            );
+
+                                            final data = {
+                                              'title': titleController.text
+                                                  .trim(),
+                                              'content': contentController.text
+                                                  .trim(),
+                                              'section': selectedSection.value,
+                                              'subsection':
+                                                  selectedSubsection.value,
+                                              'attachmentUrl': attachmentUrl,
+                                              'attachmentName': attachmentName,
+                                            };
+
+                                            try {
+                                              final result = isEdit
+                                                  ? await _apiService
+                                                        .updateNotice(
+                                                          notice.id,
+                                                          data,
+                                                        )
+                                                  : await _apiService
+                                                        .createNotice(data);
+
+                                              if (context.mounted) {
+                                                if (result['success']) {
+                                                  Navigator.of(context).pop();
+                                                  _loadNotices(
+                                                    forceRefresh: true,
+                                                  );
+                                                  _loadStats(
+                                                    forceRefresh: true,
+                                                  );
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        result['message'] ??
+                                                            'Success',
+                                                      ),
+                                                      backgroundColor:
+                                                          AppColors.success,
+                                                    ),
+                                                  );
+                                                } else {
+                                                  setDialogState(
+                                                    () => isPublishing = false,
+                                                  );
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        result['message'] ??
+                                                            'Error',
+                                                      ),
+                                                      backgroundColor:
+                                                          AppColors.error,
+                                                    ),
+                                                  );
+                                                }
+                                              }
+                                            } catch (e) {
+                                              if (context.mounted) {
+                                                setDialogState(
+                                                  () => isPublishing = false,
+                                                );
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('Error: $e'),
+                                                    backgroundColor:
+                                                        AppColors.error,
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          },
+                                    child: isPublishing
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    Colors.white,
+                                                  ),
+                                            ),
+                                          )
+                                        : Text(isEdit ? 'Update' : 'Publish'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      pageBuilder: (context, anim1, anim2) => const SizedBox(),
+    );
+  }
+
+  Future<void> _deleteNotice(Notice notice) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Notice'),
+        content: Text('Are you sure you want to delete "${notice.title}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      haptics.mediumImpact();
+      final result = await _apiService.deleteNotice(notice.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Notice deleted'),
+            backgroundColor: result['success']
+                ? AppColors.success
+                : AppColors.error,
+          ),
+        );
+        if (result['success']) {
+          _loadNotices(forceRefresh: true);
+          _loadStats(forceRefresh: true);
+        }
+      }
+    }
   }
 
   Widget _buildSubsectionChip(
@@ -567,8 +1251,16 @@ class _NoticesPageState extends State<NoticesPage>
 /// Notice card widget
 class _NoticeCard extends StatelessWidget {
   final Notice notice;
+  final bool isManager;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
-  const _NoticeCard({required this.notice});
+  const _NoticeCard({
+    required this.notice,
+    this.isManager = false,
+    this.onEdit,
+    this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -673,6 +1365,52 @@ class _NoticeCard extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (isManager)
+                      PopupMenuButton<String>(
+                        icon: Icon(
+                          Icons.more_vert_rounded,
+                          color: isDark
+                              ? AppColors.textMutedDark
+                              : AppColors.textMuted,
+                        ),
+                        onSelected: (value) {
+                          haptics.lightImpact();
+                          if (value == 'edit') {
+                            onEdit?.call();
+                          } else if (value == 'delete') {
+                            onDelete?.call();
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_rounded, size: 20),
+                                SizedBox(width: 12),
+                                Text('Edit'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 20,
+                                  color: AppColors.error,
+                                ),
+                                SizedBox(width: 12),
+                                Text(
+                                  'Delete',
+                                  style: TextStyle(color: AppColors.error),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
