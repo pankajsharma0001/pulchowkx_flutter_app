@@ -4,6 +4,7 @@ import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/pages/club_details.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
+import 'package:pulchowkx_app/services/api_service.dart';
 
 class ClubCard extends StatelessWidget {
   final Club club;
@@ -53,8 +54,12 @@ class ClubCard extends StatelessWidget {
                       Hero(
                         tag: 'club_logo_${club.id}',
                         child: CachedNetworkImage(
-                          imageUrl: club.logoUrl!,
+                          imageUrl: ApiService().optimizeCloudinaryUrl(
+                            club.logoUrl!,
+                            width: 300,
+                          ),
                           fit: BoxFit.cover,
+                          memCacheWidth: 300,
                           placeholder: (context, url) => _buildPlaceholder(),
                           errorWidget: (context, url, error) =>
                               _buildPlaceholder(),

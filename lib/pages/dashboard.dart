@@ -6,8 +6,9 @@ import 'package:pulchowkx_app/auth/service/google_auth.dart';
 import 'package:pulchowkx_app/pages/marketplace/book_requests_page.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:intl/intl.dart';
-import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
+import 'package:pulchowkx_app/services/api_service.dart';
+
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:pulchowkx_app/pages/settings_page.dart';
 import 'package:pulchowkx_app/models/classroom.dart';
@@ -683,8 +684,12 @@ class _DashboardPageState extends State<DashboardPage> {
                     borderRadius: BorderRadius.circular(AppRadius.xl - 2),
                     child: photoUrl != null
                         ? CachedNetworkImage(
-                            imageUrl: photoUrl,
+                            imageUrl: ApiService().optimizeCloudinaryUrl(
+                              photoUrl,
+                              width: 200,
+                            ),
                             fit: BoxFit.cover,
+                            memCacheWidth: 200,
                             placeholder: (context, url) => Container(
                               color: AppColors.primary.withValues(alpha: 0.1),
                             ),

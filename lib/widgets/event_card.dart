@@ -6,6 +6,7 @@ import 'package:pulchowkx_app/pages/event_details.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/event_status_badge.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
+import 'package:pulchowkx_app/services/api_service.dart';
 
 enum EventCardType { grid, list }
 
@@ -79,8 +80,12 @@ class _EventCardState extends State<EventCard> {
                       children: [
                         if (widget.event.bannerUrl != null)
                           CachedNetworkImage(
-                            imageUrl: widget.event.bannerUrl!,
+                            imageUrl: ApiService().optimizeCloudinaryUrl(
+                              widget.event.bannerUrl!,
+                              width: 600,
+                            ),
                             fit: BoxFit.cover,
+                            memCacheWidth: 600,
                             placeholder: (_, _) => _buildPlaceholder(),
                             errorWidget: (_, _, _) => _buildPlaceholder(),
                           )
@@ -176,8 +181,13 @@ class _EventCardState extends State<EventCard> {
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(5),
                                       child: CachedNetworkImage(
-                                        imageUrl: widget.event.club!.logoUrl!,
+                                        imageUrl: ApiService()
+                                            .optimizeCloudinaryUrl(
+                                              widget.event.club!.logoUrl!,
+                                              width: 100,
+                                            ),
                                         fit: BoxFit.cover,
+                                        memCacheWidth: 100,
                                       ),
                                     ),
                                   ),

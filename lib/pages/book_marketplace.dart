@@ -6,8 +6,9 @@ import 'package:pulchowkx_app/models/book_listing.dart';
 import 'package:pulchowkx_app/pages/book_details.dart';
 import 'package:pulchowkx_app/pages/sell_book.dart';
 import 'package:pulchowkx_app/pages/my_books.dart';
-import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
+import 'package:pulchowkx_app/services/api_service.dart';
+
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/widgets/empty_states.dart';
@@ -708,8 +709,12 @@ class _BookCard extends StatelessWidget {
                   tag: 'book_image_${listing.id}',
                   child: listing.primaryImageUrl != null
                       ? CachedNetworkImage(
-                          imageUrl: listing.primaryImageUrl!,
+                          imageUrl: ApiService().optimizeCloudinaryUrl(
+                            listing.primaryImageUrl!,
+                            width: 400,
+                          ),
                           fit: BoxFit.cover,
+                          memCacheWidth: 400,
                           placeholder: (context, url) => const BoxShimmer(
                             height: double.infinity,
                             borderRadius: 0,

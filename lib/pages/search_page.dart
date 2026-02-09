@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
+import 'package:pulchowkx_app/theme/app_theme.dart';
+
 import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:pulchowkx_app/models/book_listing.dart';
@@ -285,7 +286,9 @@ class _SearchPageState extends State<SearchPage> {
       leading: CircleAvatar(
         backgroundColor: AppColors.primaryLight.withValues(alpha: 0.2),
         backgroundImage: club.logoUrl != null
-            ? CachedNetworkImageProvider(club.logoUrl!)
+            ? CachedNetworkImageProvider(
+                ApiService().optimizeCloudinaryUrl(club.logoUrl!, width: 100),
+              )
             : null,
         child: club.logoUrl == null
             ? Text(
@@ -321,7 +324,12 @@ class _SearchPageState extends State<SearchPage> {
           borderRadius: BorderRadius.circular(AppRadius.sm),
           image: event.bannerUrl != null
               ? DecorationImage(
-                  image: CachedNetworkImageProvider(event.bannerUrl!),
+                  image: CachedNetworkImageProvider(
+                    ApiService().optimizeCloudinaryUrl(
+                      event.bannerUrl!,
+                      width: 200,
+                    ),
+                  ),
                   fit: BoxFit.cover,
                 )
               : null,
