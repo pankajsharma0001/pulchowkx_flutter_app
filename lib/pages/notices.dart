@@ -30,7 +30,6 @@ class _NoticesPageState extends State<NoticesPage>
   NoticeStats? _stats;
   bool _isManager = false;
 
-  NoticeSection _activeSection = NoticeSection.results;
   NoticeSubsection _activeSubsection = NoticeSubsection.be;
 
   final TextEditingController _searchController = TextEditingController();
@@ -48,7 +47,7 @@ class _NoticesPageState extends State<NoticesPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_onTabChanged);
     _scrollController.addListener(_onScroll);
     _checkRole();
@@ -86,12 +85,22 @@ class _NoticesPageState extends State<NoticesPage>
 
   void _onTabChanged() {
     if (!_tabController.indexIsChanging) {
-      setState(() {
-        _activeSection = _tabController.index == 0
-            ? NoticeSection.results
-            : NoticeSection.routines;
-      });
       _loadNotices();
+    }
+  }
+
+  String? get _activeCategory {
+    switch (_tabController.index) {
+      case 0:
+        return 'results';
+      case 1:
+        return 'application_forms';
+      case 2:
+        return 'exam_centers';
+      case 3:
+        return 'general';
+      default:
+        return null;
     }
   }
 
@@ -112,7 +121,7 @@ class _NoticesPageState extends State<NoticesPage>
 
     try {
       final filters = NoticeFilters(
-        section: _activeSection,
+        category: _activeCategory,
         subsection: _activeSubsection,
         search: _searchController.text.trim(),
         limit: _limit,
@@ -149,7 +158,7 @@ class _NoticesPageState extends State<NoticesPage>
     try {
       final nextOffset = _offset + _limit;
       final filters = NoticeFilters(
-        section: _activeSection,
+        category: _activeCategory,
         subsection: _activeSubsection,
         search: _searchController.text.trim(),
         limit: _limit,
@@ -346,12 +355,16 @@ class _NoticesPageState extends State<NoticesPage>
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.assignment_rounded, size: 16),
-                                const SizedBox(width: 8),
+                                const Icon(Icons.assignment_rounded, size: 14),
+                                const SizedBox(width: 4),
                                 const Text(
                                   'Results',
-                                  style: TextStyle(fontSize: 14),
+                                  style: TextStyle(fontSize: 12),
                                 ),
+                                if (_stats != null && _stats!.results > 0) ...[
+                                  const SizedBox(width: 4),
+                                  _buildTabBadge(_stats!.results),
+                                ],
                               ],
                             ),
                           ),
@@ -359,15 +372,52 @@ class _NoticesPageState extends State<NoticesPage>
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(
-                                  Icons.calendar_month_rounded,
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 8),
+                                const Icon(Icons.description_rounded, size: 14),
+                                const SizedBox(width: 4),
                                 const Text(
-                                  'Routines',
-                                  style: TextStyle(fontSize: 14),
+                                  'Forms',
+                                  style: TextStyle(fontSize: 12),
                                 ),
+                                if (_stats != null &&
+                                    _stats!.applicationForms > 0) ...[
+                                  const SizedBox(width: 4),
+                                  _buildTabBadge(_stats!.applicationForms),
+                                ],
+                              ],
+                            ),
+                          ),
+                          Tab(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.location_on_rounded, size: 14),
+                                const SizedBox(width: 4),
+                                const Text(
+                                  'Centers',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                                if (_stats != null &&
+                                    _stats!.examCenters > 0) ...[
+                                  const SizedBox(width: 4),
+                                  _buildTabBadge(_stats!.examCenters),
+                                ],
+                              ],
+                            ),
+                          ),
+                          Tab(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.info_rounded, size: 14),
+                                const SizedBox(width: 4),
+                                const Text(
+                                  'General',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                                if (_stats != null && _stats!.general > 0) ...[
+                                  const SizedBox(width: 4),
+                                  _buildTabBadge(_stats!.general),
+                                ],
                               ],
                             ),
                           ),
@@ -391,7 +441,7 @@ class _NoticesPageState extends State<NoticesPage>
                           'B.E. Program',
                           Icons.engineering_rounded,
                           _stats != null
-                              ? (_activeSection == NoticeSection.results
+                              ? (_tabController.index < 2
                                     ? _stats!.beResults
                                     : _stats!.beRoutines)
                               : null,
@@ -402,7 +452,7 @@ class _NoticesPageState extends State<NoticesPage>
                           'M.Sc. Program',
                           Icons.school_rounded,
                           _stats != null
-                              ? (_activeSection == NoticeSection.results
+                              ? (_tabController.index < 2
                                     ? _stats!.mscResults
                                     : _stats!.mscRoutines)
                               : null,
@@ -490,7 +540,7 @@ class _NoticesPageState extends State<NoticesPage>
     final isEdit = notice != null;
     final titleController = TextEditingController(text: notice?.title);
     final contentController = TextEditingController(text: notice?.content);
-    NoticeSection selectedSection = notice?.section ?? _activeSection;
+    String? selectedCategory = notice?.category ?? _activeCategory;
     NoticeSubsection selectedSubsection =
         notice?.subsection ?? _activeSubsection;
     String? attachmentUrl = notice?.attachmentUrl;
@@ -659,40 +709,44 @@ class _NoticesPageState extends State<NoticesPage>
                                 Row(
                                   children: [
                                     Expanded(
-                                      child:
-                                          DropdownButtonFormField<
-                                            NoticeSection
-                                          >(
-                                            initialValue: selectedSection,
-                                            isExpanded: true,
-                                            style: AppTextStyles.bodyMedium
-                                                .copyWith(
-                                                  color: isDark
-                                                      ? AppColors
-                                                            .textPrimaryDark
-                                                      : AppColors.textPrimary,
-                                                ),
-                                            decoration: const InputDecoration(
-                                              labelText: 'Section',
-                                              prefixIcon: Icon(
-                                                Icons.category_rounded,
-                                                size: 20,
-                                              ),
+                                      child: DropdownButtonFormField<String>(
+                                        value: selectedCategory,
+                                        isExpanded: true,
+                                        style: AppTextStyles.bodyMedium
+                                            .copyWith(
+                                              color: isDark
+                                                  ? AppColors.textPrimaryDark
+                                                  : AppColors.textPrimary,
                                             ),
-                                            items: NoticeSection.values
-                                                .map(
-                                                  (s) => DropdownMenuItem(
-                                                    value: s,
-                                                    child: Text(
-                                                      s.value.toUpperCase(),
-                                                    ),
-                                                  ),
-                                                )
-                                                .toList(),
-                                            onChanged: (v) => setDialogState(
-                                              () => selectedSection = v!,
-                                            ),
+                                        decoration: const InputDecoration(
+                                          labelText: 'Category',
+                                          prefixIcon: Icon(
+                                            Icons.category_rounded,
+                                            size: 20,
                                           ),
+                                        ),
+                                        items: const [
+                                          DropdownMenuItem(
+                                            value: 'results',
+                                            child: Text('Results'),
+                                          ),
+                                          DropdownMenuItem(
+                                            value: 'application_forms',
+                                            child: Text('Forms'),
+                                          ),
+                                          DropdownMenuItem(
+                                            value: 'exam_centers',
+                                            child: Text('Centers'),
+                                          ),
+                                          DropdownMenuItem(
+                                            value: 'general',
+                                            child: Text('General'),
+                                          ),
+                                        ],
+                                        onChanged: (v) => setDialogState(
+                                          () => selectedCategory = v,
+                                        ),
+                                      ),
                                     ),
                                     const SizedBox(width: AppSpacing.md),
                                     Expanded(
@@ -998,7 +1052,17 @@ class _NoticesPageState extends State<NoticesPage>
                                                   .trim(),
                                               'content': contentController.text
                                                   .trim(),
-                                              'section': selectedSection.value,
+                                              'category': selectedCategory,
+                                              'level': selectedSubsection.value,
+                                              'section':
+                                                  selectedCategory != null
+                                                  ? (selectedCategory ==
+                                                                'results' ||
+                                                            selectedCategory ==
+                                                                'application_forms'
+                                                        ? 'results'
+                                                        : 'routines')
+                                                  : 'results',
                                               'subsection':
                                                   selectedSubsection.value,
                                               'attachmentUrl': attachmentUrl,
@@ -1264,7 +1328,7 @@ class _NoticesPageState extends State<NoticesPage>
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'There are no ${_activeSection.value} for ${_activeSubsection == NoticeSubsection.be ? "B.E." : "M.Sc."} yet.',
+              'There are no notices in this category for ${_activeSubsection == NoticeSubsection.be ? "B.E." : "M.Sc."} yet.',
               style: AppTextStyles.bodyMedium.copyWith(
                 color: isDark
                     ? AppColors.textSecondaryDark
@@ -1322,6 +1386,24 @@ class _NoticesPageState extends State<NoticesPage>
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabBadge(int count) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        count > 99 ? '99+' : count.toString(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 8,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );

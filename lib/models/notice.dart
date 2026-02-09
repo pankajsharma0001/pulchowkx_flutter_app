@@ -7,10 +7,9 @@ class Notice {
   final NoticeSubsection subsection;
   final String? attachmentUrl;
   final String? attachmentName;
-  final String authorId;
+  final String? category;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final NoticeAuthor? author;
 
   Notice({
     required this.id,
@@ -20,10 +19,9 @@ class Notice {
     required this.subsection,
     this.attachmentUrl,
     this.attachmentName,
-    required this.authorId,
+    this.category,
     required this.createdAt,
     required this.updatedAt,
-    this.author,
   });
 
   factory Notice.fromJson(Map<String, dynamic> json) {
@@ -39,16 +37,13 @@ class Notice {
       ),
       attachmentUrl: json['attachmentUrl'] as String?,
       attachmentName: json['attachmentName'] as String?,
-      authorId: json['authorId'] as String? ?? '',
+      category: json['category'] as String?,
       createdAt:
           DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.now(),
       updatedAt:
           DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
           DateTime.now(),
-      author: json['author'] != null
-          ? NoticeAuthor.fromJson(json['author'] as Map<String, dynamic>)
-          : null,
     );
   }
 
@@ -61,10 +56,9 @@ class Notice {
       'subsection': subsection.value,
       'attachmentUrl': attachmentUrl,
       'attachmentName': attachmentName,
-      'authorId': authorId,
+      'category': category,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
-      if (author != null) 'author': author!.toJson(),
     };
   }
 
@@ -123,26 +117,7 @@ class Notice {
   }
 }
 
-/// Notice author information
-class NoticeAuthor {
-  final String id;
-  final String name;
-  final String? email;
-
-  NoticeAuthor({required this.id, required this.name, this.email});
-
-  factory NoticeAuthor.fromJson(Map<String, dynamic> json) {
-    return NoticeAuthor(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      email: json['email'] as String?,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {'id': id, 'name': name, if (email != null) 'email': email};
-  }
-}
+// NoticeAuthor is kept for backward compatibility if needed, but removed from Notice model as per schema update
 
 /// Notice statistics
 class NoticeStats {
@@ -151,6 +126,10 @@ class NoticeStats {
   final int mscResults;
   final int beRoutines;
   final int mscRoutines;
+  final int results;
+  final int applicationForms;
+  final int examCenters;
+  final int general;
   final int newCount;
 
   NoticeStats({
@@ -159,6 +138,10 @@ class NoticeStats {
     required this.mscResults,
     required this.beRoutines,
     required this.mscRoutines,
+    required this.results,
+    required this.applicationForms,
+    required this.examCenters,
+    required this.general,
     required this.newCount,
   });
 
@@ -169,6 +152,10 @@ class NoticeStats {
       mscResults: _parseInt(json['mscResults']) ?? 0,
       beRoutines: _parseInt(json['beRoutines']) ?? 0,
       mscRoutines: _parseInt(json['mscRoutines']) ?? 0,
+      results: _parseInt(json['results']) ?? 0,
+      applicationForms: _parseInt(json['applicationForms']) ?? 0,
+      examCenters: _parseInt(json['examCenters']) ?? 0,
+      general: _parseInt(json['general']) ?? 0,
       newCount: _parseInt(json['newCount']) ?? 0,
     );
   }
@@ -220,6 +207,7 @@ enum NoticeAttachmentType { none, image, pdf }
 class NoticeFilters {
   final NoticeSection? section;
   final NoticeSubsection? subsection;
+  final String? category;
   final String? search;
   final int? limit;
   final int? offset;
@@ -227,6 +215,7 @@ class NoticeFilters {
   NoticeFilters({
     this.section,
     this.subsection,
+    this.category,
     this.search,
     this.limit,
     this.offset,
@@ -236,6 +225,7 @@ class NoticeFilters {
     final params = <String, String>{};
     if (section != null) params['section'] = section!.value;
     if (subsection != null) params['subsection'] = subsection!.value;
+    if (category != null) params['category'] = category!;
     if (search != null && search!.isNotEmpty) params['search'] = search!;
     if (limit != null) params['limit'] = limit.toString();
     if (offset != null) params['offset'] = offset.toString();
