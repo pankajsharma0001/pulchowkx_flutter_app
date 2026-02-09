@@ -3228,7 +3228,7 @@ class ApiService {
     bool forceRefresh = false,
   }) async {
     final String cacheKey =
-        'notices_${filters?.section?.value ?? 'all'}_${filters?.subsection?.value ?? 'all'}_cache';
+        'notices_${filters?.section?.value ?? 'all'}_${filters?.category ?? 'all'}_cache';
 
     // Only skip cache/do background refresh for the first page
     final int offset = filters?.offset ?? 0;

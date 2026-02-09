@@ -18,7 +18,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   final List<OnboardingSlide> _slides = [
     OnboardingSlide(
       icon: Icons.explore_rounded,
-      title: 'Welcome to PulchowkX',
+      title: 'Welcome to Smart Pulchowk',
       description:
           'Your ultimate digital companion for navigating IOE Pulchowk Campus with ease.',
       gradient: const [Color(0xFF667EEA), Color(0xFF764BA2)],

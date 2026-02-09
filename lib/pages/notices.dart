@@ -30,8 +30,6 @@ class _NoticesPageState extends State<NoticesPage>
   NoticeStats? _stats;
   bool _isManager = false;
 
-  NoticeSubsection _activeSubsection = NoticeSubsection.be;
-
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   Timer? _debounce;
@@ -122,7 +120,6 @@ class _NoticesPageState extends State<NoticesPage>
     try {
       final filters = NoticeFilters(
         category: _activeCategory,
-        subsection: _activeSubsection,
         search: _searchController.text.trim(),
         limit: _limit,
         offset: _offset,
@@ -159,7 +156,6 @@ class _NoticesPageState extends State<NoticesPage>
       final nextOffset = _offset + _limit;
       final filters = NoticeFilters(
         category: _activeCategory,
-        subsection: _activeSubsection,
         search: _searchController.text.trim(),
         limit: _limit,
         offset: nextOffset,
@@ -337,6 +333,8 @@ class _NoticesPageState extends State<NoticesPage>
                       ),
                       child: TabBar(
                         controller: _tabController,
+                        isScrollable: true,
+                        tabAlignment: TabAlignment.start,
                         indicator: BoxDecoration(
                           color: AppColors.primary,
                           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -427,41 +425,6 @@ class _NoticesPageState extends State<NoticesPage>
                   ),
                 ),
 
-                // Subsection Filter
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildSubsectionChip(
-                          NoticeSubsection.be,
-                          'B.E. Program',
-                          Icons.engineering_rounded,
-                          _stats != null
-                              ? (_tabController.index < 2
-                                    ? _stats!.beResults
-                                    : _stats!.beRoutines)
-                              : null,
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        _buildSubsectionChip(
-                          NoticeSubsection.msc,
-                          'M.Sc. Program',
-                          Icons.school_rounded,
-                          _stats != null
-                              ? (_tabController.index < 2
-                                    ? _stats!.mscResults
-                                    : _stats!.mscRoutines)
-                              : null,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
                 const SliverToBoxAdapter(
                   child: SizedBox(height: AppSpacing.sm),
                 ),
@@ -541,8 +504,6 @@ class _NoticesPageState extends State<NoticesPage>
     final titleController = TextEditingController(text: notice?.title);
     final contentController = TextEditingController(text: notice?.content);
     String? selectedCategory = notice?.category ?? _activeCategory;
-    NoticeSubsection selectedSubsection =
-        notice?.subsection ?? _activeSubsection;
     String? attachmentUrl = notice?.attachmentUrl;
     String? attachmentName = notice?.attachmentName;
     bool isUploading = false;
@@ -710,7 +671,7 @@ class _NoticesPageState extends State<NoticesPage>
                                   children: [
                                     Expanded(
                                       child: DropdownButtonFormField<String>(
-                                        value: selectedCategory,
+                                        initialValue: selectedCategory,
                                         isExpanded: true,
                                         style: AppTextStyles.bodyMedium
                                             .copyWith(
@@ -747,43 +708,6 @@ class _NoticesPageState extends State<NoticesPage>
                                           () => selectedCategory = v,
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: AppSpacing.md),
-                                    Expanded(
-                                      child:
-                                          DropdownButtonFormField<
-                                            NoticeSubsection
-                                          >(
-                                            initialValue: selectedSubsection,
-                                            isExpanded: true,
-                                            style: AppTextStyles.bodyMedium
-                                                .copyWith(
-                                                  color: isDark
-                                                      ? AppColors
-                                                            .textPrimaryDark
-                                                      : AppColors.textPrimary,
-                                                ),
-                                            decoration: const InputDecoration(
-                                              labelText: 'Subsection',
-                                              prefixIcon: Icon(
-                                                Icons.layers_rounded,
-                                                size: 20,
-                                              ),
-                                            ),
-                                            items: NoticeSubsection.values
-                                                .map(
-                                                  (s) => DropdownMenuItem(
-                                                    value: s,
-                                                    child: Text(
-                                                      s.value.toUpperCase(),
-                                                    ),
-                                                  ),
-                                                )
-                                                .toList(),
-                                            onChanged: (v) => setDialogState(
-                                              () => selectedSubsection = v!,
-                                            ),
-                                          ),
                                     ),
                                   ],
                                 ),
@@ -1053,7 +977,6 @@ class _NoticesPageState extends State<NoticesPage>
                                               'content': contentController.text
                                                   .trim(),
                                               'category': selectedCategory,
-                                              'level': selectedSubsection.value,
                                               'section':
                                                   selectedCategory != null
                                                   ? (selectedCategory ==
@@ -1063,8 +986,6 @@ class _NoticesPageState extends State<NoticesPage>
                                                         ? 'results'
                                                         : 'routines')
                                                   : 'results',
-                                              'subsection':
-                                                  selectedSubsection.value,
                                               'attachmentUrl': attachmentUrl,
                                               'attachmentName': attachmentName,
                                             };
@@ -1207,97 +1128,6 @@ class _NoticesPageState extends State<NoticesPage>
     }
   }
 
-  Widget _buildSubsectionChip(
-    NoticeSubsection subsection,
-    String label,
-    IconData icon,
-    int? count,
-  ) {
-    final isSelected = _activeSubsection == subsection;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return GestureDetector(
-      onTap: () {
-        haptics.lightImpact();
-        setState(() {
-          _activeSubsection = subsection;
-        });
-        _loadNotices();
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary
-              : isDark
-              ? AppColors.surfaceDark
-              : Colors.white,
-          borderRadius: BorderRadius.circular(AppRadius.full),
-          boxShadow: isSelected
-              ? AppShadows.colored(AppColors.primary)
-              : AppShadows.sm,
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : (isDark ? AppColors.borderDark : AppColors.border),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected
-                  ? Colors.white
-                  : (isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondary),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: AppTextStyles.labelMedium.copyWith(
-                color: isSelected
-                    ? Colors.white
-                    : (isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimary),
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-              ),
-            ),
-            if (count != null) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? Colors.white.withValues(alpha: 0.2)
-                      : (isDark
-                            ? Colors.white10
-                            : Colors.black.withValues(alpha: 0.05)),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Text(
-                  '$count',
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: isSelected
-                        ? Colors.white
-                        : (isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondary),
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildEmptyState() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
@@ -1328,7 +1158,7 @@ class _NoticesPageState extends State<NoticesPage>
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'There are no notices in this category for ${_activeSubsection == NoticeSubsection.be ? "B.E." : "M.Sc."} yet.',
+              'There are no notices in this category yet.',
               style: AppTextStyles.bodyMedium.copyWith(
                 color: isDark
                     ? AppColors.textSecondaryDark
@@ -1395,7 +1225,7 @@ class _NoticesPageState extends State<NoticesPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(

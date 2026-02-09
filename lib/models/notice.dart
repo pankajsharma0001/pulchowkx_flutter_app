@@ -4,7 +4,6 @@ class Notice {
   final String title;
   final String content;
   final NoticeSection section;
-  final NoticeSubsection subsection;
   final String? attachmentUrl;
   final String? attachmentName;
   final String? category;
@@ -16,7 +15,6 @@ class Notice {
     required this.title,
     required this.content,
     required this.section,
-    required this.subsection,
     this.attachmentUrl,
     this.attachmentName,
     this.category,
@@ -31,9 +29,6 @@ class Notice {
       content: json['content'] as String? ?? '',
       section: NoticeSection.fromString(
         json['section'] as String? ?? 'results',
-      ),
-      subsection: NoticeSubsection.fromString(
-        json['subsection'] as String? ?? 'be',
       ),
       attachmentUrl: json['attachmentUrl'] as String?,
       attachmentName: json['attachmentName'] as String?,
@@ -53,7 +48,6 @@ class Notice {
       'title': title,
       'content': content,
       'section': section.value,
-      'subsection': subsection.value,
       'attachmentUrl': attachmentUrl,
       'attachmentName': attachmentName,
       'category': category,
@@ -122,10 +116,6 @@ class Notice {
 /// Notice statistics
 class NoticeStats {
   final int total;
-  final int beResults;
-  final int mscResults;
-  final int beRoutines;
-  final int mscRoutines;
   final int results;
   final int applicationForms;
   final int examCenters;
@@ -134,10 +124,6 @@ class NoticeStats {
 
   NoticeStats({
     required this.total,
-    required this.beResults,
-    required this.mscResults,
-    required this.beRoutines,
-    required this.mscRoutines,
     required this.results,
     required this.applicationForms,
     required this.examCenters,
@@ -148,10 +134,6 @@ class NoticeStats {
   factory NoticeStats.fromJson(Map<String, dynamic> json) {
     return NoticeStats(
       total: _parseInt(json['total']) ?? 0,
-      beResults: _parseInt(json['beResults']) ?? 0,
-      mscResults: _parseInt(json['mscResults']) ?? 0,
-      beRoutines: _parseInt(json['beRoutines']) ?? 0,
-      mscRoutines: _parseInt(json['mscRoutines']) ?? 0,
       results: _parseInt(json['results']) ?? 0,
       applicationForms: _parseInt(json['applicationForms']) ?? 0,
       examCenters: _parseInt(json['examCenters']) ?? 0,
@@ -184,29 +166,12 @@ enum NoticeSection {
   }
 }
 
-/// Notice subsection/program type
-enum NoticeSubsection {
-  be('be'),
-  msc('msc');
-
-  final String value;
-  const NoticeSubsection(this.value);
-
-  static NoticeSubsection fromString(String value) {
-    return NoticeSubsection.values.firstWhere(
-      (e) => e.value == value,
-      orElse: () => NoticeSubsection.be,
-    );
-  }
-}
-
 /// Notice attachment type
 enum NoticeAttachmentType { none, image, pdf }
 
 /// Notice filters for API calls
 class NoticeFilters {
   final NoticeSection? section;
-  final NoticeSubsection? subsection;
   final String? category;
   final String? search;
   final int? limit;
@@ -214,7 +179,6 @@ class NoticeFilters {
 
   NoticeFilters({
     this.section,
-    this.subsection,
     this.category,
     this.search,
     this.limit,
@@ -224,7 +188,6 @@ class NoticeFilters {
   Map<String, String> toQueryParams() {
     final params = <String, String>{};
     if (section != null) params['section'] = section!.value;
-    if (subsection != null) params['subsection'] = subsection!.value;
     if (category != null) params['category'] = category!;
     if (search != null && search!.isNotEmpty) params['search'] = search!;
     if (limit != null) params['limit'] = limit.toString();

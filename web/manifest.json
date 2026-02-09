@@ -1,6 +1,6 @@
 {
-    "name": "pulchowkx_app",
-    "short_name": "pulchowkx_app",
+    "name": "Smart Pulchowk",
+    "short_name": "Smart Pulchowk",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

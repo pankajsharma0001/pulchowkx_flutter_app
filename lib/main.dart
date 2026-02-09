@@ -82,7 +82,7 @@ class MyApp extends StatelessWidget {
         return ThemeSwitcher(
           child: MaterialApp(
             navigatorKey: navigatorKey,
-            title: 'PulchowkX',
+            title: 'Smart Pulchowk',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,

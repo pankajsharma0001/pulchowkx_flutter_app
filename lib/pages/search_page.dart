@@ -407,7 +407,7 @@ class _SearchPageState extends State<SearchPage> {
         style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
-        '${notice.section} / ${notice.subsection}',
+        notice.category?.toUpperCase() ?? notice.section.value.toUpperCase(),
         style: AppTextStyles.bodySmall,
       ),
       onTap: () {
