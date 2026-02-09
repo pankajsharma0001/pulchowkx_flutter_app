@@ -1510,7 +1510,7 @@ class _NoticeCard extends StatelessWidget {
 
     // For PDFs, show in-app PDF viewer
     if (notice.attachmentType == NoticeAttachmentType.pdf) {
-      Navigator.of(context).push(
+      Navigator.of(context, rootNavigator: true).push(
         MaterialPageRoute(
           builder: (context) => _FullscreenPdfViewer(
             pdfUrl: notice.attachmentUrl!,
@@ -1633,7 +1633,7 @@ class _FullscreenPdfViewer extends StatefulWidget {
 }
 
 class _FullscreenPdfViewerState extends State<_FullscreenPdfViewer> {
-  PdfControllerPinch? _pdfController;
+  PdfController? _pdfController;
   bool _isLoading = true;
   double _progress = 0;
   String? _error;
@@ -1705,7 +1705,7 @@ class _FullscreenPdfViewerState extends State<_FullscreenPdfViewer> {
 
             if (mounted) {
               setState(() {
-                _pdfController = PdfControllerPinch(
+                _pdfController = PdfController(
                   document: PdfDocument.openFile(file.path),
                 );
                 _isLoading = false;
@@ -1771,7 +1771,7 @@ class _FullscreenPdfViewerState extends State<_FullscreenPdfViewer> {
             },
           ),
         ],
-      ),
+      ), // Closing parenthesis for AppBar and comma
       body: _buildBody(),
     );
   }
@@ -1858,9 +1858,32 @@ class _FullscreenPdfViewerState extends State<_FullscreenPdfViewer> {
       );
     }
 
-    return PdfViewPinch(
-      controller: _pdfController!,
-      scrollDirection: Axis.vertical,
+    return RepaintBoundary(
+      child: PdfView(
+        controller: _pdfController!,
+        scrollDirection: Axis.vertical,
+        builders: PdfViewBuilders<DefaultBuilderOptions>(
+          options: const DefaultBuilderOptions(),
+          documentLoaderBuilder: (_) => const Center(
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 2,
+            ),
+          ),
+          pageLoaderBuilder: (_) => const Center(
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 2,
+            ),
+          ),
+          errorBuilder: (_, error) => Center(
+            child: Text(
+              'Error: ${error.toString()}',
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
