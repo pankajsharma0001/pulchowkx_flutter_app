@@ -4,10 +4,11 @@ import 'package:pulchowkx_app/auth/service/google_auth.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:hive/hive.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
+
 import 'package:pulchowkx_app/services/notification_service.dart';
 import 'package:pulchowkx_app/main.dart' show themeProvider;
 import 'package:pulchowkx_app/widgets/theme_switcher.dart';
@@ -145,15 +146,31 @@ class _SettingsPageState extends State<SettingsPage> {
         );
       }
 
-      // Clear DefaultCacheManager (flutter_cache_manager)
+      // 1. Clear DefaultCacheManager (Images managed by flutter_cache_manager)
       await DefaultCacheManager().emptyCache();
 
-      // Clear CachedNetworkImage cache
-      await CachedNetworkImage.evictFromCache('');
+      // 2. Clear CachedNetworkImage memory cache
       PaintingBinding.instance.imageCache.clear();
       PaintingBinding.instance.imageCache.clearLiveImages();
 
-      // Clear Hive API cache
+      // 3. Deeper cleanup: Clear the entire temporary directory
+      // This catches PDFs, picked files, and other plugin debris.
+      try {
+        final tempDir = await getTemporaryDirectory();
+        if (tempDir.existsSync()) {
+          tempDir.listSync().forEach((entity) {
+            try {
+              entity.deleteSync(recursive: true);
+            } catch (_) {
+              // Some files (like shaders or active logs) might be locked by the OS
+            }
+          });
+        }
+      } catch (e) {
+        debugPrint('Error clearing temp directory: $e');
+      }
+
+      // 4. Clear Hive API cache (Data)
       try {
         final box = Hive.box('api_cache');
         await box.clear();
