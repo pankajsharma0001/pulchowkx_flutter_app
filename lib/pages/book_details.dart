@@ -1234,152 +1234,338 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
 
   void _showReputationDetails() {
     if (_sellerReputation == null) return;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        height: MediaQuery.of(context).size.height * 0.8,
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppRadius.xl),
+          ),
+        ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Seller Reputation', style: AppTextStyles.h4),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
+            // Handle bar
+            Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(AppRadius.full),
                 ),
-              ],
+              ),
             ),
-            const SizedBox(height: AppSpacing.md),
-            Row(
-              children: [
-                Column(
-                  children: [
-                    Text(
-                      _sellerReputation!.averageRating.toStringAsFixed(1),
-                      style: AppTextStyles.h2.copyWith(
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    Row(
-                      children: List.generate(5, (index) {
-                        return Icon(
-                          index < _sellerReputation!.averageRating.floor()
-                              ? Icons.star_rounded
-                              : Icons.star_outline_rounded,
-                          color: Colors.amber[700],
-                          size: 20,
-                        );
-                      }),
-                    ),
-                    Text(
-                      '${_sellerReputation!.totalRatings} ratings',
-                      style: AppTextStyles.bodySmall,
-                    ),
-                  ],
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  0,
+                  AppSpacing.lg,
+                  AppSpacing.lg,
                 ),
-                const SizedBox(width: AppSpacing.xl),
-                Expanded(
-                  child: Column(
-                    children: [5, 4, 3, 2, 1].map((star) {
-                      final count = _sellerReputation!.distribution[star] ?? 0;
-                      final percent = _sellerReputation!.totalRatings > 0
-                          ? count / _sellerReputation!.totalRatings
-                          : 0.0;
-                      return Row(
-                        children: [
-                          Text('$star', style: AppTextStyles.labelSmall),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: LinearProgressIndicator(
-                              value: percent,
-                              backgroundColor: Colors.grey[200],
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.amber[700]!,
-                              ),
-                              minHeight: 6,
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: 25,
-                            child: Text(
-                              '$count',
-                              style: AppTextStyles.bodySmall,
-                              textAlign: TextAlign.end,
-                            ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Seller Reputation', style: AppTextStyles.h4),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+
+                    // Reputation Summary Card
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: isDark
+                              ? [
+                                  const Color(0xFF1E293B),
+                                  const Color(0xFF0F172A),
+                                ]
+                              : [const Color(0xFFF8FAFC), Colors.white],
+                        ),
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white10
+                              : Colors.black.withValues(alpha: 0.05),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           ),
                         ],
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text('Recent Reviews', style: AppTextStyles.labelLarge),
-            const SizedBox(height: AppSpacing.sm),
-            if (_sellerReputation!.recentRatings.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                child: Text('No reviews yet.', style: AppTextStyles.bodySmall),
-              )
-            else
-              Expanded(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _sellerReputation!.recentRatings.length,
-                  itemBuilder: (context, index) {
-                    final rating = _sellerReputation!.recentRatings[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      ),
+                      child: Row(
                         children: [
-                          Row(
+                          Column(
                             children: [
+                              Text(
+                                _sellerReputation!.averageRating
+                                    .toStringAsFixed(1),
+                                style: TextStyle(
+                                  fontSize: 48,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.primary,
+                                  letterSpacing: -2,
+                                ),
+                              ),
                               Row(
-                                children: List.generate(5, (i) {
+                                children: List.generate(5, (index) {
                                   return Icon(
-                                    i < rating.rating
+                                    index <
+                                            _sellerReputation!.averageRating
+                                                .round()
                                         ? Icons.star_rounded
                                         : Icons.star_outline_rounded,
                                     color: Colors.amber[700],
-                                    size: 14,
+                                    size: 18,
                                   );
                                 }),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(height: 4),
                               Text(
-                                rating.rater?.name ?? 'Anonymous',
-                                style: AppTextStyles.labelSmall,
+                                '${_sellerReputation!.totalRatings} ratings',
+                                style: AppTextStyles.labelSmall.copyWith(
+                                  color: Theme.of(context).disabledColor,
+                                ),
                               ),
                             ],
                           ),
-                          if (rating.review != null &&
-                              rating.review!.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                rating.review!,
-                                style: AppTextStyles.bodySmall,
-                              ),
+                          const SizedBox(width: AppSpacing.xl),
+                          Expanded(
+                            child: Column(
+                              children: [5, 4, 3, 2, 1].map((star) {
+                                final count =
+                                    _sellerReputation!.distribution[star] ?? 0;
+                                final percent =
+                                    _sellerReputation!.totalRatings > 0
+                                    ? count / _sellerReputation!.totalRatings
+                                    : 0.0;
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 2,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        '$star',
+                                        style: AppTextStyles.labelSmall
+                                            .copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            AppRadius.full,
+                                          ),
+                                          child: LinearProgressIndicator(
+                                            value: percent,
+                                            backgroundColor: isDark
+                                                ? Colors.white10
+                                                : Colors.grey[100],
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  star >= 4
+                                                      ? Colors.amber[700]!
+                                                      : (star >= 2
+                                                            ? Colors.amber[400]!
+                                                            : Colors.grey),
+                                                ),
+                                            minHeight: 6,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
                             ),
+                          ),
                         ],
                       ),
-                    );
-                  },
+                    ),
+
+                    const SizedBox(height: AppSpacing.xl),
+                    Text(
+                      'RECENT REVIEWS',
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: Theme.of(context).disabledColor,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+
+                    if (_sellerReputation!.recentRatings.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.xl),
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.05)
+                              : Colors.grey[50],
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.rate_review_outlined,
+                              size: 48,
+                              color: Theme.of(context).disabledColor,
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            Text(
+                              'No reviews yet',
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: Theme.of(context).disabledColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _sellerReputation!.recentRatings.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: AppSpacing.md),
+                        itemBuilder: (context, index) {
+                          final rating =
+                              _sellerReputation!.recentRatings[index];
+                          return Container(
+                            padding: const EdgeInsets.all(AppSpacing.md),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.03)
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(AppRadius.lg),
+                              border: Border.all(
+                                color: isDark
+                                    ? Colors.white10
+                                    : Colors.black.withValues(alpha: 0.05),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 18,
+                                      backgroundColor: isDark
+                                          ? Colors.white10
+                                          : Colors.grey[100],
+                                      backgroundImage:
+                                          rating.rater?.image != null
+                                          ? CachedNetworkImageProvider(
+                                              rating.rater!.image!,
+                                            )
+                                          : null,
+                                      child: rating.rater?.image == null
+                                          ? Text(
+                                              (rating.rater?.name ?? 'A')[0]
+                                                  .toUpperCase(),
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                color: isDark
+                                                    ? Colors.white
+                                                    : AppColors.primary,
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(width: AppSpacing.md),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            rating.rater?.name ?? 'Anonymous',
+                                            style: AppTextStyles.labelMedium
+                                                .copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Row(
+                                            children: [
+                                              Row(
+                                                children: List.generate(5, (i) {
+                                                  return Icon(
+                                                    i < rating.rating
+                                                        ? Icons.star_rounded
+                                                        : Icons
+                                                              .star_outline_rounded,
+                                                    color: Colors.amber[700],
+                                                    size: 14,
+                                                  );
+                                                }),
+                                              ),
+                                              const SizedBox(
+                                                width: AppSpacing.sm,
+                                              ),
+                                              Text(
+                                                _formatDate(rating.createdAt),
+                                                style: AppTextStyles.bodySmall
+                                                    .copyWith(
+                                                      color: Theme.of(
+                                                        context,
+                                                      ).disabledColor,
+                                                      fontSize: 10,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (rating.review != null &&
+                                    rating.review!.isNotEmpty) ...[
+                                  const SizedBox(height: AppSpacing.md),
+                                  Text(
+                                    rating.review!,
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      height: 1.4,
+                                      color: isDark
+                                          ? Colors.white70
+                                          : Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                  ],
                 ),
               ),
+            ),
           ],
         ),
       ),
@@ -1458,71 +1644,147 @@ class _RatingDialogState extends State<_RatingDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Rate Seller'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'How was your experience with ${widget.sellerName}?',
-              style: AppTextStyles.bodyMedium,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(5, (index) {
-                final starValue = index + 1;
-                return IconButton(
-                  onPressed: () {
-                    haptics.selectionClick();
-                    setState(() => _rating = starValue);
-                  },
-                  icon: Icon(
-                    starValue <= _rating
-                        ? Icons.star_rounded
-                        : Icons.star_outline_rounded,
-                    color: starValue <= _rating
-                        ? Colors.amber[700]
-                        : Colors.grey[400],
-                    size: 32,
-                  ),
-                );
-              }),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: _reviewController,
-              decoration: const InputDecoration(
-                hintText: 'Share your review (optional)',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-              style: AppTextStyles.bodyMedium,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: _rating == 0
-              ? null
-              : () => Navigator.pop(context, {
-                  'rating': _rating,
-                  'review': _reviewController.text.trim(),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.stars_rounded,
+                  color: AppColors.primary,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'Rate Seller',
+                style: AppTextStyles.h4,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'How was your experience with ${widget.sellerName}?',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: Theme.of(context).disabledColor,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  final starValue = index + 1;
+                  final isSelected = starValue <= _rating;
+                  return TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 1.0, end: isSelected ? 1.2 : 1.0),
+                    duration: const Duration(milliseconds: 200),
+                    builder: (context, scale, child) => Transform.scale(
+                      scale: scale,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () {
+                          haptics.selectionClick();
+                          setState(() => _rating = starValue);
+                        },
+                        icon: Icon(
+                          isSelected
+                              ? Icons.star_rounded
+                              : Icons.star_outline_rounded,
+                          color: isSelected
+                              ? Colors.amber[700]
+                              : (isDark ? Colors.white24 : Colors.grey[300]),
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                  );
                 }),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TextField(
+                controller: _reviewController,
+                decoration: InputDecoration(
+                  hintText: 'Share your review (optional)',
+                  filled: true,
+                  fillColor: isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.grey[50],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.all(AppSpacing.md),
+                ),
+                maxLines: 4,
+                style: AppTextStyles.bodyMedium,
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: Text(
+                        'MAYBE LATER',
+                        style: AppTextStyles.labelMedium.copyWith(
+                          color: Theme.of(context).disabledColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _rating == 0
+                          ? null
+                          : () => Navigator.pop(context, {
+                              'rating': _rating,
+                              'review': _reviewController.text.trim(),
+                            }),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                        ),
+                      ),
+                      child: const Text('SUBMIT'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          child: const Text('Submit'),
         ),
-      ],
+      ),
     );
   }
 }
