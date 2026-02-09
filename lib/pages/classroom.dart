@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:pulchowkx_app/models/classroom.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
@@ -124,9 +125,14 @@ class _ClassroomPageState extends State<ClassroomPage> {
   }
 
   Widget _buildBodyContent() {
+    final user = FirebaseAuth.instance.currentUser;
+    final String email = user?.email ?? '';
+    final bool isPulchowkEmail = email.endsWith('@pcampus.edu.np');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (!isPulchowkEmail) _buildProfilePendingWarning(),
         if (_isTeacher)
           TeacherView(
             subjects: _subjects,
@@ -140,9 +146,76 @@ class _ClassroomPageState extends State<ClassroomPage> {
             apiService: _apiService,
             onRefresh: _loadData,
           )
-        else
+        else if (isPulchowkEmail)
           _buildNoProfileMessage(),
       ],
+    );
+  }
+
+  Widget _buildProfilePendingWarning() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Adaptive colors for the warning card
+    final bgColor = isDark ? const Color(0xFF2C2410) : const Color(0xFFFFF9E7);
+    final borderColor = isDark
+        ? const Color(0xFF4D3D1F)
+        : const Color(0xFFFFEFB7);
+    final iconBgColor = isDark
+        ? const Color(0xFF3D3218)
+        : const Color(0xFFFFF1C0);
+    final textColor = isDark
+        ? const Color(0xFFFFD97D)
+        : const Color(0xFF8A5B00);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Icon(
+              Icons.priority_high_rounded,
+              color: textColor,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Profile Pending',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: textColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Your profile will be created when you sign in with a valid Pulchowk Campus email.',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: textColor.withValues(alpha: 0.9),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

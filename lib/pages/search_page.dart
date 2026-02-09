@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/models/club.dart';
@@ -74,8 +75,10 @@ class _SearchPageState extends State<SearchPage> {
         title: TextField(
           controller: _searchController,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Search clubs, events, books...',
+          decoration: InputDecoration(
+            hintText: FirebaseAuth.instance.currentUser != null
+                ? 'Search clubs, events, books...'
+                : 'Search campus locations...',
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
@@ -177,6 +180,8 @@ class _SearchPageState extends State<SearchPage> {
       );
     }
 
+    final bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
+
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       children: [
@@ -185,22 +190,22 @@ class _SearchPageState extends State<SearchPage> {
             'Places',
             results.places.map((e) => _buildPlaceItem(e)).toList(),
           ),
-        if (results.clubs.isNotEmpty)
+        if (isLoggedIn && results.clubs.isNotEmpty)
           _buildSection(
             'Clubs',
             results.clubs.map((e) => _buildClubItem(e)).toList(),
           ),
-        if (results.events.isNotEmpty)
+        if (isLoggedIn && results.events.isNotEmpty)
           _buildSection(
             'Events',
             results.events.map((e) => _buildEventItem(e)).toList(),
           ),
-        if (results.books.isNotEmpty)
+        if (isLoggedIn && results.books.isNotEmpty)
           _buildSection(
             'Books',
             results.books.map((e) => _buildBookItem(e)).toList(),
           ),
-        if (results.notices.isNotEmpty)
+        if (isLoggedIn && results.notices.isNotEmpty)
           _buildSection(
             'Notices',
             results.notices.map((e) => _buildNoticeItem(e)).toList(),
