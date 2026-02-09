@@ -27,7 +27,6 @@ class _NoticesPageState extends State<NoticesPage>
   final ApiService _apiService = ApiService();
 
   late TabController _tabController;
-  late Future<List<Notice>> _noticesFuture;
   NoticeStats? _stats;
   bool _isManager = false;
 
@@ -35,16 +34,35 @@ class _NoticesPageState extends State<NoticesPage>
   NoticeSubsection _activeSubsection = NoticeSubsection.be;
 
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   Timer? _debounce;
+
+  List<Notice> _notices = [];
+  bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int _offset = 0;
+  final int _limit = 20;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_onTabChanged);
+    _scrollController.addListener(_onScroll);
     _checkRole();
     _loadNotices();
     _loadStats();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoadingMore &&
+        _hasMore) {
+      _loadMoreNotices();
+    }
   }
 
   Future<void> _checkRole() async {
@@ -60,6 +78,7 @@ class _NoticesPageState extends State<NoticesPage>
   void dispose() {
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
+    _scrollController.dispose();
     _searchController.dispose();
     _debounce?.cancel();
     super.dispose();
@@ -83,17 +102,77 @@ class _NoticesPageState extends State<NoticesPage>
     });
   }
 
-  void _loadNotices({bool forceRefresh = false}) {
+  Future<void> _loadNotices({bool forceRefresh = false}) async {
     setState(() {
-      _noticesFuture = _apiService.getNotices(
-        filters: NoticeFilters(
-          section: _activeSection,
-          subsection: _activeSubsection,
-          search: _searchController.text.trim(),
-        ),
+      _isLoading = true;
+      _errorMessage = null;
+      _offset = 0;
+      _hasMore = true;
+    });
+
+    try {
+      final filters = NoticeFilters(
+        section: _activeSection,
+        subsection: _activeSubsection,
+        search: _searchController.text.trim(),
+        limit: _limit,
+        offset: _offset,
+      );
+
+      final notices = await _apiService.getNotices(
+        filters: filters,
         forceRefresh: forceRefresh,
       );
-    });
+
+      if (mounted) {
+        setState(() {
+          _notices = notices;
+          _isLoading = false;
+          _hasMore = notices.length >= _limit;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadMoreNotices() async {
+    if (_isLoadingMore || !_hasMore) return;
+
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final nextOffset = _offset + _limit;
+      final filters = NoticeFilters(
+        section: _activeSection,
+        subsection: _activeSubsection,
+        search: _searchController.text.trim(),
+        limit: _limit,
+        offset: nextOffset,
+      );
+
+      final newNotices = await _apiService.getNotices(filters: filters);
+
+      if (mounted) {
+        setState(() {
+          _notices.addAll(newNotices);
+          _offset = nextOffset;
+          _isLoadingMore = false;
+          _hasMore = newNotices.length >= _limit;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingMore = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadStats({bool forceRefresh = false}) async {
@@ -126,6 +205,7 @@ class _NoticesPageState extends State<NoticesPage>
             },
             color: AppColors.primary,
             child: CustomScrollView(
+              controller: _scrollController,
               slivers: [
                 // Header & Search
                 SliverToBoxAdapter(
@@ -337,53 +417,53 @@ class _NoticesPageState extends State<NoticesPage>
                 ),
 
                 // Notices List
-                FutureBuilder<List<Notice>>(
-                  future: _noticesFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return SliverPadding(
-                        padding: const EdgeInsets.all(AppSpacing.lg),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) => const _NoticeCardShimmer(),
-                            childCount: 5,
-                          ),
-                        ),
-                      );
-                    }
-
-                    if (snapshot.hasError) {
-                      return SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: _buildErrorState(snapshot.error.toString()),
-                      );
-                    }
-
-                    final notices = snapshot.data ?? [];
-
-                    if (notices.isEmpty) {
-                      return SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: _buildEmptyState(),
-                      );
-                    }
-
-                    return SliverPadding(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) => _NoticeCard(
-                            notice: notices[index],
-                            isManager: _isManager,
-                            onEdit: () => _showNoticeDialog(notices[index]),
-                            onDelete: () => _deleteNotice(notices[index]),
-                          ),
-                          childCount: notices.length,
-                        ),
+                if (_isLoading)
+                  SliverPadding(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => const _NoticeCardShimmer(),
+                        childCount: 5,
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  )
+                else if (_errorMessage != null)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _buildErrorState(_errorMessage!),
+                  )
+                else if (_notices.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _buildEmptyState(),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          if (index >= _notices.length) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            );
+                          }
+                          return _NoticeCard(
+                            notice: _notices[index],
+                            isManager: _isManager,
+                            onEdit: () => _showNoticeDialog(_notices[index]),
+                            onDelete: () => _deleteNotice(_notices[index]),
+                          );
+                        },
+                        childCount: _notices.length + (_isLoadingMore ? 1 : 0),
+                      ),
+                    ),
+                  ),
 
                 // Bottom padding
                 const SliverToBoxAdapter(
@@ -1588,7 +1668,7 @@ class _FullscreenImageViewer extends StatelessWidget {
           clipBehavior: Clip.none,
           child: Center(
             child: CachedNetworkImage(
-              imageUrl: imageUrl,
+              imageUrl: ApiService().optimizeCloudinaryUrl(imageUrl),
               fit: BoxFit.contain,
               placeholder: (context, url) => const Center(
                 child: CircularProgressIndicator(
@@ -1862,6 +1942,12 @@ class _FullscreenPdfViewerState extends State<_FullscreenPdfViewer> {
       child: PdfView(
         controller: _pdfController!,
         scrollDirection: Axis.vertical,
+        renderer: (PdfPage page) => page.render(
+          width: page.width * 1.5,
+          height: page.height * 1.5,
+          format: PdfPageImageFormat.jpeg,
+          quality: 80,
+        ),
         builders: PdfViewBuilders<DefaultBuilderOptions>(
           options: const DefaultBuilderOptions(),
           documentLoaderBuilder: (_) => const Center(

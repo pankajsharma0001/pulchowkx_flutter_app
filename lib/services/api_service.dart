@@ -3230,7 +3230,10 @@ class ApiService {
     final String cacheKey =
         'notices_${filters?.section?.value ?? 'all'}_${filters?.subsection?.value ?? 'all'}_cache';
 
-    if (!forceRefresh) {
+    // Only skip cache/do background refresh for the first page
+    final int offset = filters?.offset ?? 0;
+
+    if (!forceRefresh && offset == 0) {
       // Try cache first for instant display
       final cachedData = await _getFromCache(cacheKey);
       List<Notice> cachedNotices = [];
@@ -3688,6 +3691,17 @@ class ApiService {
       debugPrint('Error marking all notifications as read: $e');
     }
     return false;
+  }
+
+  /// Optimize Cloudinary URL by adding auto format and quality
+  String optimizeCloudinaryUrl(String url, {int? width}) {
+    if (!url.contains('cloudinary.com')) return url;
+    if (url.contains('/upload/')) {
+      final transform =
+          'f_auto,q_auto${width != null ? ',w_$width,c_limit' : ''}';
+      return url.replaceFirst('/upload/', '/upload/$transform/');
+    }
+    return url;
   }
 }
 
