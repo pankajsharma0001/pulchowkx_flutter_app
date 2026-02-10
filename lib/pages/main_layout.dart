@@ -298,8 +298,9 @@ class _BottomNavBar extends StatelessWidget {
           child: Container(
             padding: EdgeInsets.only(bottom: bottomPadding),
             decoration: BoxDecoration(
-              color: (Theme.of(context).cardTheme.color ?? AppColors.surface)
-                  .withValues(alpha: 0.7),
+              color: Theme.of(
+                context,
+              ).scaffoldBackgroundColor.withValues(alpha: 0.7),
               border: Border(
                 top: BorderSide(
                   color: Theme.of(

@@ -14,16 +14,16 @@ class AppColors {
   static const Color accentLight = Color(0xFFE7F5FF); // Very light blue
 
   // Background colors (Light) - Clean white like Telegram
-  static const Color background = Color(0xFFFFFFFF); // Pure white
-  static const Color backgroundSecondary = Color(0xFFF7F7F8); // Slight gray
+  static const Color background = Color(0xFFF2F2F7); // Soft gray background
+  static const Color backgroundSecondary = Color(0xFFE5E5EA); // Deeper gray
   static const Color surface = Color(0xFFFFFFFF); // Pure white
   static const Color cardBackground = Color(0xFFFFFFFF); // White cards
 
   // Background colors (Dark) - True black like Telegram
   static const Color backgroundDark = Color(0xFF000000); // True black
-  static const Color backgroundSecondaryDark = Color(0xFF1C1C1D); // Near black
-  static const Color surfaceDark = Color(0xFF1C1C1D); // Dark surface
-  static const Color cardBackgroundDark = Color(0xFF1C1C1D); // Dark cards
+  static const Color backgroundSecondaryDark = Color(0xFF000000); // Pure black
+  static const Color surfaceDark = Color(0xFF000000); // Pure black
+  static const Color cardBackgroundDark = Color(0xFF000000); // Pure black
 
   // Text colors (Light)
   static const Color textPrimary = Color(0xFF000000); // Black text
@@ -58,13 +58,13 @@ class AppColors {
   );
 
   static const LinearGradient heroGradient = LinearGradient(
-    colors: [Color(0xFFFFFFFF), Color(0xFFF7F7F8)],
+    colors: [Color(0xFFF2F2F7), Color(0xFFE5E5EA)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
   static const LinearGradient heroGradientDark = LinearGradient(
-    colors: [Color(0xFF000000), Color(0xFF1C1C1D)],
+    colors: [Color(0xFF000000), Color(0xFF000000)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
@@ -262,7 +262,7 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: AppColors.background,
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
         iconTheme: IconThemeData(color: AppColors.primary),
