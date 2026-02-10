@@ -4,6 +4,7 @@ import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/lost_found_card.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
+import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:pulchowkx_app/pages/lost_found/lost_found_details_page.dart';
 import 'package:pulchowkx_app/pages/lost_found/report_lost_found_page.dart';
 import 'package:pulchowkx_app/pages/lost_found/my_lost_found_page.dart';
@@ -48,7 +49,10 @@ class _LostFoundPageState extends State<LostFoundPage>
   }
 
   Future<void> _fetchItems({bool forceRefresh = false}) async {
-    setState(() => _isLoading = true);
+    // Only show loading shimmer if we don't have items to show
+    if (_items.isEmpty) {
+      setState(() => _isLoading = true);
+    }
 
     String? type;
     if (_tabController.index == 1) type = 'lost';
@@ -74,106 +78,230 @@ class _LostFoundPageState extends State<LostFoundPage>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lost & Found'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_outline_rounded),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const MyLostFoundPage()),
-            ),
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(110),
-          child: Column(
-            children: [
-              TabBar(
-                controller: _tabController,
-                indicatorColor: AppColors.primary,
-                labelColor: AppColors.primary,
-                unselectedLabelColor: AppColors.textMuted,
-                tabs: const [
-                  Tab(text: 'All'),
-                  Tab(text: 'Lost'),
-                  Tab(text: 'Found'),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.surfaceDark
-                              : AppColors.surface,
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                          border: Border.all(
+      appBar: const CustomAppBar(currentPage: AppPage.lostAndFound),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: isDark
+              ? AppColors.heroGradientDark
+              : AppColors.heroGradient,
+        ),
+        child: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: () => _fetchItems(forceRefresh: true),
+            color: AppColors.primary,
+            child: CustomScrollView(
+              slivers: [
+                // Header & Search
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      AppSpacing.xl,
+                      AppSpacing.lg,
+                      AppSpacing.sm,
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: AppColors.primaryGradient,
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
+                            boxShadow: AppShadows.colored(AppColors.primary),
+                          ),
+                          child: const Icon(
+                            Icons.find_in_page_rounded,
+                            size: 32,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Lost & Found',
+                              style: AppTextStyles.h3.copyWith(
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          'Report lost items or find what you might have missing',
+                          style: AppTextStyles.bodyMedium.copyWith(
                             color: isDark
-                                ? Colors.white.withValues(alpha: 0.1)
-                                : Colors.black.withValues(alpha: 0.1),
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        // My Items Link
+                        TextButton.icon(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MyLostFoundPage(),
+                            ),
+                          ),
+                          icon: const Icon(
+                            Icons.person_outline_rounded,
+                            size: 18,
+                          ),
+                          label: const Text('My Reported Items'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primary,
                           ),
                         ),
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: const InputDecoration(
-                            hintText: 'Search items...',
-                            prefixIcon: Icon(Icons.search_rounded, size: 20),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 8),
+                        const SizedBox(height: AppSpacing.md),
+                        // Search Bar
+                        Container(
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? AppColors.surfaceDark
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(AppRadius.xl),
+                            boxShadow: AppShadows.sm,
+                            border: Border.all(
+                              color: isDark
+                                  ? AppColors.borderDark
+                                  : AppColors.border,
+                            ),
                           ),
-                          onSubmitted: (val) {
-                            setState(() => _searchQuery = val);
-                            _fetchItems();
-                          },
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Search items...',
+                              hintStyle: AppTextStyles.bodyMedium.copyWith(
+                                color: isDark
+                                    ? AppColors.textMutedDark
+                                    : AppColors.textMuted,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.search_rounded,
+                                color: isDark
+                                    ? AppColors.textMutedDark
+                                    : AppColors.textMuted,
+                              ),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                            onSubmitted: (val) {
+                              setState(() => _searchQuery = val);
+                              _fetchItems();
+                            },
+                          ),
                         ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Filters & Tabs
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      AppSpacing.sm,
+                      AppSpacing.lg,
+                      AppSpacing.md,
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? AppColors.surfaceDark
+                                : AppColors.surface,
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
+                            border: Border.all(
+                              color: isDark
+                                  ? AppColors.borderDark
+                                  : AppColors.border,
+                            ),
+                          ),
+                          child: TabBar(
+                            controller: _tabController,
+                            indicator: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                            ),
+                            indicatorSize: TabBarIndicatorSize.tab,
+                            indicatorPadding: const EdgeInsets.all(4),
+                            dividerColor: Colors.transparent,
+                            labelColor: Colors.white,
+                            unselectedLabelColor: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondary,
+                            labelStyle: AppTextStyles.labelSmall,
+                            unselectedLabelStyle: AppTextStyles.labelSmall,
+                            tabs: const [
+                              Tab(text: 'All'),
+                              Tab(text: 'Lost'),
+                              Tab(text: 'Found'),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        _buildCategoryFilter(),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Items List
+                if (_isLoading)
+                  SliverPadding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => const ShimmerCard(),
+                        childCount: 5,
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.sm),
-                    _buildCategoryFilter(),
-                  ],
-                ),
-              ),
-            ],
+                  )
+                else if (_items.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _buildEmptyState(),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.sm,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        return LostFoundCard(
+                          item: _items[index],
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => LostFoundDetailsPage(
+                                  itemId: _items[index].id,
+                                ),
+                              ),
+                            );
+                            _fetchItems();
+                          },
+                        );
+                      }, childCount: _items.length),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
-      ),
-      body: RefreshIndicator(
-        onRefresh: () => _fetchItems(forceRefresh: true),
-        child: _isLoading
-            ? ListView.builder(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                itemCount: 5,
-                itemBuilder: (context, index) => const ShimmerCard(),
-              )
-            : _items.isEmpty
-            ? _buildEmptyState()
-            : ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                itemCount: _items.length,
-                itemBuilder: (context, index) {
-                  return LostFoundCard(
-                    item: _items[index],
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              LostFoundDetailsPage(itemId: _items[index].id),
-                        ),
-                      );
-                      _fetchItems();
-                    },
-                  );
-                },
-              ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
@@ -194,22 +322,27 @@ class _LostFoundPageState extends State<LostFoundPage>
 
   Widget _buildCategoryFilter() {
     return Container(
-      height: 40,
+      width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.1),
+        color: AppColors.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedCategory,
+          isExpanded: true,
           hint: const Text('Category', style: TextStyle(fontSize: 12)),
           onChanged: (val) {
             setState(() => _selectedCategory = val);
             _fetchItems();
           },
           items: [
-            const DropdownMenuItem(value: null, child: Text('All')),
+            const DropdownMenuItem(
+              value: null,
+              child: Text('Filter by Category'),
+            ),
             ...LostFoundCategory.values.map((cat) {
               return DropdownMenuItem(
                 value: cat.name,

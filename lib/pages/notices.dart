@@ -1490,7 +1490,7 @@ class _NoticeCard extends StatelessWidget {
 
     // For images, show in-app fullscreen viewer
     if (notice.attachmentType == NoticeAttachmentType.image) {
-      Navigator.of(context).push(
+      Navigator.of(context, rootNavigator: true).push(
         MaterialPageRoute(
           builder: (context) => FullScreenImageViewer(
             imageUrl: notice.attachmentUrl!,

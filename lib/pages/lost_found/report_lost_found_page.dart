@@ -118,8 +118,15 @@ class _ReportLostFoundPageState extends State<ReportLostFoundPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Report Item')),
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
+      appBar: AppBar(
+        title: const Text('Report Item'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: _isSubmitting
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -129,46 +136,61 @@ class _ReportLostFoundPageState extends State<ReportLostFoundPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildTypeSelector(),
+                    _buildTypeSelector(isDark),
                     const SizedBox(height: AppSpacing.lg),
                     _buildInputField(
                       'Title',
                       _titleController,
                       'e.g., Black Wallet, Keys',
+                      isDark,
                     ),
-                    _buildCategoryDropdown(),
+                    _buildCategoryDropdown(isDark),
                     _buildInputField(
                       'Description',
                       _descriptionController,
                       'Describe the item...',
+                      isDark,
                       maxLines: 3,
                     ),
-                    _buildDatePicker(),
+                    _buildDatePicker(isDark),
                     _buildInputField(
                       'Location',
                       _locationController,
                       'Where did you lose/find it?',
+                      isDark,
                     ),
                     _buildInputField(
                       'Contact Note (Optional)',
                       _contactNoteController,
                       'How should people reach out?',
+                      isDark,
                     ),
                     if (_itemType == LostFoundItemType.lost)
                       _buildInputField(
                         'Reward (Optional)',
                         _rewardController,
                         'e.g., Coffee, Small cash prize',
+                        isDark,
                       ),
                     const SizedBox(height: AppSpacing.lg),
-                    Text('Images', style: AppTextStyles.h4),
+                    Text(
+                      'Images',
+                      style: AppTextStyles.h4.copyWith(
+                        color: isDark ? Colors.white : AppColors.textPrimary,
+                      ),
+                    ),
                     const SizedBox(height: AppSpacing.sm),
-                    _buildImagePicker(),
+                    _buildImagePicker(isDark),
                     const SizedBox(height: AppSpacing.xl),
                     ElevatedButton(
                       onPressed: _submit,
                       style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 50),
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 54),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
                       ),
                       child: const Text('Submit Report'),
                     ),
@@ -180,25 +202,33 @@ class _ReportLostFoundPageState extends State<ReportLostFoundPage> {
     );
   }
 
-  Widget _buildTypeSelector() {
+  Widget _buildTypeSelector(bool isDark) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDark ? AppColors.surfaceDark : AppColors.backgroundSecondary,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.border,
+        ),
       ),
       child: Row(
         children: [
           Expanded(
-            child: _typeButton(LostFoundItemType.lost, 'Lost', AppColors.error),
+            child: _typeButton(
+              LostFoundItemType.lost,
+              'Lost',
+              AppColors.error,
+              isDark,
+            ),
           ),
           Expanded(
             child: _typeButton(
               LostFoundItemType.found,
               'Found',
               AppColors.success,
+              isDark,
             ),
           ),
         ],
@@ -206,7 +236,12 @@ class _ReportLostFoundPageState extends State<ReportLostFoundPage> {
     );
   }
 
-  Widget _typeButton(LostFoundItemType type, String label, Color color) {
+  Widget _typeButton(
+    LostFoundItemType type,
+    String label,
+    Color color,
+    bool isDark,
+  ) {
     final isSelected = _itemType == type;
     return GestureDetector(
       onTap: () => setState(() => _itemType = type),
@@ -220,7 +255,11 @@ class _ReportLostFoundPageState extends State<ReportLostFoundPage> {
           child: Text(
             label,
             style: TextStyle(
-              color: isSelected ? Colors.white : AppColors.textMuted,
+              color: isSelected
+                  ? Colors.white
+                  : (isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textMuted),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -232,7 +271,8 @@ class _ReportLostFoundPageState extends State<ReportLostFoundPage> {
   Widget _buildInputField(
     String label,
     TextEditingController controller,
-    String hint, {
+    String hint,
+    bool isDark, {
     int maxLines = 1,
   }) {
     return Padding(
@@ -240,15 +280,38 @@ class _ReportLostFoundPageState extends State<ReportLostFoundPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : AppColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 8),
           TextFormField(
             controller: controller,
             maxLines: maxLines,
+            style: TextStyle(
+              color: isDark ? Colors.white : AppColors.textPrimary,
+            ),
             decoration: InputDecoration(
               hintText: hint,
+              hintStyle: TextStyle(
+                color: isDark ? AppColors.textMutedDark : AppColors.textMuted,
+              ),
+              filled: true,
+              fillColor: isDark ? AppColors.surfaceDark : Colors.white,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.md),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.borderDark : AppColors.border,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.borderDark : AppColors.border,
+                ),
               ),
             ),
             validator: (val) =>
@@ -259,19 +322,40 @@ class _ReportLostFoundPageState extends State<ReportLostFoundPage> {
     );
   }
 
-  Widget _buildCategoryDropdown() {
+  Widget _buildCategoryDropdown(bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Category', style: TextStyle(fontWeight: FontWeight.w600)),
+          Text(
+            'Category',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : AppColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 8),
           DropdownButtonFormField<LostFoundCategory>(
-            initialValue: _category,
+            value: _category,
+            style: TextStyle(
+              color: isDark ? Colors.white : AppColors.textPrimary,
+            ),
+            dropdownColor: isDark ? AppColors.surfaceDark : Colors.white,
             decoration: InputDecoration(
+              filled: true,
+              fillColor: isDark ? AppColors.surfaceDark : Colors.white,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.md),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.borderDark : AppColors.border,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.borderDark : AppColors.border,
+                ),
               ),
             ),
             items: LostFoundCategory.values.map((cat) {
@@ -289,13 +373,19 @@ class _ReportLostFoundPageState extends State<ReportLostFoundPage> {
     );
   }
 
-  Widget _buildDatePicker() {
+  Widget _buildDatePicker(bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Date', style: TextStyle(fontWeight: FontWeight.w600)),
+          Text(
+            'Date',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : AppColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 8),
           InkWell(
             onTap: () async {
@@ -304,20 +394,47 @@ class _ReportLostFoundPageState extends State<ReportLostFoundPage> {
                 initialDate: _selectedDate,
                 firstDate: DateTime.now().subtract(const Duration(days: 365)),
                 lastDate: DateTime.now(),
+                builder: (context, child) {
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      colorScheme: isDark
+                          ? const ColorScheme.dark(
+                              primary: AppColors.primary,
+                              onPrimary: Colors.white,
+                              surface: AppColors.surfaceDark,
+                              onSurface: Colors.white,
+                            )
+                          : const ColorScheme.light(primary: AppColors.primary),
+                    ),
+                    child: child!,
+                  );
+                },
               );
               if (date != null) setState(() => _selectedDate = date);
             },
             child: Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
+                color: isDark ? AppColors.surfaceDark : Colors.white,
+                border: Border.all(
+                  color: isDark ? AppColors.borderDark : AppColors.border,
+                ),
                 borderRadius: BorderRadius.circular(AppRadius.md),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(DateFormat('MMM dd, yyyy').format(_selectedDate)),
-                  const Icon(Icons.calendar_today_rounded, size: 20),
+                  Text(
+                    DateFormat('MMM dd, yyyy').format(_selectedDate),
+                    style: TextStyle(
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                    ),
+                  ),
+                  Icon(
+                    Icons.calendar_today_rounded,
+                    size: 20,
+                    color: isDark ? AppColors.primary : AppColors.textMuted,
+                  ),
                 ],
               ),
             ),
@@ -327,7 +444,7 @@ class _ReportLostFoundPageState extends State<ReportLostFoundPage> {
     );
   }
 
-  Widget _buildImagePicker() {
+  Widget _buildImagePicker(bool isDark) {
     return Column(
       children: [
         if (_images.isNotEmpty)
@@ -353,14 +470,20 @@ class _ReportLostFoundPageState extends State<ReportLostFoundPage> {
                       Positioned(
                         right: 0,
                         top: 0,
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 20,
+                        child: GestureDetector(
+                          onTap: () => setState(() => _images.removeAt(index)),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 16,
+                            ),
                           ),
-                          onPressed: () =>
-                              setState(() => _images.removeAt(index)),
                         ),
                       ),
                     ],
@@ -377,6 +500,14 @@ class _ReportLostFoundPageState extends State<ReportLostFoundPage> {
                 onPressed: _takePhoto,
                 icon: const Icon(Icons.camera_alt_rounded),
                 label: const Text('Take Photo'),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                    color: isDark ? AppColors.borderDark : AppColors.border,
+                  ),
+                  foregroundColor: isDark
+                      ? Colors.white
+                      : AppColors.textPrimary,
+                ),
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
@@ -385,6 +516,14 @@ class _ReportLostFoundPageState extends State<ReportLostFoundPage> {
                 onPressed: _pickImage,
                 icon: const Icon(Icons.photo_library_rounded),
                 label: const Text('Gallery'),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                    color: isDark ? AppColors.borderDark : AppColors.border,
+                  ),
+                  foregroundColor: isDark
+                      ? Colors.white
+                      : AppColors.textPrimary,
+                ),
               ),
             ),
           ],

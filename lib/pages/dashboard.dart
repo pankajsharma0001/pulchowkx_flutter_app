@@ -433,7 +433,11 @@ class _DashboardPageState extends State<DashboardPage> {
                                   'Find lost items or report something found',
                               color: AppColors.error,
                               heroTag: 'lost-found',
-                              onTap: () =>
+                              onTap: () {
+                                final mainLayout = MainLayout.of(context);
+                                if (mainLayout != null) {
+                                  mainLayout.setSelectedIndex(9);
+                                } else {
                                   Navigator.of(
                                     context,
                                     rootNavigator: true,
@@ -442,7 +446,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                       builder: (context) =>
                                           const LostFoundPage(),
                                     ),
-                                  ),
+                                  );
+                                }
+                              },
                             ),
                             const SizedBox(height: AppSpacing.md),
                             _QuickActionCard(

@@ -88,81 +88,88 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
     final isLost = _item!.itemType == LostFoundItemType.lost;
 
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: () => _fetchItemDetails(forceRefresh: true),
-        child: CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              expandedHeight: 300,
-              pinned: true,
-              title: _isLoading || _item == null ? null : Text(_item!.title),
-              flexibleSpace: FlexibleSpaceBar(
-                background: _buildImageCarousel(),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        _buildTag(
-                          isLost ? 'LOST' : 'FOUND',
-                          isLost ? AppColors.error : AppColors.success,
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        _buildTag(
-                          _item!.category.name.toUpperCase(),
-                          AppColors.primary,
-                        ),
-                        const Spacer(),
-                        Text(
-                          _item!.dateFormatted,
-                          style: AppTextStyles.labelSmall.copyWith(
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Text(_item!.title, style: AppTextStyles.h3),
-                    const SizedBox(height: AppSpacing.sm),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.location_on_rounded,
-                          size: 16,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _item!.locationText,
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: AppSpacing.xl),
-                    Text('Description', style: AppTextStyles.h4),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(_item!.description, style: AppTextStyles.bodyMedium),
-                    if (_item!.rewardText != null &&
-                        _item!.rewardText!.isNotEmpty) ...[
-                      const SizedBox(height: AppSpacing.lg),
-                      _buildRewardSection(),
-                    ],
-                    const SizedBox(height: AppSpacing.lg),
-                    _buildContactSection(isOwner),
-                    const SizedBox(height: 100), // Space for bottom button
-                  ],
+      body: SafeArea(
+        top: true, // Push content below the camera notch
+        child: RefreshIndicator(
+          onRefresh: () => _fetchItemDetails(forceRefresh: true),
+          child: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                expandedHeight: 300,
+                pinned: true,
+                leading: BackButton(
+                  color: Colors.white,
+                  style: IconButton.styleFrom(backgroundColor: Colors.black26),
+                ),
+                title: _isLoading || _item == null ? null : Text(_item!.title),
+                flexibleSpace: FlexibleSpaceBar(
+                  background: _buildImageCarousel(),
                 ),
               ),
-            ),
-          ],
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          _buildTag(
+                            isLost ? 'LOST' : 'FOUND',
+                            isLost ? AppColors.error : AppColors.success,
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          _buildTag(
+                            _item!.category.name.toUpperCase(),
+                            AppColors.primary,
+                          ),
+                          const Spacer(),
+                          Text(
+                            _item!.dateFormatted,
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(_item!.title, style: AppTextStyles.h3),
+                      const SizedBox(height: AppSpacing.sm),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on_rounded,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _item!.locationText,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: AppSpacing.xl),
+                      Text('Description', style: AppTextStyles.h4),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(_item!.description, style: AppTextStyles.bodyMedium),
+                      if (_item!.rewardText != null &&
+                          _item!.rewardText!.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.lg),
+                        _buildRewardSection(),
+                      ],
+                      const SizedBox(height: AppSpacing.lg),
+                      _buildContactSection(isOwner),
+                      const SizedBox(height: 100), // Space for bottom button
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       bottomSheet: !isOwner && _item!.status == LostFoundStatus.open
@@ -188,7 +195,7 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
       itemBuilder: (context, index) {
         return GestureDetector(
           onTap: () {
-            Navigator.of(context).push(
+            Navigator.of(context, rootNavigator: true).push(
               MaterialPageRoute(
                 builder: (context) => FullScreenImageViewer(
                   imageUrl: _item!.images[index].imageUrl,
@@ -229,10 +236,11 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
   }
 
   Widget _buildRewardSection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.warningLight.withValues(alpha: 0.1),
+        color: AppColors.warning.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: AppColors.warning.withValues(alpha: 0.2)),
       ),
@@ -251,7 +259,12 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
                     color: AppColors.warning,
                   ),
                 ),
-                Text(_item!.rewardText!),
+                Text(
+                  _item!.rewardText!,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : AppColors.textPrimary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -261,23 +274,35 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
   }
 
   Widget _buildContactSection(bool isOwner) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDark ? AppColors.surfaceDark : AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.border,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Contact Information',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: AppSpacing.sm),
           if (isOwner || _item!.status == LostFoundStatus.resolved)
-            Text(_item!.contactNote ?? 'No contact note provided.')
+            Text(
+              _item!.contactNote ?? 'No contact note provided.',
+              style: TextStyle(
+                color: isDark ? Colors.white : AppColors.textPrimary,
+              ),
+            )
           else
             const Text(
               'Contact details will be visible once your claim is accepted by the owner.',

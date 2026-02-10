@@ -35,7 +35,9 @@ class _MyLostFoundPageState extends State<MyLostFoundPage>
   }
 
   Future<void> _fetchMyData({bool forceRefresh = false}) async {
-    setState(() => _isLoading = true);
+    if (_myItems.isEmpty && _myClaims.isEmpty) {
+      setState(() => _isLoading = true);
+    }
     final results = await Future.wait([
       _apiService.getMyLostFoundItems(forceRefresh: forceRefresh),
       _apiService.getMyLostFoundClaims(forceRefresh: forceRefresh),
