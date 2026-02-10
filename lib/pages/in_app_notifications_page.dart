@@ -31,6 +31,29 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
   void initState() {
     super.initState();
     _loadNotifications();
+
+    // Listen for tab changes to auto-pop this page
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final mainLayout = MainLayout.of(context);
+      if (mainLayout != null) {
+        mainLayout.tabIndexNotifier.addListener(_handleTabChange);
+      }
+    });
+  }
+
+  void _handleTabChange() {
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  void dispose() {
+    final mainLayout = MainLayout.of(context);
+    if (mainLayout != null) {
+      mainLayout.tabIndexNotifier.removeListener(_handleTabChange);
+    }
+    super.dispose();
   }
 
   Future<void> _loadNotifications() async {
@@ -239,7 +262,7 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
 
     // Navigate based on type and ID
     if (notification.type.contains('event') && notification.eventId != null) {
-      navigator.push(
+      navigator.pushReplacement(
         MaterialPageRoute(
           builder: (context) =>
               EventDetailsPage(eventId: notification.eventId!),
@@ -250,7 +273,7 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
       if (noticeIdStr != null) {
         final noticeId = int.tryParse(noticeIdStr.toString());
         if (noticeId != null) {
-          navigator.push(
+          navigator.pushReplacement(
             MaterialPageRoute(
               builder: (context) => NoticeDetailsPage(noticeId: noticeId),
             ),
@@ -262,16 +285,17 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
       // Fallback to Notices tab
       final mainLayout = MainLayout.of(context);
       if (mainLayout != null) {
+        navigator.pop();
         mainLayout.setSelectedIndex(8);
       } else {
-        navigator.push(
+        navigator.pushReplacement(
           MaterialPageRoute(builder: (context) => const NoticesPage()),
         );
       }
     } else if ((notification.type.contains('book') ||
             notification.type.contains('purchase_request')) &&
         notification.listingId != null) {
-      navigator.push(
+      navigator.pushReplacement(
         MaterialPageRoute(
           builder: (context) =>
               BookDetailsPage(bookId: notification.listingId!),
@@ -282,7 +306,7 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
       if (itemIdStr != null) {
         final itemId = int.tryParse(itemIdStr.toString());
         if (itemId != null) {
-          navigator.push(
+          navigator.pushReplacement(
             MaterialPageRoute(
               builder: (context) => LostFoundDetailsPage(itemId: itemId),
             ),
@@ -298,7 +322,7 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
           final conversation = conversations.firstWhere(
             (c) => c.id == conversationId,
           );
-          navigator.push(
+          navigator.pushReplacement(
             MaterialPageRoute(
               builder: (context) => ChatRoomPage(conversation: conversation),
             ),

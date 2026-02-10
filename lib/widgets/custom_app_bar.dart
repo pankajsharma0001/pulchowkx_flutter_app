@@ -100,12 +100,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                             ),
                           ),
                           onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SearchPage(),
-                              ),
+                            final route = MaterialPageRoute(
+                              builder: (context) => const SearchPage(),
                             );
+                            if (currentPage == AppPage.notifications) {
+                              Navigator.pushReplacement(context, route);
+                            } else {
+                              Navigator.push(context, route);
+                            }
                           },
                         ),
                         _NotificationBell(
@@ -167,12 +169,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                           icon: const Icon(Icons.search_rounded),
                           tooltip: 'Search',
                           onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SearchPage(),
-                              ),
+                            final route = MaterialPageRoute(
+                              builder: (context) => const SearchPage(),
                             );
+                            if (currentPage == AppPage.notifications) {
+                              Navigator.pushReplacement(context, route);
+                            } else {
+                              Navigator.push(context, route);
+                            }
                           },
                         ),
                         _NotificationBell(
@@ -212,13 +216,15 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     if (mainLayout != null) {
       mainLayout.setSelectedIndex(5);
     } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) =>
-              isLoggedIn ? const ClubsPage() : const LoginPage(),
-        ),
+      final route = MaterialPageRoute(
+        builder: (context) =>
+            isLoggedIn ? const ClubsPage() : const LoginPage(),
       );
+      if (currentPage == AppPage.notifications) {
+        Navigator.pushReplacement(context, route);
+      } else {
+        Navigator.push(context, route);
+      }
     }
   }
 
@@ -233,13 +239,15 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     if (mainLayout != null) {
       mainLayout.setSelectedIndex(6);
     } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) =>
-              isLoggedIn ? const EventsPage() : const LoginPage(),
-        ),
+      final route = MaterialPageRoute(
+        builder: (context) =>
+            isLoggedIn ? const EventsPage() : const LoginPage(),
       );
+      if (currentPage == AppPage.notifications) {
+        Navigator.pushReplacement(context, route);
+      } else {
+        Navigator.push(context, route);
+      }
     }
   }
 
@@ -249,10 +257,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     if (mainLayout != null) {
       mainLayout.setSelectedIndex(1);
     } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const MapPage()),
-      );
+      final route = MaterialPageRoute(builder: (context) => const MapPage());
+      if (currentPage == AppPage.notifications) {
+        Navigator.pushReplacement(context, route);
+      } else {
+        Navigator.push(context, route);
+      }
     }
   }
 
@@ -262,10 +272,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     if (mainLayout != null) {
       mainLayout.setSelectedIndex(4);
     } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const DashboardPage()),
+      final route = MaterialPageRoute(
+        builder: (context) => const DashboardPage(),
       );
+      if (currentPage == AppPage.notifications) {
+        Navigator.pushReplacement(context, route);
+      } else {
+        Navigator.push(context, route);
+      }
     }
   }
 
@@ -275,10 +289,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     if (mainLayout != null) {
       mainLayout.setSelectedIndex(7);
     } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-      );
+      final route = MaterialPageRoute(builder: (context) => const LoginPage());
+      if (currentPage == AppPage.notifications) {
+        Navigator.pushReplacement(context, route);
+      } else {
+        Navigator.push(context, route);
+      }
     }
   }
 
@@ -681,16 +697,24 @@ class _MobileMoreMenu extends StatelessWidget {
             mainLayout.setSelectedIndex(8);
           } else {
             if (!isLoggedIn) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginPage()),
+              final route = MaterialPageRoute(
+                builder: (context) => const LoginPage(),
               );
+              if (currentPage == AppPage.notifications) {
+                Navigator.pushReplacement(context, route);
+              } else {
+                Navigator.push(context, route);
+              }
               return;
             }
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const NoticesPage()),
+            final route = MaterialPageRoute(
+              builder: (context) => const NoticesPage(),
             );
+            if (currentPage == AppPage.notifications) {
+              Navigator.pushReplacement(context, route);
+            } else {
+              Navigator.push(context, route);
+            }
           }
         } else if (value == 'lost-found') {
           final mainLayout = MainLayout.of(context);
@@ -698,16 +722,24 @@ class _MobileMoreMenu extends StatelessWidget {
             mainLayout.setSelectedIndex(9);
           } else {
             if (!isLoggedIn) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginPage()),
+              final route = MaterialPageRoute(
+                builder: (context) => const LoginPage(),
               );
+              if (currentPage == AppPage.notifications) {
+                Navigator.pushReplacement(context, route);
+              } else {
+                Navigator.push(context, route);
+              }
               return;
             }
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const LostFoundPage()),
+            final route = MaterialPageRoute(
+              builder: (context) => const LostFoundPage(),
             );
+            if (currentPage == AppPage.notifications) {
+              Navigator.pushReplacement(context, route);
+            } else {
+              Navigator.push(context, route);
+            }
           }
         }
       },
