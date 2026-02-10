@@ -91,12 +91,14 @@ class ListingInfo {
 class SellerReputation {
   final double averageRating;
   final int totalRatings;
+  final int soldCount;
   final Map<int, int> distribution; // star count -> number of ratings
   final List<SellerRating> recentRatings;
 
   SellerReputation({
     required this.averageRating,
     required this.totalRatings,
+    required this.soldCount,
     required this.distribution,
     required this.recentRatings,
   });
@@ -117,6 +119,7 @@ class SellerReputation {
     return SellerReputation(
       averageRating: (json['averageRating'] as num?)?.toDouble() ?? 0.0,
       totalRatings: (json['totalRatings'] as num?)?.toInt() ?? 0,
+      soldCount: (json['soldCount'] as num?)?.toInt() ?? 0,
       distribution: dist,
       recentRatings:
           (json['recentRatings'] as List?)

@@ -12,7 +12,25 @@ enum LostFoundCategory {
   other,
 }
 
-enum LostFoundStatus { open, claimed, resolved, closed }
+enum LostFoundStatus {
+  open,
+  claimed,
+  resolved,
+  closed;
+
+  String get displayName {
+    switch (this) {
+      case LostFoundStatus.open:
+        return 'Open';
+      case LostFoundStatus.claimed:
+        return 'Claimed';
+      case LostFoundStatus.resolved:
+        return 'Resolved';
+      case LostFoundStatus.closed:
+        return 'Closed';
+    }
+  }
+}
 
 enum LostFoundClaimStatus { pending, accepted, rejected, cancelled }
 
@@ -197,6 +215,7 @@ class LostFoundClaim {
   final LostFoundClaimStatus status;
   final DateTime createdAt;
   final Map<String, dynamic>? requester;
+  final LostFoundItem? item;
 
   LostFoundClaim({
     required this.id,
@@ -206,6 +225,7 @@ class LostFoundClaim {
     required this.status,
     required this.createdAt,
     this.requester,
+    this.item,
   });
 
   factory LostFoundClaim.fromJson(Map<String, dynamic> json) {
@@ -217,6 +237,9 @@ class LostFoundClaim {
       status: _parseClaimStatus(json['status']),
       createdAt: DateTime.parse(json['createdAt'] ?? json['created_at']),
       requester: json['requester'] as Map<String, dynamic>?,
+      item: json['item'] != null
+          ? LostFoundItem.fromJson(json['item'] as Map<String, dynamic>)
+          : null,
     );
   }
 

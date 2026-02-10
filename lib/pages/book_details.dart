@@ -843,17 +843,25 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
       children: [
         Expanded(
           child: _buildReputationStatCard(
-            label: 'REPUTATION',
+            label: 'RATING',
             value: _sellerReputation?.averageRating.toStringAsFixed(1) ?? '0.0',
             suffix: '/5.0',
             isDark: isDark,
           ),
         ),
-        const SizedBox(width: AppSpacing.md),
+        const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: _buildReputationStatCard(
-            label: 'TOTAL RATINGS',
+            label: 'RATINGS',
             value: _sellerReputation?.totalRatings.toString() ?? '0',
+            isDark: isDark,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: _buildReputationStatCard(
+            label: 'SOLD',
+            value: _sellerReputation?.soldCount.toString() ?? '0',
             isDark: isDark,
           ),
         ),
@@ -941,56 +949,56 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: _showReputationDetails,
+        onTap: _showSellerProfileSheet,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         child: Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.md,
+          ),
           decoration: BoxDecoration(
             color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.white,
             borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(
-              color: isDark
-                  ? const Color(0xFF164E63)
-                  : const Color(0xFFCFFAFE), // cyan-100
+              color: isDark ? const Color(0xFF164E63) : const Color(0xFFCFFAFE),
             ),
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 8,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 1.4,
+                  letterSpacing: 1.0,
                   color: isDark
-                      ? const Color(0xFF94A3B8) // slate-400
-                      : const Color(0xFF9CA3AF), // gray-400
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFF9CA3AF),
                 ),
               ),
               const SizedBox(height: 4),
               Row(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     value,
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 18,
                       fontWeight: FontWeight.w900,
                       color: isDark ? Colors.white : const Color(0xFF0F172A),
                     ),
                   ),
                   if (suffix != null)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 2, left: 2),
+                      padding: const EdgeInsets.only(bottom: 2, left: 1),
                       child: Text(
                         suffix,
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? const Color(0xFF64748B)
-                              : const Color(0xFF64748B), // slate-500
+                          color: const Color(0xFF64748B),
                         ),
                       ),
                     ),
@@ -1232,342 +1240,20 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     }
   }
 
-  void _showReputationDetails() {
-    if (_sellerReputation == null) return;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  void _showSellerProfileSheet() {
+    if (_book == null) return;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.8,
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppRadius.xl),
-          ),
-        ),
-        child: Column(
-          children: [
-            // Handle bar
-            Center(
-              child: Container(
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white24 : Colors.black12,
-                  borderRadius: BorderRadius.circular(AppRadius.full),
-                ),
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
-                  0,
-                  AppSpacing.lg,
-                  AppSpacing.lg,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Seller Reputation', style: AppTextStyles.h4),
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Reputation Summary Card
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: isDark
-                              ? [
-                                  const Color(0xFF1E293B),
-                                  const Color(0xFF0F172A),
-                                ]
-                              : [const Color(0xFFF8FAFC), Colors.white],
-                        ),
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.white10
-                              : Colors.black.withValues(alpha: 0.05),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Column(
-                            children: [
-                              Text(
-                                _sellerReputation!.averageRating
-                                    .toStringAsFixed(1),
-                                style: TextStyle(
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.primary,
-                                  letterSpacing: -2,
-                                ),
-                              ),
-                              Row(
-                                children: List.generate(5, (index) {
-                                  return Icon(
-                                    index <
-                                            _sellerReputation!.averageRating
-                                                .round()
-                                        ? Icons.star_rounded
-                                        : Icons.star_outline_rounded,
-                                    color: Colors.amber[700],
-                                    size: 18,
-                                  );
-                                }),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${_sellerReputation!.totalRatings} ratings',
-                                style: AppTextStyles.labelSmall.copyWith(
-                                  color: Theme.of(context).disabledColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: AppSpacing.xl),
-                          Expanded(
-                            child: Column(
-                              children: [5, 4, 3, 2, 1].map((star) {
-                                final count =
-                                    _sellerReputation!.distribution[star] ?? 0;
-                                final percent =
-                                    _sellerReputation!.totalRatings > 0
-                                    ? count / _sellerReputation!.totalRatings
-                                    : 0.0;
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 2,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Text(
-                                        '$star',
-                                        style: AppTextStyles.labelSmall
-                                            .copyWith(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            AppRadius.full,
-                                          ),
-                                          child: LinearProgressIndicator(
-                                            value: percent,
-                                            backgroundColor: isDark
-                                                ? Colors.white10
-                                                : Colors.grey[100],
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                  star >= 4
-                                                      ? Colors.amber[700]!
-                                                      : (star >= 2
-                                                            ? Colors.amber[400]!
-                                                            : Colors.grey),
-                                                ),
-                                            minHeight: 6,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: AppSpacing.xl),
-                    Text(
-                      'RECENT REVIEWS',
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: Theme.of(context).disabledColor,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    if (_sellerReputation!.recentRatings.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(AppSpacing.xl),
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.05)
-                              : Colors.grey[50],
-                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.rate_review_outlined,
-                              size: 48,
-                              color: Theme.of(context).disabledColor,
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            Text(
-                              'No reviews yet',
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                color: Theme.of(context).disabledColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _sellerReputation!.recentRatings.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: AppSpacing.md),
-                        itemBuilder: (context, index) {
-                          final rating =
-                              _sellerReputation!.recentRatings[index];
-                          return Container(
-                            padding: const EdgeInsets.all(AppSpacing.md),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.03)
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(AppRadius.lg),
-                              border: Border.all(
-                                color: isDark
-                                    ? Colors.white10
-                                    : Colors.black.withValues(alpha: 0.05),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 18,
-                                      backgroundColor: isDark
-                                          ? Colors.white10
-                                          : Colors.grey[100],
-                                      backgroundImage:
-                                          rating.rater?.image != null
-                                          ? CachedNetworkImageProvider(
-                                              rating.rater!.image!,
-                                            )
-                                          : null,
-                                      child: rating.rater?.image == null
-                                          ? Text(
-                                              (rating.rater?.name ?? 'A')[0]
-                                                  .toUpperCase(),
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                                color: isDark
-                                                    ? Colors.white
-                                                    : AppColors.primary,
-                                              ),
-                                            )
-                                          : null,
-                                    ),
-                                    const SizedBox(width: AppSpacing.md),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            rating.rater?.name ?? 'Anonymous',
-                                            style: AppTextStyles.labelMedium
-                                                .copyWith(
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Row(
-                                            children: [
-                                              Row(
-                                                children: List.generate(5, (i) {
-                                                  return Icon(
-                                                    i < rating.rating
-                                                        ? Icons.star_rounded
-                                                        : Icons
-                                                              .star_outline_rounded,
-                                                    color: Colors.amber[700],
-                                                    size: 14,
-                                                  );
-                                                }),
-                                              ),
-                                              const SizedBox(
-                                                width: AppSpacing.sm,
-                                              ),
-                                              Text(
-                                                _formatDate(rating.createdAt),
-                                                style: AppTextStyles.bodySmall
-                                                    .copyWith(
-                                                      color: Theme.of(
-                                                        context,
-                                                      ).disabledColor,
-                                                      fontSize: 10,
-                                                    ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (rating.review != null &&
-                                    rating.review!.isNotEmpty) ...[
-                                  const SizedBox(height: AppSpacing.md),
-                                  Text(
-                                    rating.review!,
-                                    style: AppTextStyles.bodyMedium.copyWith(
-                                      height: 1.4,
-                                      color: isDark
-                                          ? Colors.white70
-                                          : Colors.black87,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+      builder: (context) => _SellerProfileSheet(
+        sellerId: _book!.sellerId,
+        sellerName: _book!.seller?.name ?? 'Seller',
+        sellerImage: _book!.seller?.image,
+        sellerEmail: _book!.seller?.email,
+        initialReputation: _sellerReputation,
+        currentListingId: _book!.id,
       ),
     );
   }
@@ -1799,4 +1485,521 @@ class _ConditionStyle {
     required this.textColor,
     required this.borderColor,
   });
+}
+
+class _SellerProfileSheet extends StatefulWidget {
+  final String sellerId;
+  final String sellerName;
+  final String? sellerImage;
+  final String? sellerEmail;
+  final SellerReputation? initialReputation;
+  final int currentListingId;
+
+  const _SellerProfileSheet({
+    required this.sellerId,
+    required this.sellerName,
+    this.sellerImage,
+    this.sellerEmail,
+    this.initialReputation,
+    required this.currentListingId,
+  });
+
+  @override
+  State<_SellerProfileSheet> createState() => _SellerProfileSheetState();
+}
+
+class _SellerProfileSheetState extends State<_SellerProfileSheet>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final ApiService _apiService = ApiService();
+  SellerReputation? _reputation;
+  List<BookListing> _otherListings = [];
+  bool _isLoadingReputation = false;
+  bool _isLoadingListings = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _reputation = widget.initialReputation;
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoadingReputation = _reputation == null;
+      _isLoadingListings = true;
+    });
+
+    try {
+      final results = await Future.wait([
+        _apiService.getSellerReputation(widget.sellerId),
+        _apiService.getSellerListings(widget.sellerId),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _reputation = results[0] as SellerReputation?;
+          _otherListings = (results[1] as List<BookListing>)
+              .where((b) => b.id != widget.currentListingId && b.isAvailable)
+              .toList();
+          _isLoadingReputation = false;
+          _isLoadingListings = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading seller profile data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingReputation = false;
+          _isLoadingListings = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadius.xl),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Drag handle
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white24 : Colors.black12,
+              borderRadius: BorderRadius.circular(AppRadius.full),
+            ),
+          ),
+
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundColor: isDark
+                      ? const Color(0xFF1E40AF)
+                      : const Color(0xFFDBEAFE),
+                  backgroundImage: widget.sellerImage != null
+                      ? CachedNetworkImageProvider(widget.sellerImage!)
+                      : null,
+                  child: widget.sellerImage == null
+                      ? Text(
+                          widget.sellerName[0].toUpperCase(),
+                          style: TextStyle(
+                            color: isDark ? Colors.white : AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 24,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.sellerName, style: AppTextStyles.h4),
+                      if (widget.sellerEmail != null)
+                        Text(
+                          widget.sellerEmail!,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: Theme.of(context).disabledColor,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: AppSpacing.lg),
+
+          // Stats Bar
+          if (_reputation != null) _buildStatsBar(isDark),
+
+          const SizedBox(height: AppSpacing.md),
+
+          // Tabs
+          TabBar(
+            controller: _tabController,
+            labelStyle: AppTextStyles.labelMedium.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+            unselectedLabelColor: Theme.of(context).disabledColor,
+            labelColor: AppColors.primary,
+            indicatorColor: AppColors.primary,
+            indicatorSize: TabBarIndicatorSize.label,
+            tabs: const [
+              Tab(text: 'ACTIVE LISTINGS'),
+              Tab(text: 'REVIEWS'),
+            ],
+          ),
+
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [_buildListingsTab(isDark), _buildReviewsTab(isDark)],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsBar(bool isDark) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[50],
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildStatItem(
+            'RATING',
+            _reputation!.averageRating.toStringAsFixed(1),
+            Icons.star_rounded,
+            Colors.amber,
+          ),
+          _buildVerticalDivider(),
+          _buildStatItem(
+            'SOLD',
+            _reputation!.soldCount.toString(),
+            Icons.shopping_bag_rounded,
+            Colors.blue,
+          ),
+          _buildVerticalDivider(),
+          _buildStatItem(
+            'RATINGS',
+            _reputation!.totalRatings.toString(),
+            Icons.people_rounded,
+            Colors.purple,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Column(
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(
+              value,
+              style: AppTextStyles.labelLarge.copyWith(
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: AppTextStyles.labelSmall.copyWith(
+            color: Theme.of(context).disabledColor,
+            fontSize: 9,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVerticalDivider() {
+    return Container(
+      width: 1,
+      height: 30,
+      color: Theme.of(context).dividerColor,
+    );
+  }
+
+  Widget _buildListingsTab(bool isDark) {
+    if (_isLoadingListings) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_otherListings.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.inventory_2_outlined,
+              size: 48,
+              color: Theme.of(context).disabledColor,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'No other active listings',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: Theme.of(context).disabledColor,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      itemCount: _otherListings.length,
+      itemBuilder: (context, index) {
+        final book = _otherListings[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: AppSpacing.md),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            side: BorderSide(color: Theme.of(context).dividerColor),
+          ),
+          child: InkWell(
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      BookDetailsPage(bookId: book.id, initialBook: book),
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    child: book.images?.isNotEmpty == true
+                        ? CachedNetworkImage(
+                            imageUrl: book.images![0].imageUrl,
+                            width: 60,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            width: 60,
+                            height: 80,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                            child: const Icon(Icons.book),
+                          ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          book.title,
+                          style: AppTextStyles.labelLarge.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          book.author,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: Theme.of(context).disabledColor,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          book.formattedPrice,
+                          style: AppTextStyles.labelMedium.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, size: 20),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildReviewsTab(bool isDark) {
+    if (_isLoadingReputation) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_reputation == null || _reputation!.recentRatings.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.rate_review_outlined,
+              size: 48,
+              color: Theme.of(context).disabledColor,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'No reviews yet',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: Theme.of(context).disabledColor,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      itemCount: _reputation!.recentRatings.length,
+      separatorBuilder: (context, index) =>
+          const SizedBox(height: AppSpacing.md),
+      itemBuilder: (context, index) {
+        final rating = _reputation!.recentRatings[index];
+        return Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white10
+                  : Colors.black.withValues(alpha: 0.05),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundColor: isDark ? Colors.white10 : Colors.grey[100],
+                    backgroundImage: rating.rater?.image != null
+                        ? CachedNetworkImageProvider(rating.rater!.image!)
+                        : null,
+                    child: rating.rater?.image == null
+                        ? Text(
+                            (rating.rater?.name ?? 'A')[0].toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : AppColors.primary,
+                            ),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          rating.rater?.name ?? 'Anonymous',
+                          style: AppTextStyles.labelSmall.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Row(
+                              children: List.generate(5, (i) {
+                                return Icon(
+                                  i < rating.rating
+                                      ? Icons.star_rounded
+                                      : Icons.star_outline_rounded,
+                                  color: Colors.amber[700],
+                                  size: 12,
+                                );
+                              }),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _formatDate(rating.createdAt),
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: Theme.of(context).disabledColor,
+                                fontSize: 9,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (rating.review != null && rating.review!.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  rating.review!,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    height: 1.4,
+                    color: isDark ? Colors.white70 : Colors.black87,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays > 30) {
+      return '${date.day}/${date.month}/${date.year}';
+    } else if (difference.inDays >= 1) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours >= 1) {
+      return '${difference.inHours}h ago';
+    } else {
+      return 'Just now';
+    }
+  }
 }

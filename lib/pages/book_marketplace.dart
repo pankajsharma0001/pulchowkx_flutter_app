@@ -21,7 +21,8 @@ class BookMarketplacePage extends StatefulWidget {
   State<BookMarketplacePage> createState() => _BookMarketplacePageState();
 }
 
-class _BookMarketplacePageState extends State<BookMarketplacePage> {
+class _BookMarketplacePageState extends State<BookMarketplacePage>
+    with AutomaticKeepAliveClientMixin {
   final ApiService _apiService = ApiService();
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -148,7 +149,11 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
   }
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: const CustomAppBar(currentPage: AppPage.bookMarketplace),
       floatingActionButton: FloatingActionButton.extended(
@@ -615,9 +620,7 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
                             initialBook: _listings[index],
                           ),
                         ),
-                      ).then((_) {
-                        if (mounted) _loadListings();
-                      });
+                      );
                     },
                   ),
                 ),

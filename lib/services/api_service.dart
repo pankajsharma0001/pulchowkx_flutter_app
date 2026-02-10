@@ -3460,6 +3460,17 @@ class ApiService {
     return null;
   }
 
+  /// Get books listed by a specific seller
+  Future<List<BookListing>> getSellerListings(String sellerId) async {
+    try {
+      final response = await getBookListings(BookFilters(sellerId: sellerId));
+      return response?.listings ?? [];
+    } catch (e) {
+      debugPrint('Error getting seller listings: $e');
+    }
+    return [];
+  }
+
   /// Rate a seller for a specific listing
   Future<Map<String, dynamic>> rateSeller({
     required String sellerId,

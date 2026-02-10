@@ -127,7 +127,7 @@ class _MyLostFoundPageState extends State<MyLostFoundPage>
               ),
             ),
             child: ListTile(
-              title: Text('Claim for Item #${claim.itemId}'),
+              title: Text(claim.item?.title ?? 'Item #${claim.itemId}'),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

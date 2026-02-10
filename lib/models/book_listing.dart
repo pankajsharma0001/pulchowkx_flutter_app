@@ -419,6 +419,7 @@ class BookFilters {
   final double? maxPrice;
   final String? status;
   final String? sortBy; // 'price_asc', 'price_desc', 'newest', 'oldest'
+  final String? sellerId;
   final int page;
   final int limit;
 
@@ -432,6 +433,7 @@ class BookFilters {
     this.maxPrice,
     this.status,
     this.sortBy,
+    this.sellerId,
     this.page = 1,
     this.limit = 12,
   });
@@ -449,6 +451,9 @@ class BookFilters {
     if (maxPrice != null) params['maxPrice'] = maxPrice.toString();
     if (status != null && status!.isNotEmpty) params['status'] = status!;
     if (sortBy != null && sortBy!.isNotEmpty) params['sortBy'] = sortBy!;
+    if (sellerId != null && sellerId!.isNotEmpty) {
+      params['sellerId'] = sellerId!;
+    }
     params['page'] = page.toString();
     params['limit'] = limit.toString();
     return params;
@@ -464,6 +469,7 @@ class BookFilters {
     double? maxPrice,
     String? status,
     String? sortBy,
+    String? sellerId,
     int? page,
     int? limit,
   }) {
@@ -477,6 +483,7 @@ class BookFilters {
       maxPrice: maxPrice ?? this.maxPrice,
       status: status ?? this.status,
       sortBy: sortBy ?? this.sortBy,
+      sellerId: sellerId ?? this.sellerId,
       page: page ?? this.page,
       limit: limit ?? this.limit,
     );

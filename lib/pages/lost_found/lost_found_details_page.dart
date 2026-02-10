@@ -123,6 +123,15 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
                             _item!.category.name.toUpperCase(),
                             AppColors.primary,
                           ),
+                          if (_item!.status != LostFoundStatus.open) ...[
+                            const SizedBox(width: AppSpacing.sm),
+                            _buildTag(
+                              _item!.status.displayName.toUpperCase(),
+                              _item!.status == LostFoundStatus.resolved
+                                  ? AppColors.success
+                                  : AppColors.primary,
+                            ),
+                          ],
                           const Spacer(),
                           Text(
                             _item!.dateFormatted,
@@ -341,7 +350,7 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
           ),
-          child: const Text('I found this / This is mine'),
+          child: const Text('Claim This'),
         ),
       ),
     );

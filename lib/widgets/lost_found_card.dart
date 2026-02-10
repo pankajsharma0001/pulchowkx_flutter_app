@@ -118,11 +118,39 @@ class LostFoundCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (item.status == LostFoundStatus.resolved)
-                          const Icon(
-                            Icons.check_circle_rounded,
-                            color: AppColors.success,
-                            size: 16,
+                        if (item.status != LostFoundStatus.open)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color:
+                                  (item.status == LostFoundStatus.resolved
+                                          ? AppColors.success
+                                          : AppColors.primary)
+                                      .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.full,
+                              ),
+                              border: Border.all(
+                                color:
+                                    (item.status == LostFoundStatus.resolved
+                                            ? AppColors.success
+                                            : AppColors.primary)
+                                        .withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Text(
+                              item.status.displayName.toUpperCase(),
+                              style: AppTextStyles.labelSmall.copyWith(
+                                color: item.status == LostFoundStatus.resolved
+                                    ? AppColors.success
+                                    : AppColors.primary,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                       ],
                     ),
