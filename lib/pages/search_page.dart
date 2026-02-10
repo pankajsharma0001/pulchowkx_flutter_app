@@ -12,6 +12,8 @@ import 'package:pulchowkx_app/pages/event_details.dart';
 import 'package:pulchowkx_app/pages/book_details.dart';
 import 'package:pulchowkx_app/pages/notices.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
+import 'package:pulchowkx_app/models/lost_found.dart';
+import 'package:pulchowkx_app/pages/lost_found/lost_found_details_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class SearchPage extends StatefulWidget {
@@ -210,6 +212,11 @@ class _SearchPageState extends State<SearchPage> {
           _buildSection(
             'Notices',
             results.notices.map((e) => _buildNoticeItem(e)).toList(),
+          ),
+        if (isLoggedIn && results.lostFound.isNotEmpty)
+          _buildSection(
+            'Lost & Found',
+            results.lostFound.map((e) => _buildLostFoundItem(e)).toList(),
           ),
       ],
     );
@@ -422,6 +429,55 @@ class _SearchPageState extends State<SearchPage> {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const NoticesPage()),
+        );
+      },
+    );
+  }
+
+  Widget _buildLostFoundItem(LostFoundItem item) {
+    return ListTile(
+      leading: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          color: AppColors.errorLight.withValues(alpha: 0.2),
+          image: item.images.isNotEmpty
+              ? DecorationImage(
+                  image: CachedNetworkImageProvider(
+                    ApiService().optimizeCloudinaryUrl(
+                      item.images.first.imageUrl,
+                      width: 200,
+                    ),
+                  ),
+                  fit: BoxFit.cover,
+                )
+              : null,
+        ),
+        child: item.images.isEmpty
+            ? Icon(
+                item.itemType == LostFoundItemType.lost
+                    ? Icons.search_rounded
+                    : Icons.inventory_2_rounded,
+                color: AppColors.error,
+                size: 20,
+              )
+            : null,
+      ),
+      title: Text(
+        item.title,
+        style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        '${item.itemType == LostFoundItemType.lost ? "Lost" : "Found"} • ${item.locationText}',
+        style: AppTextStyles.bodySmall,
+      ),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LostFoundDetailsPage(itemId: item.id),
+          ),
         );
       },
     );

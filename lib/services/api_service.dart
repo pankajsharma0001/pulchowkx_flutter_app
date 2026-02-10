@@ -12,6 +12,7 @@ import 'package:pulchowkx_app/models/chat.dart';
 import 'package:pulchowkx_app/models/notice.dart';
 import 'package:pulchowkx_app/models/in_app_notification.dart';
 import 'package:pulchowkx_app/models/trust.dart';
+import 'package:pulchowkx_app/models/lost_found.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -3552,6 +3553,198 @@ class ApiService {
     return [];
   }
 
+  // ==================== LOST & FOUND API ====================
+
+  /// List lost & found items with filters
+  Future<List<LostFoundItem>> getLostFoundItems({
+    String? itemType,
+    String? category,
+    String? status,
+    String? q,
+    String? cursor,
+    int limit = 12,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        if (itemType != null) 'itemType': itemType,
+        if (category != null) 'category': category,
+        if (status != null) 'status': status,
+        if (q != null) 'q': q,
+        if (cursor != null) 'cursor': cursor,
+        'limit': limit.toString(),
+      };
+
+      final uri = Uri.parse(
+        '$apiBaseUrl/lost-found',
+      ).replace(queryParameters: queryParams);
+
+      final response = await http.get(uri, headers: await _getAuthHeader());
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data']?['items'] != null) {
+          return (json['data']['items'] as List)
+              .map((e) => LostFoundItem.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching lost & found items: $e');
+    }
+    return [];
+  }
+
+  /// Get details of a single lost & found item
+  Future<LostFoundItem?> getLostFoundItem(int id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/lost-found/$id'),
+        headers: await _getAuthHeader(),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return LostFoundItem.fromJson(json['data'] as Map<String, dynamic>);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching lost & found item: $e');
+    }
+    return null;
+  }
+
+  /// Create a new lost & found item
+  Future<ApiResult<LostFoundItem>> createLostFoundItem(
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/lost-found'),
+        headers: await _getAuthHeader(),
+        body: jsonEncode(data),
+      );
+
+      final json = jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (json['success'] == true && json['data'] != null) {
+          return ApiResult.success(
+            data: LostFoundItem.fromJson(json['data'] as Map<String, dynamic>),
+          );
+        }
+      }
+      return ApiResult.failure(json['message'] ?? 'Failed to create item');
+    } catch (e) {
+      debugPrint('Error creating lost & found item: $e');
+      return ApiResult.failure(e.toString());
+    }
+  }
+
+  /// Upload image for a lost & found item
+  Future<ApiResult<String>> uploadLostFoundImage(
+    int itemId,
+    File imageFile,
+  ) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$apiBaseUrl/lost-found/$itemId/images'),
+      );
+
+      final authHeader = await _getAuthHeader();
+      request.headers.addAll(authHeader);
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'image',
+          imageFile.path,
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      final json = jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (json['success'] == true && json['data']?['imageUrl'] != null) {
+          return ApiResult.success(data: json['data']['imageUrl'] as String);
+        }
+      }
+      return ApiResult.failure(json['message'] ?? 'Failed to upload image');
+    } catch (e) {
+      debugPrint('Error uploading lost & found image: $e');
+      return ApiResult.failure(e.toString());
+    }
+  }
+
+  /// Create a claim for a lost & found item
+  Future<ApiResult<void>> createLostFoundClaim(
+    int itemId,
+    String message,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/lost-found/$itemId/claims'),
+        headers: await _getAuthHeader(),
+        body: jsonEncode({'message': message}),
+      );
+
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) {
+        return ApiResult.success();
+      }
+      return ApiResult.failure(json['message'] ?? 'Failed to submit claim');
+    } catch (e) {
+      debugPrint('Error creating lost & found claim: $e');
+      return ApiResult.failure(e.toString());
+    }
+  }
+
+  /// Get user's own lost & found items
+  Future<List<LostFoundItem>> getMyLostFoundItems() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/lost-found/my/items'),
+        headers: await _getAuthHeader(),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map((e) => LostFoundItem.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching my lost & found items: $e');
+    }
+    return [];
+  }
+
+  /// Get user's own claims
+  Future<List<LostFoundClaim>> getMyLostFoundClaims() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/lost-found/my/claims'),
+        headers: await _getAuthHeader(),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map((e) => LostFoundClaim.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching my lost & found claims: $e');
+    }
+    return [];
+  }
+
   /// Create a report for a user or listing
   Future<Map<String, dynamic>> createMarketplaceReport({
     required String reportedUserId,
@@ -3713,6 +3906,7 @@ class GlobalSearchResult {
   final List<BookListing> books;
   final List<Notice> notices;
   final List<SearchPlace> places;
+  final List<LostFoundItem> lostFound;
   final int total;
 
   GlobalSearchResult({
@@ -3722,6 +3916,7 @@ class GlobalSearchResult {
     required this.books,
     required this.notices,
     required this.places,
+    this.lostFound = const [],
     required this.total,
   });
 
@@ -3784,6 +3979,19 @@ class GlobalSearchResult {
       }
     }
 
+    List<LostFoundItem> lostFound = [];
+    if (json['lostFound'] is List) {
+      for (final item in json['lostFound'] as List) {
+        try {
+          lostFound.add(
+            LostFoundItem.fromPartialJson(item as Map<String, dynamic>),
+          );
+        } catch (e) {
+          debugPrint('Error parsing lost_found in search: $e');
+        }
+      }
+    }
+
     return GlobalSearchResult(
       query: json['query'] as String? ?? '',
       clubs: clubs,
@@ -3791,6 +3999,7 @@ class GlobalSearchResult {
       books: books,
       notices: notices,
       places: places,
+      lostFound: lostFound,
       total: json['total'] as int? ?? 0,
     );
   }

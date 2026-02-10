@@ -22,6 +22,7 @@ import 'package:pulchowkx_app/pages/my_books.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/pages/admin/admin_reports.dart';
 import 'package:pulchowkx_app/pages/admin/admin_users.dart';
+import 'package:pulchowkx_app/pages/lost_found/lost_found_page.dart';
 
 class _AdminTask {
   final String title;
@@ -421,6 +422,25 @@ class _DashboardPageState extends State<DashboardPage> {
                                     MaterialPageRoute(
                                       builder: (context) =>
                                           const FavoritesPage(),
+                                    ),
+                                  ),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            _QuickActionCard(
+                              icon: Icons.search_rounded,
+                              title: 'Lost & Found',
+                              description:
+                                  'Find lost items or report something found',
+                              color: AppColors.error,
+                              heroTag: 'lost-found',
+                              onTap: () =>
+                                  Navigator.of(
+                                    context,
+                                    rootNavigator: true,
+                                  ).push(
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const LostFoundPage(),
                                     ),
                                   ),
                             ),

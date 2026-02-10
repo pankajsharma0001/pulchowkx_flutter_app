@@ -15,6 +15,7 @@ import 'package:pulchowkx_app/pages/login.dart';
 import 'package:pulchowkx_app/pages/map.dart';
 import 'package:pulchowkx_app/pages/notices.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
+import 'package:pulchowkx_app/pages/lost_found/lost_found_page.dart';
 
 enum AppPage {
   home,
@@ -27,6 +28,7 @@ enum AppPage {
   notices,
   login,
   notifications,
+  lostAndFound,
 }
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -45,7 +47,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     final isMoreActive =
         currentPage == AppPage.clubs ||
         currentPage == AppPage.events ||
-        currentPage == AppPage.notices;
+        currentPage == AppPage.notices ||
+        currentPage == AppPage.lostAndFound;
 
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
@@ -689,6 +692,23 @@ class _MobileMoreMenu extends StatelessWidget {
               MaterialPageRoute(builder: (context) => const NoticesPage()),
             );
           }
+        } else if (value == 'lost-found') {
+          final mainLayout = MainLayout.of(context);
+          if (mainLayout != null) {
+            mainLayout.setSelectedIndex(9);
+          } else {
+            if (!isLoggedIn) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginPage()),
+              );
+              return;
+            }
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const LostFoundPage()),
+            );
+          }
         }
       },
       shape: RoundedRectangleBorder(
@@ -766,6 +786,32 @@ class _MobileMoreMenu extends StatelessWidget {
                       ? AppColors.primary
                       : null,
                   fontWeight: currentPage == AppPage.notices
+                      ? FontWeight.bold
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'lost-found',
+          child: Row(
+            children: [
+              Icon(
+                Icons.search_rounded,
+                size: 20,
+                color: currentPage == AppPage.lostAndFound
+                    ? AppColors.primary
+                    : AppColors.textSecondary,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Lost & Found',
+                style: TextStyle(
+                  color: currentPage == AppPage.lostAndFound
+                      ? AppColors.primary
+                      : null,
+                  fontWeight: currentPage == AppPage.lostAndFound
                       ? FontWeight.bold
                       : null,
                 ),
