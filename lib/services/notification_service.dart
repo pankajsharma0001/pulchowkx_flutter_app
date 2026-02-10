@@ -10,6 +10,7 @@ import 'package:pulchowkx_app/main.dart' show navigatorKey;
 import 'package:pulchowkx_app/pages/marketplace/chat_room.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/pages/book_details.dart';
+import 'package:pulchowkx_app/pages/lost_found/lost_found_details_page.dart';
 import 'dart:convert';
 
 class NotificationService {
@@ -355,6 +356,22 @@ class NotificationService {
       if (context.mounted) {
         MainLayout.of(context)?.setSelectedIndex(2);
       } // Classroom tab
+    } else if (type != null && type.toString().startsWith('lost_found_')) {
+      final itemId = data['itemId'];
+      if (itemId != null) {
+        final id = int.tryParse(itemId.toString());
+        if (id != null) {
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (context) => LostFoundDetailsPage(itemId: id),
+            ),
+          );
+          return;
+        }
+      }
+      if (context.mounted) {
+        MainLayout.of(context)?.setSelectedIndex(9);
+      } // Lost & Found tab
     }
   }
 
