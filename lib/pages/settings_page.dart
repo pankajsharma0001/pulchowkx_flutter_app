@@ -28,6 +28,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _universityAnnouncements = true;
   bool _classroomAlerts = true;
   bool _chatMessages = true;
+  bool _lostFoundAlerts = true;
   bool _isLoading = true;
 
   @override
@@ -50,6 +51,8 @@ class _SettingsPageState extends State<SettingsPage> {
       _classroomAlerts =
           hasPermission && (prefs.getBool('notify_classroom') ?? true);
       _chatMessages = hasPermission && (prefs.getBool('notify_chat') ?? true);
+      _lostFoundAlerts =
+          hasPermission && (prefs.getBool('notify_lost_found') ?? true);
       _isLoading = false;
     });
   }
@@ -95,6 +98,7 @@ class _SettingsPageState extends State<SettingsPage> {
       if (key == 'notify_announcements') _universityAnnouncements = value;
       if (key == 'notify_classroom') _classroomAlerts = value;
       if (key == 'notify_chat') _chatMessages = value;
+      if (key == 'notify_lost_found') _lostFoundAlerts = value;
     });
   }
 
@@ -515,6 +519,14 @@ class _SettingsPageState extends State<SettingsPage> {
                         value: _chatMessages,
                         onChanged: (v) => _toggleNotification('notify_chat', v),
                         icon: Icons.chat_bubble_rounded,
+                      ),
+                      _buildSettingTile(
+                        title: 'Lost & Found',
+                        subtitle: 'Alerts for new lost or found items',
+                        value: _lostFoundAlerts,
+                        onChanged: (v) =>
+                            _toggleNotification('notify_lost_found', v),
+                        icon: Icons.find_in_page_rounded,
                       ),
                       const SizedBox(height: AppSpacing.xl),
 

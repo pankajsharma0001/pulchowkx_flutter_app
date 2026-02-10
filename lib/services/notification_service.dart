@@ -11,6 +11,7 @@ import 'package:pulchowkx_app/pages/marketplace/chat_room.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/pages/book_details.dart';
 import 'package:pulchowkx_app/pages/lost_found/lost_found_details_page.dart';
+import 'package:pulchowkx_app/pages/notice_details_page.dart';
 import 'dart:convert';
 
 class NotificationService {
@@ -78,6 +79,9 @@ class NotificationService {
       if (prefs.getBool('notify_classroom') ?? true) {
         await updateClassroomSubscription(true);
       }
+      if (prefs.getBool('notify_lost_found') ?? true) {
+        await subscribeToTopic('lost_found');
+      }
 
       // Sync FCM token if user is already logged in
       await syncToken();
@@ -127,6 +131,13 @@ class NotificationService {
         if (type == 'assignment_graded' &&
             !(prefs.getBool('notify_classroom') ?? true)) {
           debugPrint('Suppressing classroom notification based on settings');
+          return;
+        }
+
+        if (type != null &&
+            type.startsWith('lost_found_') &&
+            !(prefs.getBool('notify_lost_found') ?? true)) {
+          debugPrint('Suppressing lost & found notification based on settings');
           return;
         }
 
@@ -208,6 +219,7 @@ class NotificationService {
       await _messaging.unsubscribeFromTopic('events');
       await _messaging.unsubscribeFromTopic('books');
       await _messaging.unsubscribeFromTopic('announcements');
+      await _messaging.unsubscribeFromTopic('lost_found');
       debugPrint('Unsubscribed from all notification topics');
     } catch (e) {
       debugPrint('Error unsubscribing from topics: $e');
@@ -327,6 +339,18 @@ class NotificationService {
         debugPrint('Error navigating to chat: $e');
       }
     } else if (type == 'notice_created' || type == 'notice_updated') {
+      final noticeIdStr = data['noticeId'];
+      if (noticeIdStr != null) {
+        final noticeId = int.tryParse(noticeIdStr.toString());
+        if (noticeId != null) {
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (context) => NoticeDetailsPage(noticeId: noticeId),
+            ),
+          );
+          return;
+        }
+      }
       if (context.mounted) {
         MainLayout.of(context)?.setSelectedIndex(8);
       } // Notices tab
@@ -436,6 +460,15 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         !(prefs.getBool('notify_classroom') ?? true)) {
       debugPrint(
         'Suppressing background classroom notification based on settings',
+      );
+      return;
+    }
+
+    if (type != null &&
+        type.startsWith('lost_found_') &&
+        !(prefs.getBool('notify_lost_found') ?? true)) {
+      debugPrint(
+        'Suppressing background lost & found notification based on settings',
       );
       return;
     }

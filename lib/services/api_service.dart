@@ -3223,6 +3223,61 @@ class ApiService {
     }
   }
 
+  /// Get details of a single notice (cache-first)
+  Future<Notice?> getNotice(int id) async {
+    final String cacheKey = 'notice_${id}_cache';
+
+    // Try cache first
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
+        if (json['success'] == true && json['data'] != null) {
+          // Background refresh
+          _refreshNoticeInBackground(id, cacheKey);
+          return Notice.fromJson(json['data'] as Map<String, dynamic>);
+        }
+      } catch (e) {
+        debugPrint('Error parsing cached notice: $e');
+      }
+    }
+
+    return _fetchNoticeFromNetwork(id, cacheKey);
+  }
+
+  /// Refreshes notice details in the background
+  Future<void> _refreshNoticeInBackground(int id, String cacheKey) async {
+    try {
+      await _fetchNoticeFromNetwork(id, cacheKey);
+    } catch (e) {
+      debugPrint('Background notice refresh failed: $e');
+    }
+  }
+
+  /// Fetches notice from network and saves to cache
+  Future<Notice?> _fetchNoticeFromNetwork(int id, String cacheKey) async {
+    bool isOnline = await _hasInternetConnection();
+    if (!isOnline) return null;
+
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/notices/$id'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        await _saveToCache(cacheKey, response.body);
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return Notice.fromJson(json['data'] as Map<String, dynamic>);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching notice online: $e');
+    }
+    return null;
+  }
+
   /// Get notices with optional filters (cache-first for instant loading)
   Future<List<Notice>> getNotices({
     NoticeFilters? filters,
