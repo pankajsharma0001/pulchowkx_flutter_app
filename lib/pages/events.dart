@@ -113,19 +113,6 @@ class _EventsPageState extends State<EventsPage> {
                       padding: const EdgeInsets.all(AppSpacing.lg),
                       child: Column(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              gradient: AppColors.primaryGradient,
-                              borderRadius: BorderRadius.circular(AppRadius.lg),
-                              boxShadow: AppShadows.colored(AppColors.primary),
-                            ),
-                            child: const Icon(
-                              Icons.event_rounded,
-                              size: 32,
-                              color: Colors.white,
-                            ),
-                          ),
                           const SizedBox(height: AppSpacing.md),
                           Text(
                             'Campus Events',

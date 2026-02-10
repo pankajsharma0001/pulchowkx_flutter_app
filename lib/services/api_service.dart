@@ -3583,17 +3583,16 @@ class ApiService {
                     )
                     .toList();
 
-            if (cachedItems.isNotEmpty) {
-              // Refresh in background
-              _refreshLostFoundItemsInBackground(
-                itemType: itemType,
-                category: category,
-                status: status,
-                q: q,
-                cacheKey: cacheKey,
-              );
-              return cachedItems;
-            }
+            // Return cached data immediately (even if empty) to ensure "instant-on" feel
+            // Background refresh will update it if there are new items
+            _refreshLostFoundItemsInBackground(
+              itemType: itemType,
+              category: category,
+              status: status,
+              q: q,
+              cacheKey: cacheKey,
+            );
+            return cachedItems;
           }
         } catch (e) {
           debugPrint('Error parsing cached lost & found: $e');

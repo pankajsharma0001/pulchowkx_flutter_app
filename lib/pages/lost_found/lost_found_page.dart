@@ -49,10 +49,11 @@ class _LostFoundPageState extends State<LostFoundPage>
   }
 
   Future<void> _fetchItems({bool forceRefresh = false}) async {
-    // Only show loading shimmer if we don't have items to show
-    if (_items.isEmpty) {
-      setState(() => _isLoading = true);
-    }
+    // Clear items and show loading shimmer to provide immediate feedback when switching
+    setState(() {
+      _items = [];
+      _isLoading = true;
+    });
 
     String? type;
     if (_tabController.index == 1) type = 'lost';
@@ -102,30 +103,45 @@ class _LostFoundPageState extends State<LostFoundPage>
                     ),
                     child: Column(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            gradient: AppColors.primaryGradient,
-                            borderRadius: BorderRadius.circular(AppRadius.lg),
-                            boxShadow: AppShadows.colored(AppColors.primary),
-                          ),
-                          child: const Icon(
-                            Icons.find_in_page_rounded,
-                            size: 32,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              'Lost & Found',
-                              style: AppTextStyles.h3.copyWith(
-                                color: isDark
-                                    ? Colors.white
-                                    : AppColors.textPrimary,
+                            const SizedBox(width: 48), // Balance for items icon
+                            Expanded(
+                              child: Text(
+                                'Lost & Found',
+                                style: AppTextStyles.h3.copyWith(
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppColors.textPrimary,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const MyLostFoundPage(),
+                                ),
+                              ),
+                              icon: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.md,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.person_outline_rounded,
+                                  size: 20,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              tooltip: 'My Items',
                             ),
                           ],
                         ),
@@ -140,31 +156,13 @@ class _LostFoundPageState extends State<LostFoundPage>
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: AppSpacing.md),
-                        // My Items Link
-                        TextButton.icon(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const MyLostFoundPage(),
-                            ),
-                          ),
-                          icon: const Icon(
-                            Icons.person_outline_rounded,
-                            size: 18,
-                          ),
-                          label: const Text('My Reported Items'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
                         // Search Bar
                         Container(
                           decoration: BoxDecoration(
                             color: isDark
                                 ? AppColors.surfaceDark
                                 : Colors.white,
-                            borderRadius: BorderRadius.circular(AppRadius.xl),
+                            borderRadius: BorderRadius.circular(AppRadius.full),
                             boxShadow: AppShadows.sm,
                             border: Border.all(
                               color: isDark
@@ -176,6 +174,7 @@ class _LostFoundPageState extends State<LostFoundPage>
                             controller: _searchController,
                             decoration: InputDecoration(
                               hintText: 'Search items...',
+                              filled: false,
                               hintStyle: AppTextStyles.bodyMedium.copyWith(
                                 color: isDark
                                     ? AppColors.textMutedDark

@@ -756,10 +756,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
-                              (_isAdmin
-                                      ? 'Admin Dashboard'
-                                      : 'Student Dashboard')
-                                  .toUpperCase(),
+                              (_isAdmin ? 'Admin' : 'Student').toUpperCase(),
                               style: AppTextStyles.labelSmall.copyWith(
                                 color: AppColors.primary,
                                 fontSize: 10,

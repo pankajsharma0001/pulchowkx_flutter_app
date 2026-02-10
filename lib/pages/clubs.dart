@@ -65,24 +65,6 @@ class _ClubsPageState extends State<ClubsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Icon
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                          boxShadow: AppShadows.colored(AppColors.primary),
-                        ),
-                        child: Hero(
-                          tag: 'hero-clubs',
-                          child: const Icon(
-                            Icons.groups_rounded,
-                            size: 32,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
                       Text(
                         'Campus Clubs',
                         style: Theme.of(context).textTheme.headlineMedium,

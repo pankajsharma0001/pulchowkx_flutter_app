@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:pulchowkx_app/models/notice.dart';
@@ -224,19 +223,6 @@ class _NoticesPageState extends State<NoticesPage>
                     ),
                     child: Column(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            gradient: AppColors.primaryGradient,
-                            borderRadius: BorderRadius.circular(AppRadius.lg),
-                            boxShadow: AppShadows.colored(AppColors.primary),
-                          ),
-                          child: const Icon(
-                            Icons.campaign_rounded,
-                            size: 32,
-                            color: Colors.white,
-                          ),
-                        ),
                         const SizedBox(height: AppSpacing.md),
                         Text(
                           'IOE Notices',
@@ -257,13 +243,12 @@ class _NoticesPageState extends State<NoticesPage>
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: AppSpacing.xl),
-                        // Search Bar
                         Container(
                           decoration: BoxDecoration(
                             color: isDark
                                 ? AppColors.surfaceDark
                                 : Colors.white,
-                            borderRadius: BorderRadius.circular(AppRadius.xl),
+                            borderRadius: BorderRadius.circular(AppRadius.full),
                             boxShadow: AppShadows.sm,
                             border: Border.all(
                               color: isDark
@@ -276,6 +261,7 @@ class _NoticesPageState extends State<NoticesPage>
                             onChanged: _onSearchChanged,
                             decoration: InputDecoration(
                               hintText: 'Search results, routines...',
+                              filled: false,
                               hintStyle: AppTextStyles.bodyMedium.copyWith(
                                 color: isDark
                                     ? AppColors.textMutedDark

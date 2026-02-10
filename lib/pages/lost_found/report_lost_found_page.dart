@@ -337,7 +337,7 @@ class _ReportLostFoundPageState extends State<ReportLostFoundPage> {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<LostFoundCategory>(
-            value: _category,
+            initialValue: _category,
             style: TextStyle(
               color: isDark ? Colors.white : AppColors.textPrimary,
             ),
