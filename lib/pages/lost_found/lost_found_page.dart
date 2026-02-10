@@ -161,7 +161,7 @@ class _LostFoundPageState extends State<LostFoundPage>
                           decoration: BoxDecoration(
                             color: isDark
                                 ? AppColors.surfaceDark
-                                : Colors.white,
+                                : AppColors.surface,
                             borderRadius: BorderRadius.circular(AppRadius.full),
                             boxShadow: AppShadows.sm,
                             border: Border.all(
@@ -391,10 +391,10 @@ class ShimmerCard extends StatelessWidget {
       margin: const EdgeInsets.all(8),
       height: 100,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: ShimmerLoader(child: Container(color: Colors.white)),
+      child: ShimmerLoader(child: Container(color: AppColors.surface)),
     );
   }
 }

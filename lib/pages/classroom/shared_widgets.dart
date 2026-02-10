@@ -67,7 +67,7 @@ class StatCard extends StatelessWidget {
                       child: Text(
                         label.toUpperCase(),
                         style: AppTextStyles.labelSmall.copyWith(
-                          color: Theme.of(context).textTheme.bodySmall?.color,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
                           letterSpacing: 0.5,
                           fontSize: 9,
                           fontWeight: FontWeight.w800,

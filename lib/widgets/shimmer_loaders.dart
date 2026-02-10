@@ -35,7 +35,7 @@ class EventCardShimmer extends StatelessWidget {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color cardBackground = isDark
         ? AppColors.cardBackgroundDark
-        : Colors.white;
+        : AppColors.surface;
 
     if (type == EventCardType.grid) {
       return Container(
@@ -54,7 +54,7 @@ class EventCardShimmer extends StatelessWidget {
                 flex: 3,
                 child: Container(
                   decoration: const BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     borderRadius: BorderRadius.vertical(
                       top: Radius.circular(AppRadius.xl),
                     ),
@@ -69,10 +69,22 @@ class EventCardShimmer extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      Container(height: 12, width: 140, color: Colors.white),
-                      Container(height: 8, width: 100, color: Colors.white),
-                      Container(height: 8, width: 80, color: Colors.white),
-                      Container(height: 8, width: 120, color: Colors.white),
+                      Container(
+                        height: 12,
+                        width: 140,
+                        color: AppColors.surface,
+                      ),
+                      Container(
+                        height: 8,
+                        width: 100,
+                        color: AppColors.surface,
+                      ),
+                      Container(height: 8, width: 80, color: AppColors.surface),
+                      Container(
+                        height: 8,
+                        width: 120,
+                        color: AppColors.surface,
+                      ),
                     ],
                   ),
                 ),
@@ -99,7 +111,7 @@ class EventCardShimmer extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
               ),
@@ -108,13 +120,21 @@ class EventCardShimmer extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(height: 14, width: 150, color: Colors.white),
+                    Container(height: 14, width: 150, color: AppColors.surface),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Container(height: 20, width: 60, color: Colors.white),
+                        Container(
+                          height: 20,
+                          width: 60,
+                          color: AppColors.surface,
+                        ),
                         const SizedBox(width: 8),
-                        Container(height: 20, width: 80, color: Colors.white),
+                        Container(
+                          height: 20,
+                          width: 80,
+                          color: AppColors.surface,
+                        ),
                       ],
                     ),
                   ],
@@ -136,7 +156,7 @@ class ClubCardShimmer extends StatelessWidget {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color cardBackground = isDark
         ? AppColors.cardBackgroundDark
-        : Colors.white;
+        : AppColors.surface;
 
     return Container(
       decoration: BoxDecoration(
@@ -154,7 +174,7 @@ class ClubCardShimmer extends StatelessWidget {
               flex: 4,
               child: Container(
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.vertical(
                     top: Radius.circular(AppRadius.xl),
                   ),
@@ -169,21 +189,29 @@ class ClubCardShimmer extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(height: 12, width: 100, color: Colors.white),
+                    Container(height: 12, width: 100, color: AppColors.surface),
                     const SizedBox(height: 6),
                     Container(
                       height: 8,
                       width: double.infinity,
-                      color: Colors.white,
+                      color: AppColors.surface,
                     ),
                     const SizedBox(height: 4),
-                    Container(height: 8, width: 140, color: Colors.white),
+                    Container(height: 8, width: 140, color: AppColors.surface),
                     const Spacer(),
                     Row(
                       children: [
-                        Container(height: 8, width: 40, color: Colors.white),
+                        Container(
+                          height: 8,
+                          width: 40,
+                          color: AppColors.surface,
+                        ),
                         const SizedBox(width: 8),
-                        Container(height: 8, width: 40, color: Colors.white),
+                        Container(
+                          height: 8,
+                          width: 40,
+                          color: AppColors.surface,
+                        ),
                       ],
                     ),
                   ],
@@ -205,7 +233,7 @@ class BookCardShimmer extends StatelessWidget {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color cardBackground = isDark
         ? AppColors.cardBackgroundDark
-        : Colors.white;
+        : AppColors.surface;
 
     return Container(
       decoration: BoxDecoration(
@@ -223,7 +251,7 @@ class BookCardShimmer extends StatelessWidget {
               aspectRatio: 1,
               child: Container(
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.vertical(
                     top: Radius.circular(AppRadius.lg),
                   ),
@@ -242,18 +270,26 @@ class BookCardShimmer extends StatelessWidget {
                     Container(
                       height: 12,
                       width: double.infinity,
-                      color: Colors.white,
+                      color: AppColors.surface,
                     ),
                     const SizedBox(height: 4),
-                    Container(height: 12, width: 80, color: Colors.white),
+                    Container(height: 12, width: 80, color: AppColors.surface),
                     const SizedBox(height: 6),
-                    Container(height: 10, width: 60, color: Colors.white),
+                    Container(height: 10, width: 60, color: AppColors.surface),
                     const Spacer(),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(height: 12, width: 50, color: Colors.white),
-                        Container(height: 12, width: 40, color: Colors.white),
+                        Container(
+                          height: 12,
+                          width: 50,
+                          color: AppColors.surface,
+                        ),
+                        Container(
+                          height: 12,
+                          width: 40,
+                          color: AppColors.surface,
+                        ),
                       ],
                     ),
                   ],
@@ -309,7 +345,7 @@ class DashboardHeaderShimmer extends StatelessWidget {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color cardBackground = isDark
         ? AppColors.cardBackgroundDark
-        : Colors.white;
+        : AppColors.surface;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -324,7 +360,7 @@ class DashboardHeaderShimmer extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: const BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface,
                 shape: BoxShape.circle,
               ),
             ),
@@ -348,7 +384,7 @@ class QuickActionShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color maskColor = isDark ? Colors.grey[800]! : Colors.white;
+    final Color maskColor = isDark ? Colors.grey[800]! : AppColors.surface;
 
     return ShimmerLoader(
       child: Container(
@@ -432,7 +468,7 @@ class CardShimmer extends StatelessWidget {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color cardBackground = isDark
         ? AppColors.cardBackgroundDark
-        : Colors.white;
+        : AppColors.surface;
 
     return Container(
       height: 120,
@@ -444,7 +480,7 @@ class CardShimmer extends StatelessWidget {
           color: isDark ? AppColors.borderDark : AppColors.border,
         ),
       ),
-      child: ShimmerLoader(child: Container(color: Colors.white)),
+      child: ShimmerLoader(child: Container(color: AppColors.surface)),
     );
   }
 }
@@ -463,7 +499,7 @@ class ListTileShimmer extends StatelessWidget {
               width: 50,
               height: 50,
               decoration: const BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface,
                 shape: BoxShape.circle,
               ),
             ),
@@ -475,10 +511,10 @@ class ListTileShimmer extends StatelessWidget {
                   Container(
                     height: 14,
                     width: double.infinity,
-                    color: Colors.white,
+                    color: AppColors.surface,
                   ),
                   const SizedBox(height: AppSpacing.xs),
-                  Container(height: 10, width: 150, color: Colors.white),
+                  Container(height: 10, width: 150, color: AppColors.surface),
                 ],
               ),
             ),
@@ -506,7 +542,7 @@ class DetailsPageShimmer extends StatelessWidget {
               child: Container(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? Colors.grey[800]
-                    : Colors.white,
+                    : AppColors.surface,
               ),
             ),
           ),
@@ -532,7 +568,7 @@ class DetailsPageShimmer extends StatelessWidget {
                     width: 200,
                     color: Theme.of(context).brightness == Brightness.dark
                         ? Colors.grey[800]
-                        : Colors.white,
+                        : AppColors.surface,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -543,7 +579,7 @@ class DetailsPageShimmer extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Theme.of(context).brightness == Brightness.dark
                           ? Colors.grey[800]
-                          : Colors.white,
+                          : AppColors.surface,
                       borderRadius: BorderRadius.circular(AppRadius.lg),
                     ),
                   ),
@@ -576,7 +612,7 @@ class BoxShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color maskColor = isDark ? Colors.grey[800]! : Colors.white;
+    final Color maskColor = isDark ? Colors.grey[800]! : AppColors.surface;
 
     return ShimmerLoader(
       child: Container(
@@ -599,7 +635,7 @@ class BookListTileShimmer extends StatelessWidget {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color cardBackground = isDark
         ? AppColors.cardBackgroundDark
-        : Colors.white;
+        : AppColors.surface;
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -618,7 +654,7 @@ class BookListTileShimmer extends StatelessWidget {
               width: 80,
               height: 100,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(AppRadius.md),
               ),
             ),
@@ -627,11 +663,11 @@ class BookListTileShimmer extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(height: 14, width: 150, color: Colors.white),
+                  Container(height: 14, width: 150, color: AppColors.surface),
                   const SizedBox(height: 8),
-                  Container(height: 12, width: 100, color: Colors.white),
+                  Container(height: 12, width: 100, color: AppColors.surface),
                   const SizedBox(height: 12),
-                  Container(height: 14, width: 60, color: Colors.white),
+                  Container(height: 14, width: 60, color: AppColors.surface),
                 ],
               ),
             ),
@@ -650,7 +686,7 @@ class RequestCardShimmer extends StatelessWidget {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color cardBackground = isDark
         ? AppColors.cardBackgroundDark
-        : Colors.white;
+        : AppColors.surface;
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -672,7 +708,7 @@ class RequestCardShimmer extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     borderRadius: BorderRadius.circular(AppRadius.xs),
                   ),
                 ),
@@ -681,9 +717,17 @@ class RequestCardShimmer extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(height: 12, width: 120, color: Colors.white),
+                      Container(
+                        height: 12,
+                        width: 120,
+                        color: AppColors.surface,
+                      ),
                       const SizedBox(height: 4),
-                      Container(height: 10, width: 80, color: Colors.white),
+                      Container(
+                        height: 10,
+                        width: 80,
+                        color: AppColors.surface,
+                      ),
                     ],
                   ),
                 ),
@@ -691,7 +735,7 @@ class RequestCardShimmer extends StatelessWidget {
                   width: 60,
                   height: 20,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
                 ),
@@ -702,7 +746,7 @@ class RequestCardShimmer extends StatelessWidget {
               height: 30,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
             ),
@@ -726,7 +770,7 @@ class SellBookShimmer extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Images
-            Container(height: 14, width: 80, color: Colors.white),
+            Container(height: 14, width: 80, color: AppColors.surface),
             const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
@@ -745,7 +789,7 @@ class SellBookShimmer extends StatelessWidget {
             _buildFieldShimmer(),
 
             const SizedBox(height: AppSpacing.md),
-            Container(height: 14, width: 100, color: Colors.white),
+            Container(height: 14, width: 100, color: AppColors.surface),
             const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
@@ -771,7 +815,7 @@ class SellBookShimmer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(height: 14, width: 120, color: Colors.white),
+          Container(height: 14, width: 120, color: AppColors.surface),
           const SizedBox(height: 8),
           BoxShimmer(height: 50, borderRadius: AppRadius.sm),
         ],

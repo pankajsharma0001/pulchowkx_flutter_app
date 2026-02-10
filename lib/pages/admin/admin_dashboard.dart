@@ -118,7 +118,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
             child: const Icon(
               Icons.admin_panel_settings_rounded,
-              color: Colors.white,
+              color: AppColors.surface,
               size: 28,
             ),
           ),
@@ -385,7 +385,7 @@ class _StatCard extends StatelessWidget {
             label,
             style: AppTextStyles.labelSmall.copyWith(
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).textTheme.bodySmall?.color,
+              color: Theme.of(context).textTheme.bodyMedium?.color,
               letterSpacing: 0.5,
             ),
           ),

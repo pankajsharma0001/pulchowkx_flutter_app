@@ -247,7 +247,7 @@ class _NoticesPageState extends State<NoticesPage>
                           decoration: BoxDecoration(
                             color: isDark
                                 ? AppColors.surfaceDark
-                                : Colors.white,
+                                : AppColors.surface,
                             borderRadius: BorderRadius.circular(AppRadius.full),
                             boxShadow: AppShadows.sm,
                             border: Border.all(
@@ -515,7 +515,7 @@ class _NoticesPageState extends State<NoticesPage>
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 500),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.surfaceDark : Colors.white,
+                  color: isDark ? AppColors.surfaceDark : AppColors.surface,
                   borderRadius: BorderRadius.circular(AppRadius.xl),
                   boxShadow: AppShadows.lg,
                 ),
@@ -735,7 +735,7 @@ class _NoticesPageState extends State<NoticesPage>
                                           decoration: BoxDecoration(
                                             color: isDark
                                                 ? AppColors.surfaceDark
-                                                : Colors.white,
+                                                : AppColors.surface,
                                             borderRadius: BorderRadius.circular(
                                               AppRadius.md,
                                             ),
@@ -1126,7 +1126,7 @@ class _NoticesPageState extends State<NoticesPage>
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.surfaceDark : Colors.white,
+                color: isDark ? AppColors.surfaceDark : AppColors.surface,
                 shape: BoxShape.circle,
                 boxShadow: AppShadows.sm,
               ),
@@ -1140,7 +1140,7 @@ class _NoticesPageState extends State<NoticesPage>
             Text(
               'No Notices Found',
               style: AppTextStyles.h3.copyWith(
-                color: isDark ? Colors.white : AppColors.textPrimary,
+                color: isDark ? AppColors.surface : AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
@@ -1212,13 +1212,13 @@ class _NoticesPageState extends State<NoticesPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
+        color: AppColors.surface.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         count > 99 ? '99+' : count.toString(),
         style: const TextStyle(
-          color: Colors.white,
+          color: AppColors.surface,
           fontSize: 8,
           fontWeight: FontWeight.w800,
         ),
@@ -1249,7 +1249,7 @@ class _NoticeCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
+        color: isDark ? AppColors.surfaceDark : AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.xl),
         boxShadow: AppShadows.sm,
         border: Border.all(
@@ -1800,7 +1800,7 @@ class _NoticeCardShimmer extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
+        color: isDark ? AppColors.surfaceDark : AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.xl),
         boxShadow: AppShadows.sm,
         border: Border.all(
@@ -1815,7 +1815,7 @@ class _NoticeCardShimmer extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(AppRadius.lg),
               ),
             ),
@@ -1824,21 +1824,21 @@ class _NoticeCardShimmer extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(height: 18, width: 220, color: Colors.white),
+                  Container(height: 18, width: 220, color: AppColors.surface),
                   const SizedBox(height: 10),
                   Container(
                     height: 12,
                     width: double.infinity,
-                    color: Colors.white,
+                    color: AppColors.surface,
                   ),
                   const SizedBox(height: 6),
-                  Container(height: 12, width: 180, color: Colors.white),
+                  Container(height: 12, width: 180, color: AppColors.surface),
                   const SizedBox(height: 12),
                   Container(
                     height: 32,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                   ),

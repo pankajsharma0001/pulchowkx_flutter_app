@@ -163,7 +163,9 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
                       ],
                       const SizedBox(height: AppSpacing.lg),
                       _buildContactSection(isOwner),
-                      const SizedBox(height: 100), // Space for bottom button
+                      const SizedBox(
+                        height: 180,
+                      ), // Space for fixed bottom banner/button
                     ],
                   ),
                 ),
@@ -173,7 +175,7 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
         ),
       ),
       bottomSheet: !isOwner && _item!.status == LostFoundStatus.open
-          ? _buildClaimButton()
+          ? (isLost ? _buildLostItemBanner() : _buildClaimButton())
           : null,
     );
   }
@@ -296,7 +298,9 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          if (isOwner || _item!.status == LostFoundStatus.resolved)
+          if (isOwner ||
+              _item!.status == LostFoundStatus.resolved ||
+              _item!.itemType == LostFoundItemType.lost)
             Text(
               _item!.contactNote ?? 'No contact note provided.',
               style: TextStyle(
@@ -338,6 +342,51 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
             ),
           ),
           child: const Text('I found this / This is mine'),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLostItemBanner() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            offset: const Offset(0, -4),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: AppColors.warning.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(AppRadius.xxxl),
+            border: Border.all(color: AppColors.warning.withValues(alpha: 0.2)),
+          ),
+          child: RichText(
+            text: TextSpan(
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.warning.withValues(alpha: 0.9),
+                height: 1.5,
+              ),
+              children: [
+                const TextSpan(text: 'This is a '),
+                const TextSpan(
+                  text: 'lost item post',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const TextSpan(
+                  text:
+                      ', so claim requests are disabled. If you found this item, contact the owner directly using the post details.',
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

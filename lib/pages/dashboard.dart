@@ -721,7 +721,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           )
                         : Container(
-                            color: Colors.white,
+                            color: AppColors.surface,
                             child: const Icon(
                               Icons.person_rounded,
                               size: 36,

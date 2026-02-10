@@ -162,7 +162,7 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
         icon: const Icon(Icons.add),
         label: const Text('Sell Book'),
         backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.surface,
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -210,7 +210,7 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
                       ),
                       child: const Icon(
                         Icons.menu_book_rounded,
-                        color: Colors.white,
+                        color: AppColors.surface,
                         size: 20,
                       ),
                     ),
@@ -513,7 +513,7 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.surface,
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
               ),
               child: const Text('Apply Filters'),

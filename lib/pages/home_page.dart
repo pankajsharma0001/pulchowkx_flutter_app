@@ -89,7 +89,7 @@ class HomePage extends StatelessWidget {
               Text(
                 'Smart Pulchowk v2.0',
                 style: AppTextStyles.labelSmall.copyWith(
-                  color: Theme.of(context).textTheme.bodySmall?.color,
+                  color: AppColors.primary,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.2,
                 ),

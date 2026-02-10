@@ -536,7 +536,7 @@ class _SellBookPageState extends State<SellBookPage> {
                         child: const Icon(
                           Icons.close,
                           size: 14,
-                          color: Colors.white,
+                          color: AppColors.surface,
                         ),
                       ),
                     ),
@@ -576,7 +576,7 @@ class _SellBookPageState extends State<SellBookPage> {
                         child: const Icon(
                           Icons.close,
                           size: 14,
-                          color: Colors.white,
+                          color: AppColors.surface,
                         ),
                       ),
                     ),

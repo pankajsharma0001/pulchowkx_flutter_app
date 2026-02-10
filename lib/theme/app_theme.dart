@@ -16,8 +16,8 @@ class AppColors {
   // Background colors (Light) - Clean white like Telegram
   static const Color background = Color(0xFFF2F2F7); // Soft gray background
   static const Color backgroundSecondary = Color(0xFFE5E5EA); // Deeper gray
-  static const Color surface = Color(0xFFFFFFFF); // Pure white
-  static const Color cardBackground = Color(0xFFFFFFFF); // White cards
+  static const Color surface = Color(0xFFFDFDFD); // Soft off-white surface
+  static const Color cardBackground = Color(0xFFFDFDFD); // Soft off-white cards
 
   // Background colors (Dark) - True black like Telegram
   static const Color backgroundDark = Color(0xFF000000); // True black
