@@ -11,6 +11,7 @@ import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:pulchowkx_app/widgets/full_screen_image_viewer.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -1491,7 +1492,7 @@ class _NoticeCard extends StatelessWidget {
     if (notice.attachmentType == NoticeAttachmentType.image) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => _FullscreenImageViewer(
+          builder: (context) => FullScreenImageViewer(
             imageUrl: notice.attachmentUrl!,
             title: notice.title,
           ),
@@ -1525,91 +1526,6 @@ class _NoticeCard extends StatelessWidget {
         const SnackBar(content: Text('Could not open attachment')),
       );
     }
-  }
-}
-
-/// Fullscreen image viewer with zoom and pan
-class _FullscreenImageViewer extends StatelessWidget {
-  final String imageUrl;
-  final String title;
-
-  const _FullscreenImageViewer({required this.imageUrl, required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.black.withValues(alpha: 0.5),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.open_in_browser_rounded,
-              color: Colors.white,
-            ),
-            tooltip: 'Open in browser',
-            onPressed: () async {
-              final uri = Uri.tryParse(imageUrl);
-              if (uri != null && await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              }
-            },
-          ),
-        ],
-      ),
-      body: SizedBox.expand(
-        child: InteractiveViewer(
-          minScale: 1.0,
-          maxScale: 5.0,
-          clipBehavior: Clip.none,
-          child: Center(
-            child: CachedNetworkImage(
-              imageUrl: ApiService().optimizeCloudinaryUrl(imageUrl),
-              fit: BoxFit.contain,
-              placeholder: (context, url) => const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
-              ),
-              errorWidget: (context, url, error) => Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.broken_image_rounded,
-                    color: Colors.white54,
-                    size: 64,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Failed to load image',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 

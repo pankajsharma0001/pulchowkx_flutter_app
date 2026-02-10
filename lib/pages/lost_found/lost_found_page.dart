@@ -47,7 +47,7 @@ class _LostFoundPageState extends State<LostFoundPage>
     }
   }
 
-  Future<void> _fetchItems() async {
+  Future<void> _fetchItems({bool forceRefresh = false}) async {
     setState(() => _isLoading = true);
 
     String? type;
@@ -58,6 +58,7 @@ class _LostFoundPageState extends State<LostFoundPage>
       itemType: type,
       category: _selectedCategory,
       q: _searchQuery.isNotEmpty ? _searchQuery : null,
+      forceRefresh: forceRefresh,
     );
 
     if (mounted) {
@@ -145,7 +146,7 @@ class _LostFoundPageState extends State<LostFoundPage>
         ),
       ),
       body: RefreshIndicator(
-        onRefresh: _fetchItems,
+        onRefresh: () => _fetchItems(forceRefresh: true),
         child: _isLoading
             ? ListView.builder(
                 padding: const EdgeInsets.all(AppSpacing.sm),

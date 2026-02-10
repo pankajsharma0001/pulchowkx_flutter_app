@@ -3556,6 +3556,7 @@ class ApiService {
   // ==================== LOST & FOUND API ====================
 
   /// List lost & found items with filters
+  /// List lost & found items with filters (cache-first for instant loading)
   Future<List<LostFoundItem>> getLostFoundItems({
     String? itemType,
     String? category,
@@ -3563,7 +3564,88 @@ class ApiService {
     String? q,
     String? cursor,
     int limit = 12,
+    bool forceRefresh = false,
   }) async {
+    final String cacheKey =
+        'lost_found_${itemType ?? "all"}_${category ?? "all"}_${status ?? "all"}_${q ?? "none"}_cache';
+
+    // Only use cache for the first page
+    if (!forceRefresh && cursor == null) {
+      final cachedData = await _getFromCache(cacheKey);
+      if (cachedData != null) {
+        try {
+          final json = jsonDecode(cachedData);
+          if (json['success'] == true && json['data']?['items'] != null) {
+            final List<LostFoundItem> cachedItems =
+                (json['data']['items'] as List)
+                    .map(
+                      (e) => LostFoundItem.fromJson(e as Map<String, dynamic>),
+                    )
+                    .toList();
+
+            if (cachedItems.isNotEmpty) {
+              // Refresh in background
+              _refreshLostFoundItemsInBackground(
+                itemType: itemType,
+                category: category,
+                status: status,
+                q: q,
+                cacheKey: cacheKey,
+              );
+              return cachedItems;
+            }
+          }
+        } catch (e) {
+          debugPrint('Error parsing cached lost & found: $e');
+        }
+      }
+    }
+
+    return _fetchLostFoundItemsFromNetwork(
+      itemType: itemType,
+      category: category,
+      status: status,
+      q: q,
+      cursor: cursor,
+      limit: limit,
+      cacheKey: cacheKey,
+    );
+  }
+
+  /// Refreshes lost & found items in the background
+  Future<void> _refreshLostFoundItemsInBackground({
+    String? itemType,
+    String? category,
+    String? status,
+    String? q,
+    required String cacheKey,
+  }) async {
+    try {
+      await _fetchLostFoundItemsFromNetwork(
+        itemType: itemType,
+        category: category,
+        status: status,
+        q: q,
+        cacheKey: cacheKey,
+      );
+    } catch (e) {
+      debugPrint('Background lost & found refresh failed: $e');
+    }
+  }
+
+  /// Fetches lost & found items from network and saves to cache
+  Future<List<LostFoundItem>> _fetchLostFoundItemsFromNetwork({
+    String? itemType,
+    String? category,
+    String? status,
+    String? q,
+    String? cursor,
+    int limit = 12,
+    required String cacheKey,
+  }) async {
+    bool isOnline = await _hasInternetConnection();
+    if (!isOnline) return [];
+
     try {
       final queryParams = <String, String>{
         if (itemType != null) 'itemType': itemType,
@@ -3581,6 +3663,11 @@ class ApiService {
       final response = await http.get(uri, headers: await _getAuthHeader());
 
       if (response.statusCode == 200) {
+        // Only save first page to cache
+        if (cursor == null) {
+          await _saveToCache(cacheKey, response.body);
+        }
+
         final json = jsonDecode(response.body);
         if (json['success'] == true && json['data']?['items'] != null) {
           return (json['data']['items'] as List)
@@ -3589,13 +3676,57 @@ class ApiService {
         }
       }
     } catch (e) {
-      debugPrint('Error fetching lost & found items: $e');
+      debugPrint('Error fetching lost & found from network: $e');
     }
     return [];
   }
 
-  /// Get details of a single lost & found item
-  Future<LostFoundItem?> getLostFoundItem(int id) async {
+  /// Get details of a single lost & found item (cache-first)
+  Future<LostFoundItem?> getLostFoundItem(
+    int id, {
+    bool forceRefresh = false,
+  }) async {
+    final String cacheKey = 'lost_found_item_${id}_cache';
+
+    if (!forceRefresh) {
+      final cachedData = await _getFromCache(cacheKey);
+      if (cachedData != null) {
+        try {
+          final json = jsonDecode(cachedData);
+          if (json['success'] == true && json['data'] != null) {
+            // Background refresh
+            _refreshLostFoundItemInBackground(id, cacheKey);
+            return LostFoundItem.fromJson(json['data'] as Map<String, dynamic>);
+          }
+        } catch (e) {
+          debugPrint('Error parsing cached lost & found item: $e');
+        }
+      }
+    }
+
+    return _fetchLostFoundItemFromNetwork(id, cacheKey);
+  }
+
+  /// Refreshes lost & found item details in the background
+  Future<void> _refreshLostFoundItemInBackground(
+    int id,
+    String cacheKey,
+  ) async {
+    try {
+      await _fetchLostFoundItemFromNetwork(id, cacheKey);
+    } catch (e) {
+      debugPrint('Background lost & found item refresh failed: $e');
+    }
+  }
+
+  /// Fetches lost & found item from network and saves to cache
+  Future<LostFoundItem?> _fetchLostFoundItemFromNetwork(
+    int id,
+    String cacheKey,
+  ) async {
+    bool isOnline = await _hasInternetConnection();
+    if (!isOnline) return null;
+
     try {
       final response = await http.get(
         Uri.parse('$apiBaseUrl/lost-found/$id'),
@@ -3603,13 +3734,14 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
+        await _saveToCache(cacheKey, response.body);
         final json = jsonDecode(response.body);
         if (json['success'] == true && json['data'] != null) {
           return LostFoundItem.fromJson(json['data'] as Map<String, dynamic>);
         }
       }
     } catch (e) {
-      debugPrint('Error fetching lost & found item: $e');
+      debugPrint('Error fetching lost & found item online: $e');
     }
     return null;
   }
@@ -3628,6 +3760,10 @@ class ApiService {
       final json = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (json['success'] == true && json['data'] != null) {
+          // Invalidate cache
+          await invalidateLostFoundCache();
+          await invalidateMyLostFoundCache();
+
           return ApiResult.success(
             data: LostFoundItem.fromJson(json['data'] as Map<String, dynamic>),
           );
@@ -3668,6 +3804,9 @@ class ApiService {
       final json = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (json['success'] == true && json['data']?['imageUrl'] != null) {
+          // Invalidate specific item cache
+          await invalidateLostFoundItemCache(itemId);
+
           return ApiResult.success(data: json['data']['imageUrl'] as String);
         }
       }
@@ -3692,6 +3831,8 @@ class ApiService {
 
       final json = jsonDecode(response.body);
       if (json['success'] == true) {
+        // Invalidate my claims cache
+        await invalidateMyLostFoundCache();
         return ApiResult.success();
       }
       return ApiResult.failure(json['message'] ?? 'Failed to submit claim');
@@ -3701,8 +3842,42 @@ class ApiService {
     }
   }
 
-  /// Get user's own lost & found items
-  Future<List<LostFoundItem>> getMyLostFoundItems() async {
+  /// Get user's own lost & found items (cache-first)
+  Future<List<LostFoundItem>> getMyLostFoundItems({
+    bool forceRefresh = false,
+  }) async {
+    final userId = await getDatabaseUserId();
+    if (userId == null) return [];
+    final String cacheKey = 'my_lost_found_items_${userId}_cache';
+
+    if (!forceRefresh) {
+      final cachedData = await _getFromCache(cacheKey);
+      if (cachedData != null) {
+        try {
+          final json = jsonDecode(cachedData);
+          if (json['success'] == true && json['data'] != null) {
+            // Background refresh
+            _fetchMyLostFoundItemsFromNetwork(cacheKey);
+            return (json['data'] as List)
+                .map((e) => LostFoundItem.fromJson(e as Map<String, dynamic>))
+                .toList();
+          }
+        } catch (e) {
+          debugPrint('Error parsing cached my lost & found items: $e');
+        }
+      }
+    }
+
+    return _fetchMyLostFoundItemsFromNetwork(cacheKey);
+  }
+
+  /// Fetches my lost & found items from network and saves to cache
+  Future<List<LostFoundItem>> _fetchMyLostFoundItemsFromNetwork(
+    String cacheKey,
+  ) async {
+    bool isOnline = await _hasInternetConnection();
+    if (!isOnline) return [];
+
     try {
       final response = await http.get(
         Uri.parse('$apiBaseUrl/lost-found/my/items'),
@@ -3710,6 +3885,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
+        await _saveToCache(cacheKey, response.body);
         final json = jsonDecode(response.body);
         if (json['success'] == true && json['data'] != null) {
           return (json['data'] as List)
@@ -3718,13 +3894,47 @@ class ApiService {
         }
       }
     } catch (e) {
-      debugPrint('Error fetching my lost & found items: $e');
+      debugPrint('Error fetching my lost & found items online: $e');
     }
     return [];
   }
 
-  /// Get user's own claims
-  Future<List<LostFoundClaim>> getMyLostFoundClaims() async {
+  /// Get user's own claims (cache-first)
+  Future<List<LostFoundClaim>> getMyLostFoundClaims({
+    bool forceRefresh = false,
+  }) async {
+    final userId = await getDatabaseUserId();
+    if (userId == null) return [];
+    final String cacheKey = 'my_lost_found_claims_${userId}_cache';
+
+    if (!forceRefresh) {
+      final cachedData = await _getFromCache(cacheKey);
+      if (cachedData != null) {
+        try {
+          final json = jsonDecode(cachedData);
+          if (json['success'] == true && json['data'] != null) {
+            // Background refresh
+            _fetchMyLostFoundClaimsFromNetwork(cacheKey);
+            return (json['data'] as List)
+                .map((e) => LostFoundClaim.fromJson(e as Map<String, dynamic>))
+                .toList();
+          }
+        } catch (e) {
+          debugPrint('Error parsing cached my lost & found claims: $e');
+        }
+      }
+    }
+
+    return _fetchMyLostFoundClaimsFromNetwork(cacheKey);
+  }
+
+  /// Fetches my lost & found claims from network and saves to cache
+  Future<List<LostFoundClaim>> _fetchMyLostFoundClaimsFromNetwork(
+    String cacheKey,
+  ) async {
+    bool isOnline = await _hasInternetConnection();
+    if (!isOnline) return [];
+
     try {
       final response = await http.get(
         Uri.parse('$apiBaseUrl/lost-found/my/claims'),
@@ -3732,6 +3942,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
+        await _saveToCache(cacheKey, response.body);
         final json = jsonDecode(response.body);
         if (json['success'] == true && json['data'] != null) {
           return (json['data'] as List)
@@ -3740,9 +3951,49 @@ class ApiService {
         }
       }
     } catch (e) {
-      debugPrint('Error fetching my lost & found claims: $e');
+      debugPrint('Error fetching my lost & found claims online: $e');
     }
     return [];
+  }
+
+  /// Invalidate general lost & found list cache
+  Future<void> invalidateLostFoundCache() async {
+    try {
+      final box = Hive.box('api_cache');
+      final keys = box.keys.where(
+        (k) => k.toString().startsWith('lost_found_'),
+      );
+      for (final key in keys) {
+        // Don't invalidate individual items or 'my' lists here
+        if (!key.toString().startsWith('lost_found_item_') &&
+            !key.toString().startsWith('my_lost_found_')) {
+          await box.delete(key);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error invalidating lost found cache: $e');
+    }
+  }
+
+  /// Invalidate my lost & found lists
+  Future<void> invalidateMyLostFoundCache() async {
+    final userId = await getDatabaseUserId();
+    if (userId != null) {
+      await _removeFromCache('my_lost_found_items_${userId}_cache');
+      await _removeFromCache('my_lost_found_claims_${userId}_cache');
+    }
+  }
+
+  /// Invalidate specific lost & found item cache
+  Future<void> invalidateLostFoundItemCache(int id) async {
+    await _removeFromCache('lost_found_item_${id}_cache');
+  }
+
+  /// Invalidate ALL lost & found related caches
+  Future<void> invalidateAllLostFoundCaches() async {
+    await invalidateLostFoundCache();
+    await invalidateMyLostFoundCache();
+    // Also clear individual items if needed, or just let them expire/refresh
   }
 
   /// Create a report for a user or listing

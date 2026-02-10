@@ -34,11 +34,11 @@ class _MyLostFoundPageState extends State<MyLostFoundPage>
     super.dispose();
   }
 
-  Future<void> _fetchMyData() async {
+  Future<void> _fetchMyData({bool forceRefresh = false}) async {
     setState(() => _isLoading = true);
     final results = await Future.wait([
-      _apiService.getMyLostFoundItems(),
-      _apiService.getMyLostFoundClaims(),
+      _apiService.getMyLostFoundItems(forceRefresh: forceRefresh),
+      _apiService.getMyLostFoundClaims(forceRefresh: forceRefresh),
     ]);
 
     if (mounted) {
@@ -81,7 +81,7 @@ class _MyLostFoundPageState extends State<MyLostFoundPage>
     }
 
     return RefreshIndicator(
-      onRefresh: _fetchMyData,
+      onRefresh: () => _fetchMyData(forceRefresh: true),
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         itemCount: _myItems.length,

@@ -4,6 +4,7 @@ import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/widgets/custom_toast.dart';
+import 'package:pulchowkx_app/widgets/full_screen_image_viewer.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class LostFoundDetailsPage extends StatefulWidget {
@@ -33,9 +34,12 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
     super.dispose();
   }
 
-  Future<void> _fetchItemDetails() async {
+  Future<void> _fetchItemDetails({bool forceRefresh = false}) async {
     setState(() => _isLoading = true);
-    final item = await _apiService.getLostFoundItem(widget.itemId);
+    final item = await _apiService.getLostFoundItem(
+      widget.itemId,
+      forceRefresh: forceRefresh,
+    );
     if (mounted) {
       setState(() {
         _item = item;
@@ -84,76 +88,82 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
     final isLost = _item!.itemType == LostFoundItemType.lost;
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 300,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(background: _buildImageCarousel()),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      _buildTag(
-                        isLost ? 'LOST' : 'FOUND',
-                        isLost ? AppColors.error : AppColors.success,
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      _buildTag(
-                        _item!.category.name.toUpperCase(),
-                        AppColors.primary,
-                      ),
-                      const Spacer(),
-                      Text(
-                        _item!.dateFormatted,
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(_item!.title, style: AppTextStyles.h3),
-                  const SizedBox(height: AppSpacing.sm),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_rounded,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _item!.locationText,
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: AppSpacing.xl),
-                  Text('Description', style: AppTextStyles.h4),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(_item!.description, style: AppTextStyles.bodyMedium),
-                  if (_item!.rewardText != null &&
-                      _item!.rewardText!.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.lg),
-                    _buildRewardSection(),
-                  ],
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildContactSection(isOwner),
-                  const SizedBox(height: 100), // Space for bottom button
-                ],
+      body: RefreshIndicator(
+        onRefresh: () => _fetchItemDetails(forceRefresh: true),
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              expandedHeight: 300,
+              pinned: true,
+              title: _isLoading || _item == null ? null : Text(_item!.title),
+              flexibleSpace: FlexibleSpaceBar(
+                background: _buildImageCarousel(),
               ),
             ),
-          ),
-        ],
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _buildTag(
+                          isLost ? 'LOST' : 'FOUND',
+                          isLost ? AppColors.error : AppColors.success,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        _buildTag(
+                          _item!.category.name.toUpperCase(),
+                          AppColors.primary,
+                        ),
+                        const Spacer(),
+                        Text(
+                          _item!.dateFormatted,
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(_item!.title, style: AppTextStyles.h3),
+                    const SizedBox(height: AppSpacing.sm),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _item!.locationText,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: AppSpacing.xl),
+                    Text('Description', style: AppTextStyles.h4),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(_item!.description, style: AppTextStyles.bodyMedium),
+                    if (_item!.rewardText != null &&
+                        _item!.rewardText!.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.lg),
+                      _buildRewardSection(),
+                    ],
+                    const SizedBox(height: AppSpacing.lg),
+                    _buildContactSection(isOwner),
+                    const SizedBox(height: 100), // Space for bottom button
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
       bottomSheet: !isOwner && _item!.status == LostFoundStatus.open
           ? _buildClaimButton()
@@ -176,12 +186,24 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
     return PageView.builder(
       itemCount: _item!.images.length,
       itemBuilder: (context, index) {
-        return CachedNetworkImage(
-          imageUrl: _item!.images[index].imageUrl,
-          fit: BoxFit.cover,
-          placeholder: (context, url) =>
-              Container(color: Colors.grey.withValues(alpha: 0.1)),
-          errorWidget: (context, url, error) => const Icon(Icons.error),
+        return GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => FullScreenImageViewer(
+                  imageUrl: _item!.images[index].imageUrl,
+                  title: _item!.title,
+                ),
+              ),
+            );
+          },
+          child: CachedNetworkImage(
+            imageUrl: _item!.images[index].imageUrl,
+            fit: BoxFit.cover,
+            placeholder: (context, url) =>
+                Container(color: Colors.grey.withValues(alpha: 0.1)),
+            errorWidget: (context, url, error) => const Icon(Icons.error),
+          ),
         );
       },
     );
