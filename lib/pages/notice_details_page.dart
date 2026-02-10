@@ -171,30 +171,36 @@ class _NoticeDetailsPageState extends State<NoticeDetailsPage> {
                   const SizedBox(height: AppSpacing.xl),
 
                   // Content
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceDark : AppColors.surface,
-                      borderRadius: BorderRadius.circular(AppRadius.lg),
-                      border: Border.all(
-                        color: isDark ? AppColors.borderDark : AppColors.border,
-                      ),
-                    ),
-                    child: Text(
-                      notice.content,
-                      style: AppTextStyles.bodyMedium.copyWith(
+                  if (notice.content.isNotEmpty) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      decoration: BoxDecoration(
                         color: isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.textPrimary,
-                        height: 1.6,
+                            ? AppColors.surfaceDark
+                            : AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(
+                          color: isDark
+                              ? AppColors.borderDark
+                              : AppColors.border,
+                        ),
+                      ),
+                      child: Text(
+                        notice.content,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary,
+                          height: 1.6,
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: AppSpacing.xl),
+                  ],
 
                   // Attachment
                   if (notice.attachmentUrl != null) ...[
-                    const SizedBox(height: AppSpacing.xl),
                     Text(
                       'Attachment',
                       style: AppTextStyles.h4.copyWith(
@@ -297,7 +303,7 @@ class _NoticeDetailsPageState extends State<NoticeDetailsPage> {
 
     // For images, show in-app fullscreen viewer
     if (notice.attachmentType == NoticeAttachmentType.image) {
-      Navigator.of(context).push(
+      Navigator.of(context, rootNavigator: true).push(
         MaterialPageRoute(
           builder: (context) => FullScreenImageViewer(
             imageUrl: notice.attachmentUrl!,
@@ -310,7 +316,7 @@ class _NoticeDetailsPageState extends State<NoticeDetailsPage> {
 
     // For PDFs, show in-app PDF viewer
     if (notice.attachmentType == NoticeAttachmentType.pdf) {
-      Navigator.of(context).push(
+      Navigator.of(context, rootNavigator: true).push(
         MaterialPageRoute(
           builder: (context) => FullscreenPdfViewer(
             pdfUrl: notice.attachmentUrl!,

@@ -11,6 +11,8 @@ import 'package:pulchowkx_app/pages/notices.dart';
 import 'package:pulchowkx_app/pages/book_details.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/services/in_app_notification_service.dart';
+import 'package:pulchowkx_app/pages/notice_details_page.dart';
+import 'package:pulchowkx_app/pages/lost_found/lost_found_details_page.dart';
 
 class InAppNotificationsPage extends StatefulWidget {
   const InAppNotificationsPage({super.key});
@@ -244,9 +246,20 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
         ),
       );
     } else if (notification.type.contains('notice')) {
-      // For notices, we can navigate to the IOE Notices tab in MainLayout
-      // or if we have a specific notice detail page (which we don't seem to have as a separate pushable page currently that takes just an ID)
-      // Actually, NoticesPage filters notices. Let's just go to Notices tab for now.
+      final noticeIdStr = notification.data?['noticeId'];
+      if (noticeIdStr != null) {
+        final noticeId = int.tryParse(noticeIdStr.toString());
+        if (noticeId != null) {
+          navigator.push(
+            MaterialPageRoute(
+              builder: (context) => NoticeDetailsPage(noticeId: noticeId),
+            ),
+          );
+          return;
+        }
+      }
+
+      // Fallback to Notices tab
       final mainLayout = MainLayout.of(context);
       if (mainLayout != null) {
         mainLayout.setSelectedIndex(8);
@@ -264,6 +277,18 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
               BookDetailsPage(bookId: notification.listingId!),
         ),
       );
+    } else if (notification.type.contains('lost_found')) {
+      final itemIdStr = notification.data?['itemId'];
+      if (itemIdStr != null) {
+        final itemId = int.tryParse(itemIdStr.toString());
+        if (itemId != null) {
+          navigator.push(
+            MaterialPageRoute(
+              builder: (context) => LostFoundDetailsPage(itemId: itemId),
+            ),
+          );
+        }
+      }
     } else if (notification.type == 'chat_message' &&
         notification.chatId != null) {
       final conversationId = int.tryParse(notification.chatId!);
