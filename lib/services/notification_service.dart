@@ -141,6 +141,16 @@ class NotificationService {
           return;
         }
 
+        final publisherId = data['publisherId'];
+        if (publisherId != null) {
+          final apiService = ApiService();
+          final currentUserId = await apiService.getDatabaseUserId();
+          if (currentUserId != null && currentUserId == publisherId) {
+            debugPrint("Suppressing notification for own report/post: $type");
+            return;
+          }
+        }
+
         // New in-app notification arrived, refresh the unread count
         inAppNotifications.refreshUnreadCount();
 
@@ -471,6 +481,16 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         'Suppressing background lost & found notification based on settings',
       );
       return;
+    }
+
+    final publisherId = data['publisherId'];
+    if (publisherId != null) {
+      final apiService = ApiService();
+      final currentUserId = await apiService.getDatabaseUserId();
+      if (currentUserId != null && currentUserId == publisherId) {
+        debugPrint("Suppressing background notification for own post: $type");
+        return;
+      }
     }
 
     if (sellerId != null) {
