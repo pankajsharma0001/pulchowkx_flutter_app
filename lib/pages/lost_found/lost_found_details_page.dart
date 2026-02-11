@@ -5,7 +5,6 @@ import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/widgets/custom_toast.dart';
 import 'package:pulchowkx_app/widgets/full_screen_image_viewer.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class LostFoundDetailsPage extends StatefulWidget {
   final int itemId;
@@ -20,12 +19,34 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
   final ApiService _apiService = ApiService();
   LostFoundItem? _item;
   bool _isLoading = true;
+  String? _dbUserId;
+  LostFoundClaim? _myClaim;
   final TextEditingController _claimController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _fetchItemDetails();
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    _dbUserId = await _apiService.getDatabaseUserId();
+    await Future.wait([_fetchItemDetails(), _checkClaimStatus()]);
+  }
+
+  Future<void> _checkClaimStatus({bool forceRefresh = false}) async {
+    final claims = await _apiService.getMyLostFoundClaims(
+      forceRefresh: forceRefresh,
+    );
+    if (mounted) {
+      setState(() {
+        try {
+          _myClaim = claims.firstWhere((c) => c.itemId == widget.itemId);
+        } catch (_) {
+          _myClaim = null;
+        }
+      });
+    }
   }
 
   @override
@@ -63,7 +84,8 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
       if (result.success) {
         CustomToast.success(context, 'Claim submitted successfully!');
         Navigator.pop(context);
-        _fetchItemDetails();
+        _fetchItemDetails(forceRefresh: true);
+        _checkClaimStatus(forceRefresh: true);
       } else {
         CustomToast.error(context, result.message ?? 'Failed to submit claim');
       }
@@ -83,8 +105,7 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
       );
     }
 
-    final currentUser = FirebaseAuth.instance.currentUser;
-    final isOwner = _item!.ownerId == currentUser?.uid;
+    final isOwner = _item!.ownerId == _dbUserId;
     final isLost = _item!.itemType == LostFoundItemType.lost;
 
     return Scaffold(
@@ -143,6 +164,8 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
                       ),
                       const SizedBox(height: AppSpacing.md),
                       Text(_item!.title, style: AppTextStyles.h3),
+                      const SizedBox(height: AppSpacing.xs),
+                      _buildPostedBy(),
                       const SizedBox(height: AppSpacing.sm),
                       Row(
                         children: [
@@ -284,6 +307,47 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
     );
   }
 
+  Widget _buildPostedBy() {
+    final ownerName = _item!.owner?['name'] as String? ?? 'Student';
+    final ownerImage = _item!.owner?['image'] as String?;
+
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 10,
+          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+          backgroundImage: ownerImage != null
+              ? CachedNetworkImageProvider(ownerImage)
+              : null,
+          child: ownerImage == null
+              ? const Icon(Icons.person, size: 12, color: AppColors.primary)
+              : null,
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        Text(
+          'Posted by $ownerName',
+          style: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.textMuted,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getStatusLabel(LostFoundClaimStatus status) {
+    switch (status) {
+      case LostFoundClaimStatus.pending:
+        return 'Pending';
+      case LostFoundClaimStatus.accepted:
+        return 'Accepted';
+      case LostFoundClaimStatus.rejected:
+        return 'Rejected';
+      case LostFoundClaimStatus.cancelled:
+        return 'Cancelled';
+    }
+  }
+
   Widget _buildContactSection(bool isOwner) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
@@ -327,10 +391,6 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
   }
 
   Widget _buildClaimButton() {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    final hasClaimed =
-        _item!.claims?.any((c) => c.requesterId == currentUser?.uid) ?? false;
-
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -345,20 +405,46 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
       ),
       child: SafeArea(
         child: ElevatedButton(
-          onPressed: hasClaimed ? null : () => _showClaimDialog(),
+          onPressed: _myClaim != null ? null : () => _showClaimDialog(),
           style: ElevatedButton.styleFrom(
-            backgroundColor: hasClaimed
-                ? AppColors.success.withValues(alpha: 0.1)
+            backgroundColor: _myClaim != null
+                ? (_myClaim!.status == LostFoundClaimStatus.accepted
+                      ? AppColors.success.withValues(alpha: 0.1)
+                      : _myClaim!.status == LostFoundClaimStatus.rejected
+                      ? AppColors.error.withValues(alpha: 0.1)
+                      : AppColors.primary.withValues(alpha: 0.1))
                 : AppColors.primary,
-            foregroundColor: hasClaimed ? AppColors.success : Colors.white,
+            foregroundColor: _myClaim != null
+                ? (_myClaim!.status == LostFoundClaimStatus.accepted
+                      ? AppColors.success
+                      : _myClaim!.status == LostFoundClaimStatus.rejected
+                      ? AppColors.error
+                      : AppColors.primary)
+                : Colors.white,
             minimumSize: const Size(double.infinity, 50),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
-            disabledBackgroundColor: AppColors.success.withValues(alpha: 0.1),
-            disabledForegroundColor: AppColors.success,
+            disabledBackgroundColor: _myClaim != null
+                ? (_myClaim!.status == LostFoundClaimStatus.accepted
+                      ? AppColors.success.withValues(alpha: 0.1)
+                      : _myClaim!.status == LostFoundClaimStatus.rejected
+                      ? AppColors.error.withValues(alpha: 0.1)
+                      : AppColors.primary.withValues(alpha: 0.1))
+                : AppColors.success.withValues(alpha: 0.1),
+            disabledForegroundColor: _myClaim != null
+                ? (_myClaim!.status == LostFoundClaimStatus.accepted
+                      ? AppColors.success
+                      : _myClaim!.status == LostFoundClaimStatus.rejected
+                      ? AppColors.error
+                      : AppColors.primary)
+                : AppColors.success,
           ),
-          child: Text(hasClaimed ? 'Claim Sent' : 'Claim This'),
+          child: Text(
+            _myClaim != null
+                ? 'Claim ${_getStatusLabel(_myClaim!.status)}'
+                : 'Claim This',
+          ),
         ),
       ),
     );
