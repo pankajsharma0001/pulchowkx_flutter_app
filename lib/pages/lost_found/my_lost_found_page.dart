@@ -4,6 +4,7 @@ import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/lost_found_card.dart';
 import 'package:pulchowkx_app/pages/lost_found/lost_found_details_page.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class MyLostFoundPage extends StatefulWidget {
   const MyLostFoundPage({super.key});
@@ -127,20 +128,54 @@ class _MyLostFoundPageState extends State<MyLostFoundPage>
               ),
             ),
             child: ListTile(
-              title: Text(claim.item?.title ?? 'Item #${claim.itemId}'),
+              leading: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  color: AppColors.primary.withValues(alpha: 0.05),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child:
+                    claim.item?.images != null && claim.item!.images.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: _apiService.optimizeCloudinaryUrl(
+                          claim.item!.images.first.imageUrl,
+                          width: 100,
+                        ),
+                        fit: BoxFit.cover,
+                        errorWidget: (context, url, error) => const Icon(
+                          Icons.image_not_supported_rounded,
+                          color: AppColors.textMuted,
+                          size: 20,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.inventory_2_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+              ),
+              title: Text(
+                claim.item?.title ?? 'Item #${claim.itemId}',
+                style: AppTextStyles.bodyLarge.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     claim.message,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.bodySmall,
                   ),
                   const SizedBox(height: 4),
                   _buildStatusChip(claim.status),
                 ],
               ),
-              trailing: const Icon(Icons.chevron_right_rounded),
+              trailing: const Icon(Icons.chevron_right_rounded, size: 20),
               onTap: () async {
                 await Navigator.push(
                   context,
