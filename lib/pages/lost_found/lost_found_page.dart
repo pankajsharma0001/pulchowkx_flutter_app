@@ -92,85 +92,105 @@ class _LostFoundPageState extends State<LostFoundPage>
             color: AppColors.primary,
             child: CustomScrollView(
               slivers: [
-                // Header & Search
+                // Header
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.lg,
-                      AppSpacing.xl,
-                      AppSpacing.lg,
-                      AppSpacing.sm,
-                    ),
-                    child: Column(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(width: 48), // Balance for items icon
-                            Expanded(
-                              child: Text(
-                                'Lost & Found',
-                                style: AppTextStyles.h3.copyWith(
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      gradient: AppColors.primaryGradient,
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.md,
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.find_in_page_rounded,
+                                      color: AppColors.surface,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Text(
+                                    'Lost & Found',
+                                    style: AppTextStyles.h3.copyWith(
+                                      color: isDark
+                                          ? Colors.white
+                                          : AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                'Report lost items or find what you might have missing',
+                                style: AppTextStyles.bodyMedium.copyWith(
                                   color: isDark
-                                      ? Colors.white
-                                      : AppColors.textPrimary,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const MyLostFoundPage(),
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textSecondary,
                                 ),
                               ),
-                              icon: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.md,
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.person_outline_rounded,
-                                  size: 20,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                              tooltip: 'My Items',
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          'Report lost items or find what you might have missing',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondary,
+                            ],
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: AppSpacing.md),
-                        // Search Bar
-                        Container(
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? AppColors.surfaceDark
-                                : AppColors.surface,
-                            borderRadius: BorderRadius.circular(AppRadius.full),
-                            boxShadow: AppShadows.sm,
-                            border: Border.all(
-                              color: isDark
-                                  ? AppColors.borderDark
-                                  : AppColors.border,
+                        IconButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MyLostFoundPage(),
                             ),
                           ),
-                          child: TextField(
+                          icon: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                            ),
+                            child: const Icon(
+                              Icons.person_outline_rounded,
+                              size: 20,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          tooltip: 'My Items',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Search Bar
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? AppColors.surfaceDark
+                            : AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                        boxShadow: AppShadows.sm,
+                        border: Border.all(
+                          color: isDark
+                              ? AppColors.borderDark
+                              : AppColors.border,
+                        ),
+                      ),
+                      child: ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _searchController,
+                        builder: (context, value, child) {
+                          return TextField(
                             controller: _searchController,
                             decoration: InputDecoration(
                               hintText: 'Search items...',
@@ -186,6 +206,22 @@ class _LostFoundPageState extends State<LostFoundPage>
                                     ? AppColors.textMutedDark
                                     : AppColors.textMuted,
                               ),
+                              suffixIcon: value.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: Icon(
+                                        Icons.clear_rounded,
+                                        size: 20,
+                                        color: isDark
+                                            ? AppColors.textMutedDark
+                                            : AppColors.textMuted,
+                                      ),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        setState(() => _searchQuery = '');
+                                        _fetchItems();
+                                      },
+                                    )
+                                  : null,
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
@@ -198,9 +234,9 @@ class _LostFoundPageState extends State<LostFoundPage>
                               setState(() => _searchQuery = val);
                               _fetchItems();
                             },
-                          ),
-                        ),
-                      ],
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),

@@ -327,6 +327,10 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
   }
 
   Widget _buildClaimButton() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final hasClaimed =
+        _item!.claims?.any((c) => c.requesterId == currentUser?.uid) ?? false;
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -341,16 +345,20 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
       ),
       child: SafeArea(
         child: ElevatedButton(
-          onPressed: () => _showClaimDialog(),
+          onPressed: hasClaimed ? null : () => _showClaimDialog(),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
+            backgroundColor: hasClaimed
+                ? AppColors.success.withValues(alpha: 0.1)
+                : AppColors.primary,
+            foregroundColor: hasClaimed ? AppColors.success : Colors.white,
             minimumSize: const Size(double.infinity, 50),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
+            disabledBackgroundColor: AppColors.success.withValues(alpha: 0.1),
+            disabledForegroundColor: AppColors.success,
           ),
-          child: const Text('Claim This'),
+          child: Text(hasClaimed ? 'Claim Sent' : 'Claim This'),
         ),
       ),
     );

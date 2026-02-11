@@ -3898,6 +3898,8 @@ class ApiService {
       if (json['success'] == true) {
         // Invalidate my claims cache
         await invalidateMyLostFoundCache();
+        // Invalidate specific item cache to refresh its state/claims
+        await invalidateLostFoundItemCache(itemId);
         return ApiResult.success();
       }
       return ApiResult.failure(json['message'] ?? 'Failed to submit claim');
