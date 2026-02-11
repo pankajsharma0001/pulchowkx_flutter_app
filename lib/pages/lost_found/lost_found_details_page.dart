@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:pulchowkx_app/models/lost_found.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
@@ -21,6 +22,8 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
   bool _isLoading = true;
   String? _dbUserId;
   LostFoundClaim? _myClaim;
+  List<LostFoundClaim> _itemClaims = [];
+  bool _isActionLoading = false;
   final TextEditingController _claimController = TextEditingController();
 
   @override
@@ -31,7 +34,9 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
 
   Future<void> _loadInitialData() async {
     _dbUserId = await _apiService.getDatabaseUserId();
-    await Future.wait([_fetchItemDetails(), _checkClaimStatus()]);
+    await _fetchItemDetails();
+    final isOwner = _item?.ownerId == _dbUserId;
+    await Future.wait([_checkClaimStatus(), if (isOwner) _fetchItemClaims()]);
   }
 
   Future<void> _checkClaimStatus({bool forceRefresh = false}) async {
@@ -66,6 +71,54 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
         _item = item;
         _isLoading = false;
       });
+      if (item?.ownerId == _dbUserId) {
+        _fetchItemClaims();
+      }
+    }
+  }
+
+  Future<void> _fetchItemClaims() async {
+    final claims = await _apiService.getLostFoundItemClaims(widget.itemId);
+    if (mounted) {
+      setState(() {
+        _itemClaims = claims;
+      });
+    }
+  }
+
+  Future<void> _updateStatus(LostFoundStatus status) async {
+    setState(() => _isActionLoading = true);
+    final result = await _apiService.updateLostFoundItemStatus(
+      widget.itemId,
+      status,
+    );
+    if (mounted) {
+      setState(() => _isActionLoading = false);
+      if (result.success) {
+        CustomToast.success(context, 'Item marked as ${status.name}');
+        _fetchItemDetails(forceRefresh: true);
+      } else {
+        CustomToast.error(context, result.message ?? 'Failed to update status');
+      }
+    }
+  }
+
+  Future<void> _respondToClaim(int claimId, LostFoundClaimStatus status) async {
+    setState(() => _isActionLoading = true);
+    final result = await _apiService.respondToLostFoundClaim(
+      widget.itemId,
+      claimId,
+      status,
+    );
+    if (mounted) {
+      setState(() => _isActionLoading = false);
+      if (result.success) {
+        CustomToast.success(context, 'Claim ${status.name}');
+        _fetchItemDetails(forceRefresh: true);
+        _fetchItemClaims();
+      } else {
+        CustomToast.error(context, result.message ?? 'Failed to update claim');
+      }
     }
   }
 
@@ -195,6 +248,12 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
                       ],
                       const SizedBox(height: AppSpacing.lg),
                       _buildContactSection(isOwner),
+                      if (isOwner) ...[
+                        const SizedBox(height: AppSpacing.xl),
+                        _buildOwnerControls(),
+                        const SizedBox(height: AppSpacing.xl),
+                        _buildClaimsList(),
+                      ],
                       const SizedBox(
                         height: 180,
                       ), // Space for fixed bottom banner/button
@@ -490,6 +549,230 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOwnerControls() {
+    if (_item!.status != LostFoundStatus.open) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Owner Controls', style: AppTextStyles.h4),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _isActionLoading
+                    ? null
+                    : () => _updateStatus(LostFoundStatus.resolved),
+                icon: const Icon(Icons.check_circle_outline),
+                label: const Text('Mark Resolved'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _isActionLoading
+                    ? null
+                    : () => _updateStatus(LostFoundStatus.closed),
+                icon: const Icon(Icons.cancel_outlined),
+                label: const Text('Close Item'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  side: const BorderSide(color: AppColors.error),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildClaimsList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Claims', style: AppTextStyles.h4),
+            const SizedBox(width: AppSpacing.sm),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                _itemClaims.length.toString(),
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (_itemClaims.isEmpty)
+          const Text(
+            'No claims submitted yet.',
+            style: TextStyle(color: AppColors.textMuted),
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _itemClaims.length,
+            separatorBuilder: (context, index) =>
+                const SizedBox(height: AppSpacing.md),
+            itemBuilder: (context, index) {
+              final claim = _itemClaims[index];
+              return _buildClaimCard(claim);
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildClaimCard(LostFoundClaim claim) {
+    final requesterName = claim.requester?['name'] as String? ?? 'Student';
+    final requesterImage = claim.requester?['image'] as String?;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.border,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundImage: requesterImage != null
+                    ? CachedNetworkImageProvider(requesterImage)
+                    : null,
+                child: requesterImage == null ? const Icon(Icons.person) : null,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      requesterName,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      DateFormat('MMM dd, hh:mm a').format(claim.createdAt),
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _buildClaimStatusTag(claim.status),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          const Text(
+            'Message/Proof:',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
+          const SizedBox(height: 4),
+          Text(claim.message, style: AppTextStyles.bodyMedium),
+          if (claim.status == LostFoundClaimStatus.pending &&
+              _item!.status == LostFoundStatus.open) ...[
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _isActionLoading
+                        ? null
+                        : () => _respondToClaim(
+                            claim.id,
+                            LostFoundClaimStatus.accepted,
+                          ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(0, 36),
+                    ),
+                    child: const Text('Accept'),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _isActionLoading
+                        ? null
+                        : () => _respondToClaim(
+                            claim.id,
+                            LostFoundClaimStatus.rejected,
+                          ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
+                      minimumSize: const Size(0, 36),
+                    ),
+                    child: const Text('Reject'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClaimStatusTag(LostFoundClaimStatus status) {
+    Color color;
+    switch (status) {
+      case LostFoundClaimStatus.accepted:
+        color = AppColors.success;
+        break;
+      case LostFoundClaimStatus.rejected:
+        color = AppColors.error;
+        break;
+      case LostFoundClaimStatus.cancelled:
+        color = AppColors.textMuted;
+        break;
+      default:
+        color = AppColors.primary;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Text(
+        status.name.toUpperCase(),
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

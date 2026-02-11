@@ -3909,6 +3909,84 @@ class ApiService {
     }
   }
 
+  /// Get claims for a specific lost & found item (owner only)
+  Future<List<LostFoundClaim>> getLostFoundItemClaims(int itemId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/lost-found/$itemId/claims'),
+        headers: await _getAuthHeader(),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map((e) => LostFoundClaim.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching item claims: $e');
+    }
+    return [];
+  }
+
+  /// Respond to a lost & found claim (Accept/Reject)
+  Future<ApiResult<void>> respondToLostFoundClaim(
+    int itemId,
+    int claimId,
+    LostFoundClaimStatus status,
+  ) async {
+    try {
+      final statusString = status.name; // accepted, rejected, cancelled
+      final response = await http.put(
+        Uri.parse('$apiBaseUrl/lost-found/$itemId/claims/$claimId'),
+        headers: await _getAuthHeader(),
+        body: jsonEncode({'status': statusString}),
+      );
+
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) {
+        // Invalidate cache
+        await invalidateLostFoundItemCache(itemId);
+        await invalidateMyLostFoundCache();
+        return ApiResult.success();
+      }
+      return ApiResult.failure(json['message'] ?? 'Failed to update claim');
+    } catch (e) {
+      debugPrint('Error responding to claim: $e');
+      return ApiResult.failure(e.toString());
+    }
+  }
+
+  /// Update the status of a lost & found item (Resolved/Closed)
+  Future<ApiResult<void>> updateLostFoundItemStatus(
+    int itemId,
+    LostFoundStatus status,
+  ) async {
+    try {
+      final statusString = status.name; // resolved, closed, open
+      final response = await http.put(
+        Uri.parse('$apiBaseUrl/lost-found/$itemId/status'),
+        headers: await _getAuthHeader(),
+        body: jsonEncode({'status': statusString}),
+      );
+
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) {
+        // Invalidate cache
+        await invalidateLostFoundItemCache(itemId);
+        await invalidateLostFoundCache();
+        await invalidateMyLostFoundCache();
+        return ApiResult.success();
+      }
+      return ApiResult.failure(json['message'] ?? 'Failed to update status');
+    } catch (e) {
+      debugPrint('Error updating item status: $e');
+      return ApiResult.failure(e.toString());
+    }
+  }
+
   /// Get user's own lost & found items (cache-first)
   Future<List<LostFoundItem>> getMyLostFoundItems({
     bool forceRefresh = false,
