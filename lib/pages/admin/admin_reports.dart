@@ -176,6 +176,11 @@ class _AdminReportsPageState extends State<AdminReportsPage>
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
+          labelColor: AppColors.primary,
+          unselectedLabelColor: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.textSecondaryDark
+              : AppColors.textSecondary,
+          indicatorColor: AppColors.primary,
           tabs: const [
             Tab(text: 'Open'),
             Tab(text: 'In Review'),
@@ -298,7 +303,9 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                 width: double.infinity,
                 padding: const EdgeInsets.all(AppSpacing.sm),
                 decoration: BoxDecoration(
-                  color: AppColors.background,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 child: Column(
