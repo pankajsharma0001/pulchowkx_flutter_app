@@ -1641,18 +1641,11 @@ class ApiService {
 
     if (isOnline) {
       try {
-        final userId = await getDatabaseUserId();
         final uri = Uri.parse(
           '$apiBaseUrl/books',
         ).replace(queryParameters: queryParams);
 
-        final response = await http.get(
-          uri,
-          headers: {
-            'Content-Type': 'application/json',
-            if (userId != null) 'Authorization': 'Bearer $userId',
-          },
-        );
+        final response = await http.get(uri, headers: await _getAuthHeader());
 
         if (response.statusCode == 200) {
           await _saveToCache(cacheKey, response.body);
@@ -1693,13 +1686,9 @@ class ApiService {
 
     if (isOnline) {
       try {
-        final userId = await getDatabaseUserId();
         final response = await http.get(
           Uri.parse('$apiBaseUrl/books/listings/$id'),
-          headers: {
-            'Content-Type': 'application/json',
-            if (userId != null) 'Authorization': 'Bearer $userId',
-          },
+          headers: await _getAuthHeader(),
         );
 
         if (response.statusCode == 200) {
@@ -1752,10 +1741,7 @@ class ApiService {
 
       final response = await http.post(
         Uri.parse('$apiBaseUrl/books'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode({
           'title': title,
           'author': author,
@@ -1803,10 +1789,7 @@ class ApiService {
 
       final response = await http.put(
         Uri.parse('$apiBaseUrl/books/listings/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode(data),
       );
 
@@ -1833,10 +1816,7 @@ class ApiService {
 
       final response = await http.delete(
         Uri.parse('$apiBaseUrl/books/listings/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
       );
 
       final json = jsonDecode(response.body);
@@ -1858,10 +1838,7 @@ class ApiService {
       try {
         final response = await http.get(
           Uri.parse('$apiBaseUrl/books/my-listings'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $userId',
-          },
+          headers: await _getAuthHeader(),
         );
 
         if (response.statusCode == 200) {
@@ -1906,10 +1883,7 @@ class ApiService {
 
       final response = await http.put(
         Uri.parse('$apiBaseUrl/books/listings/$id/mark-sold'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
       );
 
       final json = jsonDecode(response.body);
@@ -1934,7 +1908,7 @@ class ApiService {
         'POST',
         Uri.parse('$apiBaseUrl/books/listings/$listingId/images'),
       );
-      request.headers['Authorization'] = 'Bearer $userId';
+      request.headers.addAll(await _getAuthHeader());
       request.files.add(
         await http.MultipartFile.fromPath(
           'image',
@@ -1974,10 +1948,7 @@ class ApiService {
 
       final response = await http.delete(
         Uri.parse('$apiBaseUrl/books/listings/$listingId/images/$imageId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
       );
 
       final json = jsonDecode(response.body);
@@ -1999,10 +1970,7 @@ class ApiService {
       try {
         final response = await http.get(
           Uri.parse('$apiBaseUrl/books/saved'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $userId',
-          },
+          headers: await _getAuthHeader(),
         );
 
         if (response.statusCode == 200) {
@@ -2047,10 +2015,7 @@ class ApiService {
 
       final response = await http.post(
         Uri.parse('$apiBaseUrl/books/listings/$listingId/save'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode({
           'listingId': listingId,
           if (notes != null) 'notes': notes,
@@ -2074,10 +2039,7 @@ class ApiService {
 
       final response = await http.delete(
         Uri.parse('$apiBaseUrl/books/listings/$listingId/save'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
       );
 
       final json = jsonDecode(response.body);
@@ -2146,14 +2108,17 @@ class ApiService {
 
       final response = await http.post(
         Uri.parse('$apiBaseUrl/books/listings/$listingId/request'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode({'message': message}),
       );
 
-      return jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      }
+      return {
+        'success': false,
+        'message': 'Request failed: ${response.statusCode}',
+      };
     } catch (e) {
       return {'success': false, 'message': 'Error: $e'};
     }
@@ -2171,10 +2136,7 @@ class ApiService {
       try {
         final response = await http.get(
           Uri.parse('$apiBaseUrl/books/listings/$listingId/requests'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $userId',
-          },
+          headers: await _getAuthHeader(),
         );
 
         if (response.statusCode == 200) {
@@ -2226,10 +2188,7 @@ class ApiService {
       try {
         final response = await http.get(
           Uri.parse('$apiBaseUrl/books/my-requests'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $userId',
-          },
+          headers: await _getAuthHeader(),
         );
 
         if (response.statusCode == 200) {
@@ -2282,14 +2241,17 @@ class ApiService {
 
       final response = await http.put(
         Uri.parse('$apiBaseUrl/books/requests/$requestId/respond'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode({'accept': accept}),
       );
 
-      return jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      }
+      return {
+        'success': false,
+        'message': 'Response failed: ${response.statusCode}',
+      };
     } catch (e) {
       return {'success': false, 'message': 'Error: $e'};
     }
@@ -2303,10 +2265,7 @@ class ApiService {
 
       final response = await http.get(
         Uri.parse('$apiBaseUrl/books/listings/$listingId/request-status'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
       );
 
       if (response.statusCode == 200) {
@@ -2334,13 +2293,16 @@ class ApiService {
 
       final response = await http.delete(
         Uri.parse('$apiBaseUrl/books/requests/$requestId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
       );
 
-      return jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return {
+        'success': false,
+        'message': 'Cancel failed: ${response.statusCode}',
+      };
     } catch (e) {
       return {'success': false, 'message': 'Error: $e'};
     }
@@ -2356,13 +2318,16 @@ class ApiService {
 
       final response = await http.delete(
         Uri.parse('$apiBaseUrl/books/requests/$requestId/delete'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
       );
 
-      return jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return {
+        'success': false,
+        'message': 'Delete failed: ${response.statusCode}',
+      };
     } catch (e) {
       return {'success': false, 'message': 'Error: $e'};
     }
@@ -2479,10 +2444,7 @@ class ApiService {
       try {
         final response = await http.get(
           Uri.parse('$apiBaseUrl/classroom/me'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $userId',
-          },
+          headers: await _getAuthHeader(),
         );
 
         if (response.statusCode == 200) {
@@ -2529,10 +2491,7 @@ class ApiService {
 
       final response = await http.post(
         Uri.parse('$apiBaseUrl/classroom/me'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode(request.toJson()),
       );
 
@@ -2580,10 +2539,7 @@ class ApiService {
       try {
         final response = await http.get(
           Uri.parse('$apiBaseUrl/classroom/me/subjects'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $userId',
-          },
+          headers: await _getAuthHeader(),
         );
 
         if (response.statusCode == 200) {
@@ -2630,10 +2586,7 @@ class ApiService {
       try {
         final response = await http.get(
           Uri.parse('$apiBaseUrl/classroom/teacher/subjects'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $userId',
-          },
+          headers: await _getAuthHeader(),
         );
 
         if (response.statusCode == 200) {
@@ -2678,10 +2631,7 @@ class ApiService {
 
       final response = await http.post(
         Uri.parse('$apiBaseUrl/classroom/teacher/subjects'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode({'subjectId': subjectId}),
       );
 
@@ -2704,10 +2654,7 @@ class ApiService {
 
       final response = await http.post(
         Uri.parse('$apiBaseUrl/classroom/assignments'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode(request.toJson()),
       );
 
@@ -2742,7 +2689,7 @@ class ApiService {
           '$apiBaseUrl/classroom/assignments/$assignmentId/submissions',
         ),
       );
-      request.headers['Authorization'] = 'Bearer $userId';
+      request.headers.addAll(await _getAuthHeader());
       if (comment != null) {
         request.fields['comment'] = comment;
       }
@@ -2806,10 +2753,7 @@ class ApiService {
           Uri.parse(
             '$apiBaseUrl/classroom/assignments/$assignmentId/submissions',
           ),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $userId',
-          },
+          headers: await _getAuthHeader(),
         );
 
         if (response.statusCode == 200) {
@@ -2873,10 +2817,7 @@ class ApiService {
         debugPrint('getConversations: Fetching from API...');
         final response = await http.get(
           Uri.parse('$apiBaseUrl/chat/conversations'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $userId',
-          },
+          headers: await _getAuthHeader(),
         );
 
         debugPrint('getConversations response: ${response.statusCode}');
@@ -2941,10 +2882,7 @@ class ApiService {
       try {
         final response = await http.get(
           Uri.parse('$apiBaseUrl/chat/conversations/$conversationId/messages'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $userId',
-          },
+          headers: await _getAuthHeader(),
         );
 
         if (response.statusCode == 200) {
@@ -3005,10 +2943,7 @@ class ApiService {
 
       final response = await http.post(
         Uri.parse('$apiBaseUrl/chat/send'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode(body),
       );
 
@@ -3039,10 +2974,7 @@ class ApiService {
 
       final response = await http.post(
         Uri.parse('$apiBaseUrl/chat/conversations/$conversationId/messages'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode({'content': content}),
       );
 
@@ -3070,10 +3002,7 @@ class ApiService {
 
       final response = await http.delete(
         Uri.parse('$apiBaseUrl/chat/conversations/$conversationId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
       );
 
       final json = jsonDecode(response.body);
@@ -3099,10 +3028,7 @@ class ApiService {
 
       final response = await http.post(
         Uri.parse('$apiBaseUrl/notices'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode(data),
       );
 
@@ -3136,10 +3062,7 @@ class ApiService {
 
       final response = await http.put(
         Uri.parse('$apiBaseUrl/notices/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode(data),
       );
 
