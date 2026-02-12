@@ -12,6 +12,7 @@ import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:pulchowkx_app/widgets/full_screen_image_viewer.dart';
 import 'package:intl/intl.dart';
+import 'package:pulchowkx_app/widgets/staggered_scale_fade.dart';
 import 'package:file_picker/file_picker.dart';
 
 /// Notices page for displaying IOE exam results and routines
@@ -244,18 +245,15 @@ class _NoticesPageState extends State<NoticesPage>
                         ),
                         const SizedBox(height: AppSpacing.xl),
                         Container(
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? AppColors.surfaceDark
-                                : AppColors.surface,
-                            borderRadius: BorderRadius.circular(AppRadius.full),
-                            boxShadow: AppShadows.sm,
-                            border: Border.all(
-                              color: isDark
-                                  ? AppColors.borderDark
-                                  : AppColors.border,
-                            ),
-                          ),
+                          decoration: isDark
+                              ? AppDecorations.glassDark(
+                                  borderRadius: AppRadius.full,
+                                  borderColor: AppColors.borderDark,
+                                )
+                              : AppDecorations.glass(
+                                  borderRadius: AppRadius.full,
+                                  borderColor: AppColors.border,
+                                ),
                           child: TextField(
                             controller: _searchController,
                             onChanged: _onSearchChanged,
@@ -453,11 +451,14 @@ class _NoticesPageState extends State<NoticesPage>
                               ),
                             );
                           }
-                          return _NoticeCard(
-                            notice: _notices[index],
-                            isManager: _isManager,
-                            onEdit: () => _showNoticeDialog(_notices[index]),
-                            onDelete: () => _deleteNotice(_notices[index]),
+                          return StaggeredScaleFade(
+                            index: index,
+                            child: _NoticeCard(
+                              notice: _notices[index],
+                              isManager: _isManager,
+                              onEdit: () => _showNoticeDialog(_notices[index]),
+                              onDelete: () => _deleteNotice(_notices[index]),
+                            ),
                           );
                         },
                         childCount: _notices.length + (_isLoadingMore ? 1 : 0),

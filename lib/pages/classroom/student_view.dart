@@ -438,16 +438,13 @@ class SubjectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pendingCount = subject.pendingCount;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(
-          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
-        ),
-      ),
+      decoration: isDark
+          ? AppDecorations.glassDark(borderColor: AppColors.borderDark)
+          : AppDecorations.glass(borderColor: AppColors.border),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Row(
@@ -572,15 +569,15 @@ class AssignmentCard extends StatelessWidget {
 
     return Container(
       margin: isCompact ? const EdgeInsets.only(top: AppSpacing.sm) : null,
-      decoration: BoxDecoration(
-        color: isCompact
-            ? Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.5)
-            : Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(
-          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
-        ),
-      ),
+      decoration: isDark
+          ? AppDecorations.glassDark(
+              borderRadius: AppRadius.md,
+              borderColor: AppColors.borderDark,
+            )
+          : AppDecorations.glass(
+              borderRadius: AppRadius.md,
+              borderColor: AppColors.border,
+            ),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(

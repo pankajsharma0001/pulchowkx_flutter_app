@@ -17,13 +17,15 @@ class AppColors {
   static const Color background = Color(0xFFF2F2F7); // Soft gray background
   static const Color backgroundSecondary = Color(0xFFE5E5EA); // Deeper gray
   static const Color surface = Color(0xFFFDFDFD); // Soft off-white surface
-  static const Color cardBackground = Color(0xFFFDFDFD); // Soft off-white cards
+  static const Color cardBackground = Color(0xFFFFFFFF); // Pure white cards
 
   // Background colors (Dark) - True black like Telegram
   static const Color backgroundDark = Color(0xFF000000); // True black
-  static const Color backgroundSecondaryDark = Color(0xFF000000); // Pure black
-  static const Color surfaceDark = Color(0xFF000000); // Pure black
-  static const Color cardBackgroundDark = Color(0xFF000000); // Pure black
+  static const Color backgroundSecondaryDark = Color(
+    0xFF1C1C1E,
+  ); // iOS dark gray
+  static const Color surfaceDark = Color(0xFF1C1C1E); // Dark surface
+  static const Color cardBackgroundDark = Color(0xFF1C1C1E); // Dark cards
 
   // Text colors (Light)
   static const Color textPrimary = Color(0xFF000000); // Black text
@@ -32,8 +34,8 @@ class AppColors {
 
   // Text colors (Dark)
   static const Color textPrimaryDark = Color(0xFFFFFFFF); // White text
-  static const Color textSecondaryDark = Color(0xFF8E8E93); // Same gray
-  static const Color textMutedDark = Color(0xFF48484A); // Dark muted
+  static const Color textSecondaryDark = Color(0xFF98989D); // Light gray
+  static const Color textMutedDark = Color(0xFF545458); // Dark muted
 
   // Status colors - Telegram style
   static const Color success = Color(0xFF34C759); // iOS green
@@ -64,7 +66,7 @@ class AppColors {
   );
 
   static const LinearGradient heroGradientDark = LinearGradient(
-    colors: [Color(0xFF000000), Color(0xFF000000)],
+    colors: [Color(0xFF000000), Color(0xFF0A0A0A)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
@@ -184,17 +186,17 @@ class AppRadius {
 class AppShadows {
   static List<BoxShadow> sm = [
     BoxShadow(
-      color: Colors.black.withValues(alpha: 0.04),
-      blurRadius: 8,
+      color: Colors.black.withValues(alpha: 0.03),
+      blurRadius: 4,
       offset: const Offset(0, 2),
     ),
   ];
 
   static List<BoxShadow> md = [
     BoxShadow(
-      color: Colors.black.withValues(alpha: 0.06),
-      blurRadius: 16,
-      offset: const Offset(0, 4),
+      color: Colors.black.withValues(alpha: 0.05),
+      blurRadius: 12,
+      offset: const Offset(0, 6),
     ),
   ];
 
@@ -202,17 +204,58 @@ class AppShadows {
     BoxShadow(
       color: Colors.black.withValues(alpha: 0.08),
       blurRadius: 24,
-      offset: const Offset(0, 8),
+      offset: const Offset(0, 12),
     ),
   ];
 
   static List<BoxShadow> colored(Color color) => [
     BoxShadow(
-      color: color.withValues(alpha: 0.25),
+      color: color.withValues(alpha: 0.2),
       blurRadius: 16,
-      offset: const Offset(0, 4),
+      offset: const Offset(0, 8),
     ),
   ];
+}
+
+/// Glassmorphism and specialized decorations
+class AppDecorations {
+  static BoxDecoration glass({
+    double opacity = 0.7,
+    double borderRadius = AppRadius.lg,
+    Color borderColor = Colors.white,
+  }) {
+    return BoxDecoration(
+      color: Colors.white.withValues(alpha: opacity),
+      borderRadius: BorderRadius.circular(borderRadius),
+      border: Border.all(color: borderColor.withValues(alpha: 0.2), width: 1),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.05),
+          blurRadius: 16,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    );
+  }
+
+  static BoxDecoration glassDark({
+    double opacity = 0.6,
+    double borderRadius = AppRadius.lg,
+    Color borderColor = Colors.white,
+  }) {
+    return BoxDecoration(
+      color: const Color(0xFF1C1C1E).withValues(alpha: opacity),
+      borderRadius: BorderRadius.circular(borderRadius),
+      border: Border.all(color: borderColor.withValues(alpha: 0.1), width: 1),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.2),
+          blurRadius: 16,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    );
+  }
 }
 
 /// App theme data - Telegram-inspired

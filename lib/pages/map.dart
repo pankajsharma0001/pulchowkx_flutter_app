@@ -1645,26 +1645,9 @@ class _MapPageState extends State<MapPage> {
               bottom: 24,
               left: 16,
               child: Container(
-                decoration: BoxDecoration(
-                  color:
-                      Theme.of(
-                        context,
-                      ).cardTheme.color?.withValues(alpha: 0.95) ??
-                      Colors.white.withValues(alpha: 0.95),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outline.withValues(alpha: 0.15),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 15,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
+                decoration: Theme.of(context).brightness == Brightness.dark
+                    ? AppDecorations.glassDark(borderRadius: 16)
+                    : AppDecorations.glass(borderRadius: 16),
                 padding: const EdgeInsets.all(4),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1709,26 +1692,9 @@ class _MapPageState extends State<MapPage> {
                   child: Container(
                     width: 56,
                     height: 56,
-                    decoration: BoxDecoration(
-                      color:
-                          Theme.of(
-                            context,
-                          ).cardTheme.color?.withValues(alpha: 0.95) ??
-                          Colors.white.withValues(alpha: 0.95),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.outline.withValues(alpha: 0.15),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 15,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
+                    decoration: Theme.of(context).brightness == Brightness.dark
+                        ? AppDecorations.glassDark(borderRadius: 16)
+                        : AppDecorations.glass(borderRadius: 16),
                     child: Center(
                       child: Transform.rotate(
                         angle: -_cameraBearing * (pi / 180),
@@ -1757,26 +1723,9 @@ class _MapPageState extends State<MapPage> {
                 child: Container(
                   width: 56,
                   height: 56,
-                  decoration: BoxDecoration(
-                    color:
-                        Theme.of(
-                          context,
-                        ).cardTheme.color?.withValues(alpha: 0.95) ??
-                        Colors.white.withValues(alpha: 0.95),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outline.withValues(alpha: 0.15),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 15,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
+                  decoration: Theme.of(context).brightness == Brightness.dark
+                      ? AppDecorations.glassDark(borderRadius: 16)
+                      : AppDecorations.glass(borderRadius: 16),
                   child: Center(
                     child: _isLocating
                         ? SizedBox(
@@ -1808,26 +1757,9 @@ class _MapPageState extends State<MapPage> {
                 right: 16,
                 child: Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color:
-                        Theme.of(
-                          context,
-                        ).cardTheme.color?.withValues(alpha: 0.98) ??
-                        Colors.white.withValues(alpha: 0.98),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outline.withValues(alpha: 0.12),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 25,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
+                  decoration: Theme.of(context).brightness == Brightness.dark
+                      ? AppDecorations.glassDark(borderRadius: 16)
+                      : AppDecorations.glass(borderRadius: 16),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -2066,28 +1998,10 @@ class _MapPageState extends State<MapPage> {
                     children: [
                       // Search input
                       Container(
-                        decoration: BoxDecoration(
-                          color:
-                              Theme.of(
-                                context,
-                              ).cardTheme.color?.withValues(alpha: 0.95) ??
-                              Theme.of(
-                                context,
-                              ).colorScheme.surface.withValues(alpha: 0.95),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.outline.withValues(alpha: 0.1),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.08),
-                              blurRadius: 15,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
+                        decoration:
+                            Theme.of(context).brightness == Brightness.dark
+                            ? AppDecorations.glassDark(borderRadius: 16)
+                            : AppDecorations.glass(borderRadius: 16),
                         child: TextField(
                           controller: _searchController,
                           focusNode: _searchFocusNode,
@@ -2155,26 +2069,10 @@ class _MapPageState extends State<MapPage> {
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: Container(
-                            decoration: BoxDecoration(
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).cardTheme.color?.withValues(alpha: 0.98) ??
-                                  Colors.white.withValues(alpha: 0.98),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.outline.withValues(alpha: 0.12),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 8),
-                                ),
-                              ],
-                            ),
+                            decoration:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? AppDecorations.glassDark(borderRadius: 16)
+                                : AppDecorations.glass(borderRadius: 16),
                             child: ConstrainedBox(
                               constraints: BoxConstraints(
                                 maxHeight:
@@ -2241,26 +2139,10 @@ class _MapPageState extends State<MapPage> {
                           padding: const EdgeInsets.only(top: 8),
                           child: Container(
                             padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).cardTheme.color?.withValues(alpha: 0.98) ??
-                                  Colors.white.withValues(alpha: 0.98),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.outline.withValues(alpha: 0.12),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 8),
-                                ),
-                              ],
-                            ),
+                            decoration:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? AppDecorations.glassDark(borderRadius: 16)
+                                : AppDecorations.glass(borderRadius: 16),
                             child: Column(
                               children: [
                                 Icon(

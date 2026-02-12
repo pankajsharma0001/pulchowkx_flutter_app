@@ -8,6 +8,7 @@ import 'package:pulchowkx_app/models/event.dart';
 import 'package:intl/intl.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
+import 'package:pulchowkx_app/widgets/staggered_scale_fade.dart';
 
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:pulchowkx_app/pages/settings_page.dart';
@@ -669,22 +670,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color?.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(AppRadius.xxl),
-        border: Border.all(
-          color: isDark
-              ? AppColors.borderDark.withValues(alpha: 0.5)
-              : AppColors.border.withValues(alpha: 0.5),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: isDark
+          ? AppDecorations.glassDark(borderColor: AppColors.borderDark)
+          : AppDecorations.glass(borderColor: AppColors.border),
       child: Column(
         children: [
           Row(
@@ -823,53 +811,63 @@ class _DashboardPageState extends State<DashboardPage> {
           crossAxisSpacing: AppSpacing.md,
           childAspectRatio: isWide ? 2.2 : 2.4,
           children: [
-            StatCard(
-              label: _isAdmin ? 'Pending Tasks' : 'Assignments',
-              value: _isAdmin
-                  ? _adminPendingCount.toString()
-                  : _pendingAssignmentsCount.toString(),
-              icon: Icons.assignment_outlined,
-              color: AppColors.primary,
-              onTap: () {
-                if (_isAdmin) {
-                  // For admins, scroll to activity section where tasks are listed
-                  // Or we could have a specific page.
-                  // Since we listed them in tabs below, let's just do nothing or scroll?
-                  // The user can scroll down.
-                } else {
-                  MainLayout.of(context)?.setSelectedIndex(2);
-                }
-              },
+            StaggeredScaleFade(
+              index: 0,
+              child: StatCard(
+                label: _isAdmin ? 'Pending Tasks' : 'Assignments',
+                value: _isAdmin
+                    ? _adminPendingCount.toString()
+                    : _pendingAssignmentsCount.toString(),
+                icon: Icons.assignment_outlined,
+                color: AppColors.primary,
+                onTap: () {
+                  if (_isAdmin) {
+                    // For admins, scroll to activity section where tasks are listed
+                  } else {
+                    MainLayout.of(context)?.setSelectedIndex(2);
+                  }
+                },
+              ),
             ),
-            StatCard(
-              label: 'Notices',
-              value: _newNoticesCount.toString(),
-              icon: Icons.notification_important_outlined,
-              color: AppColors.success,
-              onTap: () {
-                // Use tab switching for instant navigation
-                MainLayout.of(context)?.setSelectedIndex(8);
-              },
+            StaggeredScaleFade(
+              index: 1,
+              child: StatCard(
+                label: 'Notices',
+                value: _newNoticesCount.toString(),
+                icon: Icons.notification_important_outlined,
+                color: AppColors.success,
+                onTap: () {
+                  MainLayout.of(context)?.setSelectedIndex(8);
+                },
+              ),
             ),
-            StatCard(
-              label: 'Events',
-              value: _upcomingEnrollmentsCount.toString(),
-              icon: Icons.event_available_outlined,
-              color: Colors.orange,
-              onTap: () {
-                MainLayout.of(context)?.setSelectedIndex(6);
-              },
+            StaggeredScaleFade(
+              index: 2,
+              child: StatCard(
+                label: 'Events',
+                value: _upcomingEnrollmentsCount.toString(),
+                icon: Icons.event_available_outlined,
+                color: Colors.orange,
+                onTap: () {
+                  MainLayout.of(context)?.setSelectedIndex(6);
+                },
+              ),
             ),
-            StatCard(
-              label: 'Books',
-              value: _myBooksCount.toString(),
-              icon: Icons.library_books_outlined,
-              color: Colors.purple,
-              onTap: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(builder: (context) => const MyBooksPage()),
-                );
-              },
+            StaggeredScaleFade(
+              index: 3,
+              child: StatCard(
+                label: 'Books',
+                value: _myBooksCount.toString(),
+                icon: Icons.library_books_outlined,
+                color: Colors.purple,
+                onTap: () {
+                  Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute(
+                      builder: (context) => const MyBooksPage(),
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         );

@@ -186,20 +186,9 @@ class TeacherSubjectCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(
-          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.05 : 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: isDark
+          ? AppDecorations.glassDark(borderColor: AppColors.borderDark)
+          : AppDecorations.glass(borderColor: AppColors.border),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Row(
