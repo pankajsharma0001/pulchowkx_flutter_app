@@ -14,6 +14,9 @@ import 'package:pulchowkx_app/main.dart' show themeProvider;
 import 'package:pulchowkx_app/widgets/theme_switcher.dart';
 import 'package:pulchowkx_app/pages/marketplace/blocked_users.dart';
 import 'package:pulchowkx_app/pages/marketplace/my_reports.dart';
+import 'package:pulchowkx_app/pages/support/help_center.dart';
+import 'package:pulchowkx_app/pages/support/legal_pages.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -30,6 +33,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _chatMessages = true;
   bool _lostFoundAlerts = true;
   bool _isLoading = true;
+  String _appVersion = '';
 
   @override
   void initState() {
@@ -40,6 +44,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     final hasPermission = await NotificationService.hasPermission();
+    final packageInfo = await PackageInfo.fromPlatform();
 
     setState(() {
       _upcomingEvents =
@@ -53,6 +58,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _chatMessages = hasPermission && (prefs.getBool('notify_chat') ?? true);
       _lostFoundAlerts =
           hasPermission && (prefs.getBool('notify_lost_found') ?? true);
+      _appVersion = packageInfo.version;
       _isLoading = false;
     });
   }
@@ -307,125 +313,6 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  void _showLegalDialog(String title, String content) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
-        title: Text(title, style: AppTextStyles.h4),
-        content: SingleChildScrollView(
-          child: Text(
-            content,
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _reportBug() async {
-    final Uri params = Uri(
-      scheme: 'mailto',
-      path: 'bugs@pulchowkx.com',
-      query:
-          'subject=Bug Report (v1.0.0)&body=Please describe the bug:%0A%0ASteps to reproduce:%0A1.%0A2.%0A3.%0A%0AExpected behavior:%0A%0AActual behavior:%0A%0ADevice info:%0A',
-    );
-    if (await canLaunchUrl(params)) {
-      await launchUrl(params);
-    }
-  }
-
-  void _showFAQDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
-        title: Text('FAQ & Help', style: AppTextStyles.h4),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildFAQItem(
-                'How do I register for events?',
-                'Go to the Events tab, find an event you\'re interested in, and tap "Register". Make sure you\'re signed in.',
-              ),
-              _buildFAQItem(
-                'How do I list a book for sale?',
-                'Navigate to the Marketplace tab, tap the + button, and fill in the book details.',
-              ),
-              _buildFAQItem(
-                'Why can\'t I see some features?',
-                'Some features require you to be signed in. Please sign in with your Google account.',
-              ),
-              _buildFAQItem(
-                'How do I contact a club?',
-                'Visit the club\'s page and tap on their website or social media links.',
-              ),
-              _buildFAQItem(
-                'How do I report inappropriate content?',
-                'Use the "Report a Bug" option in settings or contact support directly.',
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFAQItem(String question, String answer) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            question,
-            style: AppTextStyles.bodyMedium.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            answer,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _contactSupport() async {
-    final Uri params = Uri(
-      scheme: 'mailto',
-      path: 'support@pulchowkx.com',
-      query: 'subject=Support Request (v1.0.0)',
-    );
-    if (await canLaunchUrl(params)) {
-      await launchUrl(params);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -641,6 +528,23 @@ class _SettingsPageState extends State<SettingsPage> {
                       _buildSettingsGroup([
                         ListTile(
                           leading: const Icon(
+                            Icons.help_outline_rounded,
+                            color: AppColors.info,
+                          ),
+                          title: const Text('Help Center'),
+                          subtitle: const Text('FAQ, help and contact support'),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const HelpCenterPage(),
+                              ),
+                            );
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(
                             Icons.feedback_rounded,
                             color: AppColors.primary,
                           ),
@@ -648,36 +552,6 @@ class _SettingsPageState extends State<SettingsPage> {
                           subtitle: const Text('Help us improve the app'),
                           trailing: const Icon(Icons.launch_rounded, size: 18),
                           onTap: _sendFeedback,
-                        ),
-                        ListTile(
-                          leading: const Icon(
-                            Icons.bug_report_rounded,
-                            color: AppColors.warning,
-                          ),
-                          title: const Text('Report a Bug'),
-                          subtitle: const Text('Found an issue? Let us know'),
-                          trailing: const Icon(Icons.launch_rounded, size: 18),
-                          onTap: () => _reportBug(),
-                        ),
-                        ListTile(
-                          leading: const Icon(
-                            Icons.help_outline_rounded,
-                            color: AppColors.info,
-                          ),
-                          title: const Text('FAQ & Help'),
-                          subtitle: const Text('Frequently asked questions'),
-                          trailing: const Icon(Icons.chevron_right_rounded),
-                          onTap: () => _showFAQDialog(),
-                        ),
-                        ListTile(
-                          leading: const Icon(
-                            Icons.email_rounded,
-                            color: AppColors.primary,
-                          ),
-                          title: const Text('Contact Support'),
-                          subtitle: const Text('support@pulchowkx.com'),
-                          trailing: const Icon(Icons.launch_rounded, size: 18),
-                          onTap: () => _contactSupport(),
                         ),
                         const Divider(height: 1),
                         ListTile(
@@ -688,9 +562,15 @@ class _SettingsPageState extends State<SettingsPage> {
                           title: const Text('Privacy Policy'),
                           subtitle: const Text('How we handle your data'),
                           trailing: const Icon(Icons.chevron_right_rounded),
-                          onTap: () => _showLegalDialog(
-                            'Privacy Policy',
-                            'We value your privacy. Your personal data is only used to provide the services offered by Pulchowk-X. We do not sell your data to third parties.',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LegalPage(
+                                title: 'Privacy Policy',
+                                content:
+                                    'We value your privacy. Your personal data is only used to provide the services offered by Smart Pulchowk. We do not sell your data to third parties. We collect information such as your name, student ID, and email to provide marketplace and classroom features. All data is securely stored and follows standardized protection protocols.',
+                              ),
+                            ),
                           ),
                         ),
                         ListTile(
@@ -703,9 +583,15 @@ class _SettingsPageState extends State<SettingsPage> {
                             'App usage terms and conditions',
                           ),
                           trailing: const Icon(Icons.chevron_right_rounded),
-                          onTap: () => _showLegalDialog(
-                            'Terms of Service',
-                            'By using Pulchowk-X, you agree to abide by the rules of the Pulchowk Campus and use the marketplace and classroom features responsibly.',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LegalPage(
+                                title: 'Terms of Service',
+                                content:
+                                    'By using Smart Pulchowk, you agree to abide by the rules of the Pulchowk Campus and use the marketplace and classroom features responsibly. Users are responsible for the content they post. Misuse of the platform, including posting fraudulent items or harassing fellow students, will result in account suspension and possible campus disciplinary actions.',
+                              ),
+                            ),
                           ),
                         ),
                         ListTile(
@@ -713,13 +599,13 @@ class _SettingsPageState extends State<SettingsPage> {
                             Icons.info_rounded,
                             color: AppColors.primary,
                           ),
-                          title: const Text('About Pulchowk-X'),
-                          subtitle: const Text('Version 1.0.0'),
+                          title: const Text('About Smart Pulchowk'),
+                          subtitle: Text('Version $_appVersion'),
                           onTap: () {
                             showAboutDialog(
                               context: context,
-                              applicationName: 'Pulchowk-X',
-                              applicationVersion: '1.0.0',
+                              applicationName: 'Smart Pulchowk',
+                              applicationVersion: _appVersion,
                               applicationLegalese:
                                   '© 2026 Developed for Pulchowk Campus',
                             );
