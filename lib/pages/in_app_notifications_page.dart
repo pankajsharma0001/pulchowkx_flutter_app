@@ -26,6 +26,7 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
   List<InAppNotification> _notifications = [];
   bool _isLoading = true;
   String? _error;
+  ValueNotifier<int>? _tabIndexNotifier;
 
   @override
   void initState() {
@@ -34,9 +35,11 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
 
     // Listen for tab changes to auto-pop this page
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final mainLayout = MainLayout.of(context);
       if (mainLayout != null) {
-        mainLayout.tabIndexNotifier.addListener(_handleTabChange);
+        _tabIndexNotifier = mainLayout.tabIndexNotifier;
+        _tabIndexNotifier?.addListener(_handleTabChange);
       }
     });
   }
@@ -49,10 +52,7 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
 
   @override
   void dispose() {
-    final mainLayout = MainLayout.of(context);
-    if (mainLayout != null) {
-      mainLayout.tabIndexNotifier.removeListener(_handleTabChange);
-    }
+    _tabIndexNotifier?.removeListener(_handleTabChange);
     super.dispose();
   }
 
@@ -63,16 +63,24 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
     });
 
     try {
+      debugPrint('Loading in-app notifications...');
       final notifications = await _apiService.getInAppNotifications();
-      setState(() {
-        _notifications = notifications;
-        _isLoading = false;
-      });
+      debugPrint('Loaded ${notifications.length} notifications');
+
+      if (mounted) {
+        setState(() {
+          _notifications = notifications;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = 'Failed to load notifications: $e';
-        _isLoading = false;
-      });
+      debugPrint('Error loading notifications: $e');
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load notifications: $e';
+          _isLoading = false;
+        });
+      }
     }
   }
 

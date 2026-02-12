@@ -42,19 +42,21 @@ class InAppNotification {
 
   factory InAppNotification.fromJson(Map<String, dynamic> json) {
     return InAppNotification(
-      id: json['id'] as int,
-      type: json['type'] as String,
-      title: json['title'] as String,
-      body: json['body'] as String,
+      id: _parseId(json['id']) ?? 0,
+      type: json['type'] as String? ?? 'general',
+      title: json['title'] as String? ?? 'Notification',
+      body: json['body'] as String? ?? '',
       data: json['data'] as Map<String, dynamic>?,
-      recipientId: json['recipientId'] as String?,
+      recipientId: json['recipientId']?.toString(),
       audience: NotificationAudience.fromString(
         json['audience'] as String? ?? 'direct',
       ),
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      isRead: json['isRead'] as bool? ?? false,
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
+      isRead: json['isRead'] == true || json['isRead'] == 1,
       readAt: json['readAt'] != null
-          ? DateTime.parse(json['readAt'] as String)
+          ? DateTime.tryParse(json['readAt'].toString())
           : null,
     );
   }

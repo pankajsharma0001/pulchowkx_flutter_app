@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pulchowkx_app/models/book_listing.dart';
 import 'package:pulchowkx_app/models/chatbot_response.dart';
 import 'package:pulchowkx_app/models/classroom.dart';
@@ -454,12 +455,20 @@ class ApiService {
 
   // ==================== HEADER HELPERS ====================
 
-  /// Get authentication header with Bearer token
   Future<Map<String, String>> _getAuthHeader() async {
-    final userId = await getDatabaseUserId();
+    final user = FirebaseAuth.instance.currentUser;
+    debugPrint('DEBUG: [Auth Header] Current User: ${user?.email}');
+    final token = await user?.getIdToken();
+    if (token == null) {
+      debugPrint('DEBUG: [Auth Header] WARNING: Token is NULL');
+    } else {
+      debugPrint(
+        'DEBUG: [Auth Header] Token prefix: ${token.substring(0, 10)}...',
+      );
+    }
     return {
       'Content-Type': 'application/json',
-      if (userId != null) 'Authorization': 'Bearer $userId',
+      if (token != null) 'Authorization': 'Bearer $token',
     };
   }
 
@@ -4212,16 +4221,27 @@ class ApiService {
 
       final response = await http.get(uri, headers: await _getAuthHeader());
 
+      debugPrint('DEBUG: [API Response Status] ${response.statusCode}');
+
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
         if (json['success'] == true && json['data'] != null) {
-          return (json['data'] as List)
+          final items = (json['data'] as List)
               .map((e) => InAppNotification.fromJson(e as Map<String, dynamic>))
               .toList();
+          debugPrint('DEBUG: [Notifications Loaded] ${items.length}');
+          return items;
+        } else {
+          debugPrint(
+            'DEBUG: [API Success Flag False or Data Null] success: ${json['success']}, data exists: ${json['data'] != null}',
+          );
         }
+      } else {
+        debugPrint('DEBUG: [API Error Response] ${response.body}');
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error getting in-app notifications: $e');
+      debugPrint('Stack trace: $stack');
     }
     return [];
   }

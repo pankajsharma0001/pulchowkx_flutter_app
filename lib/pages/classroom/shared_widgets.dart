@@ -55,6 +55,7 @@ class StatCard extends StatelessWidget {
               vertical: AppSpacing.sm,
             ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
