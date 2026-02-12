@@ -42,7 +42,6 @@ class _EventCardState extends State<EventCard> {
     final dateFormat = DateFormat('MMM d');
     final timeFormat = DateFormat('h:mm a');
     final isCompleted = widget.event.isCompleted;
-    final isOngoing = widget.event.isOngoing;
 
     return Opacity(
       opacity: isCompleted ? 0.7 : 1.0,
@@ -52,19 +51,9 @@ class _EventCardState extends State<EventCard> {
           onTap: widget.onTap ?? () => _navigateToDetails(context),
           borderRadius: BorderRadius.circular(AppRadius.xl),
           child: Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardTheme.color,
-              borderRadius: BorderRadius.circular(AppRadius.xl),
-              border: Border.all(
-                color: isOngoing
-                    ? AppColors.success.withValues(alpha: 0.5)
-                    : Theme.of(context).dividerTheme.color ?? AppColors.border,
-                width: isOngoing ? 2 : 1,
-              ),
-              boxShadow: Theme.of(context).brightness == Brightness.light
-                  ? AppShadows.sm
-                  : null, // Deeper look in dark mode without shadows
-            ),
+            decoration: Theme.of(context).brightness == Brightness.dark
+                ? AppDecorations.glassDark(borderRadius: AppRadius.xl)
+                : AppDecorations.glass(borderRadius: AppRadius.xl),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

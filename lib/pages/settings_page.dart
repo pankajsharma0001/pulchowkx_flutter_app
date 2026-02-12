@@ -471,220 +471,238 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       _buildSectionHeader('Appearance'),
                       _buildThemeSelector(),
-                      _buildSettingTile(
-                        title: 'Haptic Feedback',
-                        subtitle: 'Provide physical feedback on tap',
-                        value: themeProvider.hapticsEnabled,
-                        onChanged: (v) => themeProvider.setHapticsEnabled(v),
-                        icon: Icons.vibration_rounded,
-                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      _buildSettingsGroup([
+                        _buildSettingTile(
+                          title: 'Haptic Feedback',
+                          subtitle: 'Provide physical feedback on tap',
+                          value: themeProvider.hapticsEnabled,
+                          onChanged: (v) => themeProvider.setHapticsEnabled(v),
+                          icon: Icons.vibration_rounded,
+                        ),
+                      ]),
                       const SizedBox(height: AppSpacing.xl),
 
                       _buildSectionHeader('Notifications'),
-                      _buildSettingTile(
-                        title: 'Upcoming Events',
-                        subtitle: 'Alerts for registration and event starts',
-                        value: _upcomingEvents,
-                        onChanged: (v) =>
-                            _toggleNotification('notify_events', v),
-                        icon: Icons.event_rounded,
-                      ),
-                      _buildSettingTile(
-                        title: 'Marketplace Alerts',
-                        subtitle: 'New requests for your book listings',
-                        value: _marketplaceAlerts,
-                        onChanged: (v) =>
-                            _toggleNotification('notify_books', v),
-                        icon: Icons.shopping_bag_rounded,
-                      ),
-                      _buildSettingTile(
-                        title: 'University Announcements',
-                        subtitle: 'Important updates from the campus',
-                        value: _universityAnnouncements,
-                        onChanged: (v) =>
-                            _toggleNotification('notify_announcements', v),
-                        icon: Icons.campaign_rounded,
-                      ),
-                      _buildSettingTile(
-                        title: 'Classroom Notifications',
-                        subtitle: 'Updates about assignments and grades',
-                        value: _classroomAlerts,
-                        onChanged: (v) =>
-                            _toggleNotification('notify_classroom', v),
-                        icon: Icons.class_rounded,
-                      ),
-                      _buildSettingTile(
-                        title: 'Chat Messages',
-                        subtitle: 'Direct notifications for new messages',
-                        value: _chatMessages,
-                        onChanged: (v) => _toggleNotification('notify_chat', v),
-                        icon: Icons.chat_bubble_rounded,
-                      ),
-                      _buildSettingTile(
-                        title: 'Lost & Found',
-                        subtitle: 'Alerts for new lost or found items',
-                        value: _lostFoundAlerts,
-                        onChanged: (v) =>
-                            _toggleNotification('notify_lost_found', v),
-                        icon: Icons.find_in_page_rounded,
-                      ),
+                      _buildSettingsGroup([
+                        _buildSettingTile(
+                          title: 'Upcoming Events',
+                          subtitle: 'Alerts for registration and event starts',
+                          value: _upcomingEvents,
+                          onChanged: (v) =>
+                              _toggleNotification('notify_events', v),
+                          icon: Icons.event_rounded,
+                        ),
+                        _buildSettingTile(
+                          title: 'Marketplace Alerts',
+                          subtitle: 'New requests for your book listings',
+                          value: _marketplaceAlerts,
+                          onChanged: (v) =>
+                              _toggleNotification('notify_books', v),
+                          icon: Icons.shopping_bag_rounded,
+                        ),
+                        _buildSettingTile(
+                          title: 'University Announcements',
+                          subtitle: 'Important updates from the campus',
+                          value: _universityAnnouncements,
+                          onChanged: (v) =>
+                              _toggleNotification('notify_announcements', v),
+                          icon: Icons.campaign_rounded,
+                        ),
+                        _buildSettingTile(
+                          title: 'Classroom Notifications',
+                          subtitle: 'Updates about assignments and grades',
+                          value: _classroomAlerts,
+                          onChanged: (v) =>
+                              _toggleNotification('notify_classroom', v),
+                          icon: Icons.class_rounded,
+                        ),
+                        _buildSettingTile(
+                          title: 'Chat Messages',
+                          subtitle: 'Direct notifications for new messages',
+                          value: _chatMessages,
+                          onChanged: (v) =>
+                              _toggleNotification('notify_chat', v),
+                          icon: Icons.chat_bubble_rounded,
+                        ),
+                        _buildSettingTile(
+                          title: 'Lost & Found',
+                          subtitle: 'Alerts for new lost or found items',
+                          value: _lostFoundAlerts,
+                          onChanged: (v) =>
+                              _toggleNotification('notify_lost_found', v),
+                          icon: Icons.find_in_page_rounded,
+                        ),
+                      ]),
                       const SizedBox(height: AppSpacing.xl),
 
                       _buildSectionHeader('Account'),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.logout_rounded,
-                          color: AppColors.error,
+                      _buildSettingsGroup([
+                        ListTile(
+                          leading: const Icon(
+                            Icons.logout_rounded,
+                            color: AppColors.error,
+                          ),
+                          title: const Text(
+                            'Sign Out',
+                            style: TextStyle(color: AppColors.error),
+                          ),
+                          subtitle: const Text(
+                            'Securely sign out of your account',
+                          ),
+                          onTap: _handleSignOut,
                         ),
-                        title: const Text(
-                          'Sign Out',
-                          style: TextStyle(color: AppColors.error),
-                        ),
-                        subtitle: const Text(
-                          'Securely sign out of your account',
-                        ),
-                        onTap: _handleSignOut,
-                      ),
+                      ]),
                       const SizedBox(height: AppSpacing.xl),
 
                       _buildSectionHeader('Utilities'),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.cleaning_services_rounded,
-                          color: AppColors.primary,
+                      _buildSettingsGroup([
+                        ListTile(
+                          leading: const Icon(
+                            Icons.cleaning_services_rounded,
+                            color: AppColors.primary,
+                          ),
+                          title: const Text('Clear Image Cache'),
+                          subtitle: const Text(
+                            'Free up storage space on your device',
+                          ),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: _clearCache,
                         ),
-                        title: const Text('Clear Image Cache'),
-                        subtitle: const Text(
-                          'Free up storage space on your device',
-                        ),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: _clearCache,
-                      ),
+                      ]),
                       const SizedBox(height: AppSpacing.xl),
 
                       _buildSectionHeader('Trust & Safety'),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.block_rounded,
-                          color: AppColors.error,
+                      _buildSettingsGroup([
+                        ListTile(
+                          leading: const Icon(
+                            Icons.block_rounded,
+                            color: AppColors.error,
+                          ),
+                          title: const Text('Blocked Users'),
+                          subtitle: const Text(
+                            'Manage people you have blocked',
+                          ),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const BlockedUsersPage(),
+                              ),
+                            );
+                          },
                         ),
-                        title: const Text('Blocked Users'),
-                        subtitle: const Text('Manage people you have blocked'),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const BlockedUsersPage(),
-                            ),
-                          );
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.report_gmailerrorred_rounded,
-                          color: AppColors.warning,
+                        ListTile(
+                          leading: const Icon(
+                            Icons.report_gmailerrorred_rounded,
+                            color: AppColors.warning,
+                          ),
+                          title: const Text('My Reports'),
+                          subtitle: const Text('View status of your reports'),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const MarketplaceReportsPage(),
+                              ),
+                            );
+                          },
                         ),
-                        title: const Text('My Reports'),
-                        subtitle: const Text('View status of your reports'),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const MarketplaceReportsPage(),
-                            ),
-                          );
-                        },
-                      ),
+                      ]),
                       const SizedBox(height: AppSpacing.xl),
 
                       _buildSectionHeader('Support'),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.feedback_rounded,
-                          color: AppColors.primary,
+                      _buildSettingsGroup([
+                        ListTile(
+                          leading: const Icon(
+                            Icons.feedback_rounded,
+                            color: AppColors.primary,
+                          ),
+                          title: const Text('Send Feedback'),
+                          subtitle: const Text('Help us improve the app'),
+                          trailing: const Icon(Icons.launch_rounded, size: 18),
+                          onTap: _sendFeedback,
                         ),
-                        title: const Text('Send Feedback'),
-                        subtitle: const Text('Help us improve the app'),
-                        trailing: const Icon(Icons.launch_rounded, size: 18),
-                        onTap: _sendFeedback,
-                      ),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.bug_report_rounded,
-                          color: AppColors.warning,
+                        ListTile(
+                          leading: const Icon(
+                            Icons.bug_report_rounded,
+                            color: AppColors.warning,
+                          ),
+                          title: const Text('Report a Bug'),
+                          subtitle: const Text('Found an issue? Let us know'),
+                          trailing: const Icon(Icons.launch_rounded, size: 18),
+                          onTap: () => _reportBug(),
                         ),
-                        title: const Text('Report a Bug'),
-                        subtitle: const Text('Found an issue? Let us know'),
-                        trailing: const Icon(Icons.launch_rounded, size: 18),
-                        onTap: () => _reportBug(),
-                      ),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.help_outline_rounded,
-                          color: AppColors.info,
+                        ListTile(
+                          leading: const Icon(
+                            Icons.help_outline_rounded,
+                            color: AppColors.info,
+                          ),
+                          title: const Text('FAQ & Help'),
+                          subtitle: const Text('Frequently asked questions'),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () => _showFAQDialog(),
                         ),
-                        title: const Text('FAQ & Help'),
-                        subtitle: const Text('Frequently asked questions'),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: () => _showFAQDialog(),
-                      ),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.email_rounded,
-                          color: AppColors.primary,
+                        ListTile(
+                          leading: const Icon(
+                            Icons.email_rounded,
+                            color: AppColors.primary,
+                          ),
+                          title: const Text('Contact Support'),
+                          subtitle: const Text('support@pulchowkx.com'),
+                          trailing: const Icon(Icons.launch_rounded, size: 18),
+                          onTap: () => _contactSupport(),
                         ),
-                        title: const Text('Contact Support'),
-                        subtitle: const Text('support@pulchowkx.com'),
-                        trailing: const Icon(Icons.launch_rounded, size: 18),
-                        onTap: () => _contactSupport(),
-                      ),
-                      const Divider(height: 32),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.privacy_tip_rounded,
-                          color: AppColors.primary,
+                        const Divider(height: 1),
+                        ListTile(
+                          leading: const Icon(
+                            Icons.privacy_tip_rounded,
+                            color: AppColors.primary,
+                          ),
+                          title: const Text('Privacy Policy'),
+                          subtitle: const Text('How we handle your data'),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () => _showLegalDialog(
+                            'Privacy Policy',
+                            'We value your privacy. Your personal data is only used to provide the services offered by Pulchowk-X. We do not sell your data to third parties.',
+                          ),
                         ),
-                        title: const Text('Privacy Policy'),
-                        subtitle: const Text('How we handle your data'),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: () => _showLegalDialog(
-                          'Privacy Policy',
-                          'We value your privacy. Your personal data is only used to provide the services offered by Pulchowk-X. We do not sell your data to third parties.',
+                        ListTile(
+                          leading: const Icon(
+                            Icons.article_rounded,
+                            color: AppColors.primary,
+                          ),
+                          title: const Text('Terms of Service'),
+                          subtitle: const Text(
+                            'App usage terms and conditions',
+                          ),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () => _showLegalDialog(
+                            'Terms of Service',
+                            'By using Pulchowk-X, you agree to abide by the rules of the Pulchowk Campus and use the marketplace and classroom features responsibly.',
+                          ),
                         ),
-                      ),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.article_rounded,
-                          color: AppColors.primary,
+                        ListTile(
+                          leading: const Icon(
+                            Icons.info_rounded,
+                            color: AppColors.primary,
+                          ),
+                          title: const Text('About Pulchowk-X'),
+                          subtitle: const Text('Version 1.0.0'),
+                          onTap: () {
+                            showAboutDialog(
+                              context: context,
+                              applicationName: 'Pulchowk-X',
+                              applicationVersion: '1.0.0',
+                              applicationLegalese:
+                                  '© 2026 Developed for Pulchowk Campus',
+                            );
+                          },
                         ),
-                        title: const Text('Terms of Service'),
-                        subtitle: const Text('App usage terms and conditions'),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: () => _showLegalDialog(
-                          'Terms of Service',
-                          'By using Pulchowk-X, you agree to abide by the rules of the Pulchowk Campus and use the marketplace and classroom features responsibly.',
-                        ),
-                      ),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.info_rounded,
-                          color: AppColors.primary,
-                        ),
-                        title: const Text('About Pulchowk-X'),
-                        subtitle: const Text('Version 1.0.0'),
-                        onTap: () {
-                          showAboutDialog(
-                            context: context,
-                            applicationName: 'Pulchowk-X',
-                            applicationVersion: '1.0.0',
-                            applicationLegalese:
-                                '© 2026 Developed for Pulchowk Campus',
-                          );
-                        },
-                      ),
+                      ]),
                     ],
                   );
                 },
@@ -750,20 +768,17 @@ class _SettingsPageState extends State<SettingsPage> {
           horizontal: AppSpacing.md,
           vertical: AppSpacing.md,
         ),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.1)
-              : (isDark
-                    ? AppColors.backgroundSecondaryDark
-                    : AppColors.backgroundSecondary),
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : (isDark ? AppColors.borderDark : AppColors.border),
-            width: isSelected ? 2 : 1,
-          ),
-        ),
+        decoration: isSelected
+            ? (Theme.of(context).brightness == Brightness.dark
+                      ? AppDecorations.glassDark(borderRadius: AppRadius.md)
+                      : AppDecorations.glass(borderRadius: AppRadius.md))
+                  .copyWith(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    border: Border.all(color: AppColors.primary, width: 2),
+                  )
+            : (Theme.of(context).brightness == Brightness.dark
+                  ? AppDecorations.glassDark(borderRadius: AppRadius.md)
+                  : AppDecorations.glass(borderRadius: AppRadius.md)),
         child: Row(
           children: [
             Icon(
@@ -817,6 +832,15 @@ class _SettingsPageState extends State<SettingsPage> {
         themeProvider.vibrate();
         onChanged(v);
       },
+    );
+  }
+
+  Widget _buildSettingsGroup(List<Widget> children) {
+    return Container(
+      decoration: Theme.of(context).brightness == Brightness.dark
+          ? AppDecorations.glassDark(borderRadius: AppRadius.lg)
+          : AppDecorations.glass(borderRadius: AppRadius.lg),
+      child: Column(children: children),
     );
   }
 }

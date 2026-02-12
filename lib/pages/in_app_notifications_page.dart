@@ -13,6 +13,7 @@ import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/services/in_app_notification_service.dart';
 import 'package:pulchowkx_app/pages/notice_details_page.dart';
 import 'package:pulchowkx_app/pages/lost_found/lost_found_details_page.dart';
+import 'package:pulchowkx_app/widgets/staggered_scale_fade.dart';
 
 class InAppNotificationsPage extends StatefulWidget {
   const InAppNotificationsPage({super.key});
@@ -23,15 +24,28 @@ class InAppNotificationsPage extends StatefulWidget {
 
 class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
   final ApiService _apiService = ApiService();
+  final ScrollController _scrollController = ScrollController();
   List<InAppNotification> _notifications = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int _offset = 0;
+  static const int _limit = 20;
   String? _error;
   ValueNotifier<int>? _tabIndexNotifier;
 
   @override
   void initState() {
     super.initState();
-    _loadNotifications();
+    if (inAppNotifications.isInitialized) {
+      _notifications = List.from(inAppNotifications.notifications);
+      _offset = inAppNotifications.offset;
+      _hasMore = inAppNotifications.hasMore;
+      _isLoading = false;
+    } else {
+      _loadNotifications();
+    }
+    _scrollController.addListener(_onScroll);
 
     // Listen for tab changes to auto-pop this page
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -44,6 +58,15 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
     });
   }
 
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent * 0.9 &&
+        !_isLoadingMore &&
+        _hasMore) {
+      _loadMoreNotifications();
+    }
+  }
+
   void _handleTabChange() {
     if (mounted) {
       Navigator.of(context).pop();
@@ -53,6 +76,7 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
   @override
   void dispose() {
     _tabIndexNotifier?.removeListener(_handleTabChange);
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -64,13 +88,24 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
 
     try {
       debugPrint('Loading in-app notifications...');
-      final notifications = await _apiService.getInAppNotifications();
+      final notifications = await _apiService.getInAppNotifications(
+        limit: _limit,
+        offset: 0,
+      );
       debugPrint('Loaded ${notifications.length} notifications');
 
       if (mounted) {
+        inAppNotifications.updateState(
+          newNotifications: notifications,
+          newOffset: notifications.length,
+          newHasMore: notifications.length >= _limit,
+          clearExisting: true,
+        );
         setState(() {
           _notifications = notifications;
           _isLoading = false;
+          _offset = notifications.length;
+          _hasMore = notifications.length >= _limit;
         });
       }
     } catch (e) {
@@ -84,30 +119,50 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
     }
   }
 
+  Future<void> _loadMoreNotifications() async {
+    if (_isLoadingMore || !_hasMore) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      final moreNotifications = await _apiService.getInAppNotifications(
+        limit: _limit,
+        offset: _offset,
+      );
+
+      if (mounted) {
+        inAppNotifications.updateState(
+          newNotifications: moreNotifications,
+          newOffset: _offset + moreNotifications.length,
+          newHasMore: moreNotifications.length >= _limit,
+        );
+        setState(() {
+          _notifications.addAll(moreNotifications);
+          _offset += moreNotifications.length;
+          _hasMore = moreNotifications.length >= _limit;
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading more notifications: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingMore = false;
+        });
+      }
+    }
+  }
+
   Future<void> _markAsRead(InAppNotification notification) async {
     if (notification.isRead) return;
 
     final success = await _apiService.markNotificationAsRead(notification.id);
     if (success) {
-      inAppNotifications.refreshUnreadCount();
+      inAppNotifications.markAsRead(notification.id);
       setState(() {
-        _notifications = _notifications.map((n) {
-          if (n.id == notification.id) {
-            return InAppNotification(
-              id: n.id,
-              type: n.type,
-              title: n.title,
-              body: n.body,
-              data: n.data,
-              recipientId: n.recipientId,
-              audience: n.audience,
-              createdAt: n.createdAt,
-              isRead: true,
-              readAt: DateTime.now(),
-            );
-          }
-          return n;
-        }).toList();
+        _notifications = List.from(inAppNotifications.notifications);
       });
     }
   }
@@ -116,25 +171,9 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
     haptics.mediumImpact();
     final success = await _apiService.markAllNotificationsAsRead();
     if (success) {
-      inAppNotifications.refreshUnreadCount();
+      inAppNotifications.markAllReadLocal();
       setState(() {
-        _notifications = _notifications.map((n) {
-          if (!n.isRead) {
-            return InAppNotification(
-              id: n.id,
-              type: n.type,
-              title: n.title,
-              body: n.body,
-              data: n.data,
-              recipientId: n.recipientId,
-              audience: n.audience,
-              createdAt: n.createdAt,
-              isRead: true,
-              readAt: DateTime.now(),
-            );
-          }
-          return n;
-        }).toList();
+        _notifications = List.from(inAppNotifications.notifications);
       });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -250,16 +289,34 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
     }
 
     return ListView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.all(12),
-      itemCount: _notifications.length,
+      itemCount: _notifications.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
-        return _NotificationCard(
-          notification: _notifications[index],
-          onTap: () async {
-            final notification = _notifications[index];
-            _markAsRead(notification);
-            _handleNotificationTap(notification);
-          },
+        if (index == _notifications.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          );
+        }
+        return StaggeredScaleFade(
+          key: ValueKey(_notifications[index].id),
+          index: index,
+          duration: const Duration(milliseconds: 300),
+          child: _NotificationCard(
+            notification: _notifications[index],
+            onTap: () async {
+              final notification = _notifications[index];
+              _markAsRead(notification);
+              _handleNotificationTap(notification);
+            },
+          ),
         );
       },
     );

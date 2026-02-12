@@ -15,16 +15,9 @@ class ClubCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(
-          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
-        ),
-        boxShadow: Theme.of(context).brightness == Brightness.light
-            ? AppShadows.sm
-            : null,
-      ),
+      decoration: Theme.of(context).brightness == Brightness.dark
+          ? AppDecorations.glassDark(borderRadius: AppRadius.lg)
+          : AppDecorations.glass(borderRadius: AppRadius.lg),
       child: InkWell(
         onTap:
             onTap ??

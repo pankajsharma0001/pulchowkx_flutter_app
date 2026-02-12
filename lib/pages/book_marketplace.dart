@@ -270,19 +270,9 @@ class _BookMarketplacePageState extends State<BookMarketplacePage>
             children: [
               Expanded(
                 child: Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).inputDecorationTheme.fillColor,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(
-                      color:
-                          Theme.of(
-                            context,
-                          ).inputDecorationTheme.border?.borderSide.color ??
-                          (Theme.of(context).brightness == Brightness.dark
-                              ? AppColors.borderDark
-                              : AppColors.border),
-                    ),
-                  ),
+                  decoration: Theme.of(context).brightness == Brightness.dark
+                      ? AppDecorations.glassDark(borderRadius: AppRadius.md)
+                      : AppDecorations.glass(borderRadius: AppRadius.md),
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
@@ -315,17 +305,9 @@ class _BookMarketplacePageState extends State<BookMarketplacePage>
               ),
               const SizedBox(width: AppSpacing.sm),
               Container(
-                decoration: BoxDecoration(
-                  color: _showFilters
-                      ? AppColors.primary.withValues(alpha: 0.1)
-                      : Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(
-                    color: _showFilters
-                        ? AppColors.primary
-                        : Theme.of(context).colorScheme.outline,
-                  ),
-                ),
+                decoration: Theme.of(context).brightness == Brightness.dark
+                    ? AppDecorations.glassDark(borderRadius: AppRadius.md)
+                    : AppDecorations.glass(borderRadius: AppRadius.md),
                 child: IconButton(
                   icon: Icon(
                     Icons.tune,
@@ -431,17 +413,9 @@ class _BookMarketplacePageState extends State<BookMarketplacePage>
     return Container(
       margin: const EdgeInsets.all(AppSpacing.lg),
       padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(
-          color:
-              Theme.of(context).dividerTheme.color ??
-              (Theme.of(context).brightness == Brightness.dark
-                  ? AppColors.borderDark
-                  : AppColors.border),
-        ),
-      ),
+      decoration: Theme.of(context).brightness == Brightness.dark
+          ? AppDecorations.glassDark(borderRadius: AppRadius.lg)
+          : AppDecorations.glass(borderRadius: AppRadius.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -655,17 +629,17 @@ class _FilterChip extends StatelessWidget {
             horizontal: AppSpacing.md,
             vertical: AppSpacing.sm,
           ),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.primary.withValues(alpha: 0.1)
-                : Theme.of(context).cardTheme.color,
-            borderRadius: BorderRadius.circular(AppRadius.full),
-            border: Border.all(
-              color: isSelected
-                  ? AppColors.primary
-                  : Theme.of(context).colorScheme.outline,
-            ),
-          ),
+          decoration: isSelected
+              ? (Theme.of(context).brightness == Brightness.dark
+                        ? AppDecorations.glassDark(borderRadius: AppRadius.full)
+                        : AppDecorations.glass(borderRadius: AppRadius.full))
+                    .copyWith(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      border: Border.all(color: AppColors.primary),
+                    )
+              : (Theme.of(context).brightness == Brightness.dark
+                    ? AppDecorations.glassDark(borderRadius: AppRadius.full)
+                    : AppDecorations.glass(borderRadius: AppRadius.full)),
           child: Text(
             label,
             style: AppTextStyles.labelSmall.copyWith(
@@ -692,12 +666,9 @@ class _BookCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: Theme.of(context).colorScheme.outline),
-          boxShadow: AppShadows.sm,
-        ),
+        decoration: Theme.of(context).brightness == Brightness.dark
+            ? AppDecorations.glassDark(borderRadius: AppRadius.lg)
+            : AppDecorations.glass(borderRadius: AppRadius.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

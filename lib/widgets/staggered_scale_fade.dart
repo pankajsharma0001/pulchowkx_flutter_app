@@ -47,8 +47,9 @@ class _StaggeredScaleFadeState extends State<StaggeredScaleFade>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
-    // Stagger start based on index
-    Future.delayed(Duration(milliseconds: 50 * widget.index), () {
+    // Stagger start based on index, capped at 10 items to avoid long delays
+    final staggerIndex = widget.index % 10;
+    Future.delayed(Duration(milliseconds: 50 * staggerIndex), () {
       if (mounted) {
         _controller.forward();
       }
