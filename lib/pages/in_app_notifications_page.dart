@@ -441,6 +441,16 @@ class _NotificationCard extends StatelessWidget {
                         width: 50,
                         height: 50,
                       ),
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey[200],
+                        width: 50,
+                        height: 50,
+                        child: Icon(
+                          notification.getIcon(),
+                          color: Colors.grey[500],
+                          size: 24,
+                        ),
+                      ),
                     ),
                   ),
                 ),
