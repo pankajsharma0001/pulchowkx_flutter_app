@@ -58,40 +58,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _toggleNotification(String key, bool value) async {
-    if (value) {
-      final hasPermission = await NotificationService.hasPermission();
-      if (!hasPermission) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Please enable notification permissions in system settings.',
-              ),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-        return;
-      }
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(key, value);
-
-    // Sync with Firebase Topics (for non-chat topics)
-    if (key != 'notify_chat' && key != 'notify_classroom') {
-      final topic = key.replaceFirst('notify_', '');
-      if (value) {
-        await NotificationService.subscribeToTopic(topic);
-      } else {
-        await NotificationService.unsubscribeFromTopic(topic);
-      }
-    } else if (key == 'notify_classroom') {
-      await NotificationService.updateClassroomSubscription(value);
-    } else {
-      // For chat, we only store locally since the backend check was removed
-    }
-
+    // 1. Instantly update UI (Optimistic update)
     setState(() {
       if (key == 'notify_events') _upcomingEvents = value;
       if (key == 'notify_books') _marketplaceAlerts = value;
@@ -99,6 +66,62 @@ class _SettingsPageState extends State<SettingsPage> {
       if (key == 'notify_classroom') _classroomAlerts = value;
       if (key == 'notify_chat') _chatMessages = value;
       if (key == 'notify_lost_found') _lostFoundAlerts = value;
+    });
+
+    try {
+      // 2. Check permissions if turning ON
+      if (value) {
+        final hasPermission = await NotificationService.hasPermission();
+        if (!hasPermission) {
+          // Revert if no permission
+          _revertToggle(key);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Please enable notification permissions in system settings.',
+                ),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      // 3. Persist to preferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(key, value);
+
+      // 4. Sync with Firebase Topics (Background)
+      if (key != 'notify_chat' && key != 'notify_classroom') {
+        final topic = key.replaceFirst('notify_', '');
+        if (value) {
+          await NotificationService.subscribeToTopic(topic);
+        } else {
+          await NotificationService.unsubscribeFromTopic(topic);
+        }
+      } else if (key == 'notify_classroom') {
+        await NotificationService.updateClassroomSubscription(value);
+      }
+    } catch (e) {
+      debugPrint('Error toggling notification $key: $e');
+      // Revert on serious error
+      _revertToggle(key);
+    }
+  }
+
+  void _revertToggle(String key) {
+    if (!mounted) return;
+    setState(() {
+      if (key == 'notify_events') _upcomingEvents = !_upcomingEvents;
+      if (key == 'notify_books') _marketplaceAlerts = !_marketplaceAlerts;
+      if (key == 'notify_announcements') {
+        _universityAnnouncements = !_universityAnnouncements;
+      }
+      if (key == 'notify_classroom') _classroomAlerts = !_classroomAlerts;
+      if (key == 'notify_chat') _chatMessages = !_chatMessages;
+      if (key == 'notify_lost_found') _lostFoundAlerts = !_lostFoundAlerts;
     });
   }
 

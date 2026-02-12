@@ -577,15 +577,8 @@ class ApiService {
   Future<List<Club>> getClubs() async {
     const String cacheKey = 'clubs_cache';
     try {
-      final userId = await getDatabaseUserId();
       final response = await http
-          .get(
-            Uri.parse('$baseUrl/clubs'),
-            headers: {
-              'Content-Type': 'application/json',
-              if (userId != null) 'Authorization': 'Bearer $userId',
-            },
-          )
+          .get(Uri.parse('$baseUrl/clubs'), headers: await _getAuthHeader())
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -625,14 +618,10 @@ class ApiService {
     String cacheKey = 'club_${clubId}_cache';
 
     try {
-      final userId = await getDatabaseUserId();
       final response = await http
           .get(
             Uri.parse('$baseUrl/clubs/$clubId'),
-            headers: {
-              'Content-Type': 'application/json',
-              if (userId != null) 'Authorization': 'Bearer $userId',
-            },
+            headers: await _getAuthHeader(),
           )
           .timeout(const Duration(seconds: 10));
 
@@ -671,14 +660,10 @@ class ApiService {
     String cacheKey = 'club_profile_${clubId}_cache';
 
     try {
-      final userId = await getDatabaseUserId();
       final response = await http
           .get(
             Uri.parse('$apiBaseUrl/clubs/club-profile/$clubId'),
-            headers: {
-              'Content-Type': 'application/json',
-              if (userId != null) 'Authorization': 'Bearer $userId',
-            },
+            headers: await _getAuthHeader(),
           )
           .timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
@@ -729,14 +714,10 @@ class ApiService {
   Future<List<ClubEvent>> getAllEvents() async {
     const String cacheKey = 'all_events_cache';
     try {
-      final userId = await getDatabaseUserId();
       final response = await http
           .get(
             Uri.parse('$baseUrl/all-events'),
-            headers: {
-              'Content-Type': 'application/json',
-              if (userId != null) 'Authorization': 'Bearer $userId',
-            },
+            headers: await _getAuthHeader(),
           )
           .timeout(const Duration(seconds: 10));
 
@@ -776,14 +757,10 @@ class ApiService {
   Future<List<ClubEvent>> getUpcomingEvents() async {
     const String cacheKey = 'upcoming_events_cache';
     try {
-      final userId = await getDatabaseUserId();
       final response = await http
           .get(
             Uri.parse('$baseUrl/get-upcoming-events'),
-            headers: {
-              'Content-Type': 'application/json',
-              if (userId != null) 'Authorization': 'Bearer $userId',
-            },
+            headers: await _getAuthHeader(),
           )
           .timeout(const Duration(seconds: 10));
 
@@ -826,13 +803,9 @@ class ApiService {
 
     if (isOnline) {
       try {
-        final userId = await getDatabaseUserId();
         final response = await http.get(
           Uri.parse('$baseUrl/events/$clubId'),
-          headers: {
-            'Content-Type': 'application/json',
-            if (userId != null) 'Authorization': 'Bearer $userId',
-          },
+          headers: await _getAuthHeader(),
         );
 
         if (response.statusCode == 200) {
@@ -878,17 +851,9 @@ class ApiService {
         return ApiResult.networkError();
       }
 
-      final userId = await getDatabaseUserId();
-      if (userId == null) {
-        return ApiResult.unauthorized();
-      }
-
       final response = await http.post(
         Uri.parse('$baseUrl/register-event'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode({'eventId': eventId}),
       );
 
@@ -930,17 +895,9 @@ class ApiService {
         return ApiResult.networkError();
       }
 
-      final userId = await getDatabaseUserId();
-      if (userId == null) {
-        return ApiResult.unauthorized();
-      }
-
       final response = await http.post(
         Uri.parse('$baseUrl/cancel-registration'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode({'eventId': eventId}),
       );
 
@@ -977,18 +934,9 @@ class ApiService {
 
     if (isOnline) {
       try {
-        final userId = await getDatabaseUserId();
-        if (userId == null) {
-          debugPrint('Cannot fetch enrollments: No database user ID');
-          return [];
-        }
-
         final response = await http.post(
           Uri.parse('$baseUrl/enrollment'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $userId',
-          },
+          headers: await _getAuthHeader(),
           body: jsonEncode({'authStudentId': authStudentId}),
         );
         if (response.statusCode == 200) {
@@ -1089,13 +1037,9 @@ class ApiService {
     String? externalRegistrationLink,
   }) async {
     try {
-      final userId = await getDatabaseUserId();
       final response = await http.post(
         Uri.parse('$baseUrl/create-event'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (userId != null) 'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode({
           'authId': authId,
           'clubId': clubId,
@@ -1140,10 +1084,7 @@ class ApiService {
 
       final response = await http.put(
         Uri.parse('$baseUrl/$eventId/cancel'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
       );
 
       final json = jsonDecode(response.body);
@@ -1166,13 +1107,9 @@ class ApiService {
     String? logoUrl,
   }) async {
     try {
-      final userId = await getDatabaseUserId();
       final response = await http.post(
         Uri.parse('$baseUrl/create-club'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (userId != null) 'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode({
           'name': name,
           'email': email,
@@ -1205,13 +1142,9 @@ class ApiService {
     Map<String, dynamic> clubData,
   ) async {
     try {
-      final userId = await getDatabaseUserId();
       final response = await http.put(
         Uri.parse('$baseUrl/clubs/$clubId'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (userId != null) 'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode(clubData),
       );
 
@@ -1235,13 +1168,9 @@ class ApiService {
     Map<String, dynamic> profileData,
   ) async {
     try {
-      final userId = await getDatabaseUserId();
       final response = await http.put(
         Uri.parse('$apiBaseUrl/clubs/club-profile/$clubId'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (userId != null) 'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode(profileData),
       );
 
@@ -1268,13 +1197,9 @@ class ApiService {
   /// Get list of admins for a club
   Future<List<Map<String, dynamic>>> getClubAdmins(int clubId) async {
     try {
-      final userId = await getDatabaseUserId();
       final response = await http.get(
         Uri.parse('$baseUrl/club/admins/$clubId'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (userId != null) 'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
       );
 
       if (response.statusCode == 200) {
@@ -1307,10 +1232,7 @@ class ApiService {
 
       final response = await http.post(
         Uri.parse('$baseUrl/club/add-admin'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode({
           'clubId': clubId,
           'email': email,
@@ -1350,13 +1272,9 @@ class ApiService {
     required String ownerId,
   }) async {
     try {
-      final authUserId = await getDatabaseUserId();
       final response = await http.post(
         Uri.parse('$baseUrl/club/remove-admin'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (authUserId != null) 'Authorization': 'Bearer $authUserId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode({
           'clubId': clubId,
           'userId': userId,
@@ -1402,13 +1320,9 @@ class ApiService {
   /// Get registered students for an event
   Future<List<Map<String, dynamic>>> getRegisteredStudents(int eventId) async {
     try {
-      final userId = await getDatabaseUserId();
       final response = await http.post(
         Uri.parse('$baseUrl/registered-student'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (userId != null) 'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode({'eventId': eventId}),
       );
 
@@ -1451,13 +1365,9 @@ class ApiService {
   /// Get extra event details
   Future<Map<String, dynamic>?> getExtraEventDetails(int eventId) async {
     try {
-      final userId = await getDatabaseUserId();
       final response = await http.get(
         Uri.parse('$apiBaseUrl/clubs/event-details/$eventId'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (userId != null) 'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
       );
 
       if (response.statusCode == 200) {
@@ -1478,13 +1388,9 @@ class ApiService {
     Map<String, dynamic> detailsData,
   ) async {
     try {
-      final userId = await getDatabaseUserId();
       final response = await http.post(
         Uri.parse('$apiBaseUrl/clubs/event-details/create-event-details'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (userId != null) 'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode({'eventId': eventId, ...detailsData}),
       );
 
@@ -1511,13 +1417,9 @@ class ApiService {
     Map<String, dynamic> detailsData,
   ) async {
     try {
-      final userId = await getDatabaseUserId();
       final response = await http.put(
         Uri.parse('$apiBaseUrl/clubs/event-details/update-eventdetail'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (userId != null) 'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
         body: jsonEncode({'eventId': eventId, ...detailsData}),
       );
 
@@ -1546,15 +1448,12 @@ class ApiService {
     File imageFile,
   ) async {
     try {
-      final userId = await getDatabaseUserId();
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('$apiBaseUrl/clubs/$clubId/upload-logo'),
       );
 
-      if (userId != null) {
-        request.headers['Authorization'] = 'Bearer $userId';
-      }
+      request.headers.addAll(await _getAuthHeader());
 
       request.files.add(
         await http.MultipartFile.fromPath(
@@ -1591,15 +1490,11 @@ class ApiService {
     File imageFile,
   ) async {
     try {
-      final userId = await getDatabaseUserId();
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('$apiBaseUrl/events/$eventId/upload-banner'),
       );
-
-      if (userId != null) {
-        request.headers['Authorization'] = 'Bearer $userId';
-      }
+      request.headers.addAll(await _getAuthHeader());
 
       request.files.add(
         await http.MultipartFile.fromPath(
@@ -3086,17 +2981,9 @@ class ApiService {
   /// Delete a notice (notice_manager/admin only)
   Future<Map<String, dynamic>> deleteNotice(int id) async {
     try {
-      final userId = await getDatabaseUserId();
-      if (userId == null) {
-        return {'success': false, 'message': 'Not authenticated'};
-      }
-
       final response = await http.delete(
         Uri.parse('$apiBaseUrl/notices/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
+        headers: await _getAuthHeader(),
       );
 
       final json = jsonDecode(response.body);
@@ -3115,16 +3002,11 @@ class ApiService {
   /// Upload notice attachment
   Future<Map<String, dynamic>> uploadNoticeAttachment(File file) async {
     try {
-      final userId = await getDatabaseUserId();
-      if (userId == null) {
-        return {'success': false, 'message': 'Not authenticated'};
-      }
-
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('$apiBaseUrl/notices/upload'),
       );
-      request.headers['Authorization'] = 'Bearer $userId';
+      request.headers.addAll(await _getAuthHeader());
       request.files.add(
         await http.MultipartFile.fromPath(
           'file',
