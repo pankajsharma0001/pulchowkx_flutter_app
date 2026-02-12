@@ -39,7 +39,6 @@ class FirebaseServices {
         debugPrint("Name: ${user.displayName}");
         debugPrint("Email: ${user.email}");
         debugPrint("UID: ${user.uid}");
-        debugPrint("=======================================");
 
         // Get Firebase ID token for API authentication
         final firebaseIdToken = await user.getIdToken();
@@ -47,6 +46,7 @@ class FirebaseServices {
         // Sync user to Postgres database
         final fcmToken = await NotificationService.getToken();
 
+        debugPrint("Syncing user with backend database...");
         final dbUserId = await _apiService.syncUser(
           authStudentId: user.uid,
           email: user.email ?? '',
@@ -55,12 +55,22 @@ class FirebaseServices {
           image: user.photoURL,
           fcmToken: fcmToken,
         );
-        debugPrint("User synced to database. DB ID: $dbUserId");
+
+        if (dbUserId == null) {
+          debugPrint("FAILED: User sync with database returned null.");
+          // Sign out from Firebase if backend sync fails to avoid inconsistent state
+          await auth.signOut();
+          await googleSignIn.signOut();
+          return false;
+        }
+
+        debugPrint("SUCCESS: User synced to database. DB ID: $dbUserId");
+        debugPrint("=======================================");
       }
 
       return true;
     } catch (e) {
-      debugPrint("Error during Google sign-in: $e");
+      debugPrint("CRITICAL: Error during Google sign-in: $e");
       return false;
     }
   }

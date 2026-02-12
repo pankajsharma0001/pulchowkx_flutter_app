@@ -71,161 +71,265 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: const CustomAppBar(currentPage: AppPage.login),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: Theme.of(context).brightness == Brightness.dark
-              ? AppColors.heroGradientDark
-              : AppColors.heroGradient,
-        ),
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 400),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardTheme.color,
-                borderRadius: BorderRadius.circular(AppRadius.xl),
-                border: Border.all(
-                  color:
-                      Theme.of(context).dividerTheme.color ?? AppColors.border,
+      body: Stack(
+        children: [
+          // 1. Immersive Dynamic Background
+          _buildBackground(isDark),
+
+          // 2. Main Content
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.xl,
                 ),
-                boxShadow: AppShadows.lg,
-              ),
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Logo with gradient background
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      borderRadius: BorderRadius.circular(AppRadius.lg),
-                      boxShadow: AppShadows.colored(AppColors.primary),
-                    ),
-                    child: const Icon(
-                      Icons.school_rounded,
-                      size: 40,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Welcome text
-                  Text(
-                    "Welcome Back!",
-                    style: AppTextStyles.h3.copyWith(
-                      color: Theme.of(context).textTheme.displaySmall?.color,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    "Sign in to access your dashboard and manage your campus experience",
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: Theme.of(context).textTheme.bodyMedium?.color,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-
-                  // Divider with text
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: AppColors.border)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                        ),
-                        child: Text(
-                          'Continue with',
-                          style: AppTextStyles.labelSmall.copyWith(
-                            color: Theme.of(
-                              context,
-                            ).textTheme.labelSmall?.color,
-                          ),
-                        ),
-                      ),
-                      Expanded(child: Divider(color: AppColors.border)),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Google Sign In Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _isLoading ? null : _handleGoogleSignIn,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 14,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).cardTheme.color,
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                            border: Border.all(
-                              color:
-                                  Theme.of(context).dividerTheme.color ??
-                                  AppColors.border,
-                            ),
-                            boxShadow: AppShadows.sm,
-                          ),
-                          child: _isLoading
-                              ? const Center(
-                                  child: SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SvgPicture.asset(
-                                      'assets/images/google_logo.svg',
-                                      width: 22,
-                                      height: 22,
-                                      semanticsLabel: 'Google logo',
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      'Continue with Google',
-                                      style: AppTextStyles.button.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).textTheme.bodyLarge?.color,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Terms text
-                  Text(
-                    'By signing in, you agree to our Terms of Service and Privacy Policy',
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: Theme.of(context).textTheme.bodySmall?.color,
-                    ),
-                  ),
-                ],
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildLoginCard(context, isDark),
+                    const SizedBox(height: AppSpacing.xl),
+                    _buildInformativeSection(context, isDark),
+                  ],
+                ),
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBackground(bool isDark) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        gradient: isDark ? AppColors.heroGradientDark : AppColors.heroGradient,
+      ),
+      child: Stack(
+        children: [
+          // Decorative Blurred Blobs
+          Positioned(
+            top: -100,
+            right: -50,
+            child: _buildBlob(
+              size: 300,
+              color: AppColors.primary.withValues(alpha: 0.1),
+            ),
+          ),
+          Positioned(
+            bottom: -80,
+            left: -60,
+            child: _buildBlob(
+              size: 250,
+              color: AppColors.primary.withValues(alpha: 0.08),
+            ),
+          ),
+          if (!isDark)
+            Positioned(
+              top: 200,
+              left: -100,
+              child: _buildBlob(
+                size: 200,
+                color: Colors.white.withValues(alpha: 0.5),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBlob({required double size, required Color color}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    );
+  }
+
+  Widget _buildLoginCard(BuildContext context, bool isDark) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 400),
+      decoration: isDark
+          ? AppDecorations.glassDark(borderRadius: AppRadius.xxl)
+          : AppDecorations.glass(borderRadius: AppRadius.xxl),
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // App Title & Tagline
+          Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  boxShadow: AppShadows.colored(AppColors.primary),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  size: 42,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                "Smart Pulchowk",
+                style: AppTextStyles.h2.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                "Your Campus, Reimagined",
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xl),
+
+          // Action Section
+          _buildGoogleButton(context, isDark),
+
+          const SizedBox(height: AppSpacing.xl),
+
+          // Legal Footer
+          Text(
+            'By signing in, you agree to our Terms of Service and Privacy Policy',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.labelSmall.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGoogleButton(BuildContext context, bool isDark) {
+    return Container(
+      width: double.infinity,
+      height: 60,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: _isLoading ? null : AppShadows.md,
+      ),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: InkWell(
+          onTap: _isLoading ? null : _handleGoogleSignIn,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: _isLoading
+                ? const Center(
+                    child: SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SvgPicture.asset(
+                        'assets/images/google_logo.svg',
+                        height: 24,
+                        width: 24,
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Text(
+                        'Continue with Google',
+                        style: AppTextStyles.button.copyWith(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildInformativeSection(BuildContext context, bool isDark) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 400),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      child: Column(
+        children: [
+          _buildBenefitItem(
+            context,
+            Icons.verified_user_rounded,
+            "Secure Campus Access",
+            "Sign in with your campus account for full verified access.",
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _buildBenefitItem(
+            context,
+            Icons.dashboard_customize_rounded,
+            "Personalized Dashboard",
+            "Get instant updates on your classes, assignments, and routines.",
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBenefitItem(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String description,
+  ) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.sm),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 20, color: AppColors.primary),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: AppTextStyles.labelLarge.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                description,
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
