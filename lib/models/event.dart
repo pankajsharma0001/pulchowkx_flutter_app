@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pulchowkx_app/services/api_service.dart';
 
 import 'club.dart';
 
@@ -67,7 +68,7 @@ class ClubEvent {
           ? (DateTime.tryParse(json['eventEndTime'].toString()) ??
                 DateTime.now().add(const Duration(hours: 2)))
           : DateTime.now().add(const Duration(hours: 2)),
-      bannerUrl: json['bannerUrl']?.toString(),
+      bannerUrl: ApiService.processImageUrl(json['bannerUrl']?.toString()),
       externalRegistrationLink: json['externalRegistrationLink']?.toString(),
       isRegistrationOpen: json['isRegistrationOpen'] is bool
           ? json['isRegistrationOpen']
@@ -113,7 +114,7 @@ class ClubEvent {
       eventEndTime: json['eventEndTime'] != null
           ? DateTime.parse(json['eventEndTime'].toString())
           : DateTime.now().add(const Duration(hours: 2)),
-      bannerUrl: json['bannerUrl']?.toString(),
+      bannerUrl: ApiService.processImageUrl(json['bannerUrl']?.toString()),
       externalRegistrationLink: json['externalRegistrationLink']?.toString(),
       isRegistrationOpen: json['isRegistrationOpen'] is bool
           ? json['isRegistrationOpen'] as bool

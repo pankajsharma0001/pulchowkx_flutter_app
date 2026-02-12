@@ -4225,15 +4225,36 @@ class ApiService {
     return false;
   }
 
-  /// Optimize Cloudinary URL by adding auto format and quality
-  String optimizeCloudinaryUrl(String url, {int? width}) {
-    if (!url.contains('cloudinary.com')) return url;
-    if (url.contains('/upload/')) {
+  /// Process and optimize image URL (Cloudinary + Google Drive support)
+  static String processImageUrl(String? url, {int? width}) {
+    if (url == null || url.isEmpty) return '';
+
+    // Handle Google Drive links
+    if (url.contains('drive.google.com')) {
+      // Convert view links to direct download links
+      // Format: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+      final regExp = RegExp(r'\/file\/d\/([^\/]+)\/');
+      final match = regExp.firstMatch(url);
+      if (match != null && match.groupCount >= 1) {
+        final fileId = match.group(1);
+        return 'https://docs.google.com/uc?export=download&id=$fileId';
+      }
+    }
+
+    // Handle Cloudinary optimizations
+    if (url.contains('cloudinary.com') && url.contains('/upload/')) {
       final transform =
           'f_auto,q_auto${width != null ? ',w_$width,c_limit' : ''}';
       return url.replaceFirst('/upload/', '/upload/$transform/');
     }
+
     return url;
+  }
+
+  /// Optimize Cloudinary URL by adding auto format and quality
+  /// @deprecated Use [processImageUrl] instead
+  String optimizeCloudinaryUrl(String url, {int? width}) {
+    return processImageUrl(url, width: width);
   }
 }
 

@@ -1,3 +1,5 @@
+import 'package:pulchowkx_app/services/api_service.dart';
+
 /// Notice model for exam results and routines
 class Notice {
   final int id;
@@ -30,7 +32,9 @@ class Notice {
       section: NoticeSection.fromString(
         json['section'] as String? ?? 'results',
       ),
-      attachmentUrl: json['attachmentUrl'] as String?,
+      attachmentUrl: ApiService.processImageUrl(
+        json['attachmentUrl'] as String?,
+      ),
       attachmentName: json['attachmentName'] as String?,
       category: json['category'] as String?,
       createdAt:

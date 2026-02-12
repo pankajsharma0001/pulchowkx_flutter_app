@@ -1,3 +1,5 @@
+import 'package:pulchowkx_app/services/api_service.dart';
+
 /// Book condition enum matching backend enum
 enum BookCondition {
   newBook('new', 'New'),
@@ -57,7 +59,7 @@ class BookImage {
     return BookImage(
       id: json['id'] as int? ?? 0,
       listingId: json['listingId'] as int? ?? 0,
-      imageUrl: json['imageUrl'] as String? ?? '',
+      imageUrl: ApiService.processImageUrl(json['imageUrl'] as String? ?? ''),
       imagePublicId: json['imagePublicId'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()

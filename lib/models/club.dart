@@ -1,3 +1,5 @@
+import 'package:pulchowkx_app/services/api_service.dart';
+
 class Club {
   final int id;
   final String authClubId;
@@ -33,7 +35,7 @@ class Club {
       authClubId: json['authClubId']?.toString() ?? '',
       name: json['name']?.toString() ?? 'Unknown Club',
       description: json['description']?.toString(),
-      logoUrl: json['logoUrl']?.toString(),
+      logoUrl: ApiService.processImageUrl(json['logoUrl']?.toString()),
       email: json['email']?.toString(),
       isActive: json['isActive'] is bool ? json['isActive'] as bool : true,
       createdAt: json['createdAt'] != null
