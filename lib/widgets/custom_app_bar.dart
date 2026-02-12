@@ -417,7 +417,7 @@ class _BrandLogo extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              LogoCard(width: 32, height: 32),
+              LogoCard(width: 32, height: 32, useHero: false),
               SizedBox(width: 4),
               Text(
                 'Smart Pulchowk',

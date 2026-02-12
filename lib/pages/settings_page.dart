@@ -819,7 +819,7 @@ class _SettingsPageState extends State<SettingsPage> {
     IconData? icon,
   }) {
     return SwitchListTile.adaptive(
-      contentPadding: EdgeInsets.zero,
+      contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       secondary: icon != null
           ? Icon(icon, color: AppColors.primary, size: 20)
           : null,
