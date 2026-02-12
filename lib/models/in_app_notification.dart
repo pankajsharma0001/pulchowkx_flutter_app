@@ -63,7 +63,13 @@ class InAppNotification {
   }
 
   String? get thumbnailUrl {
-    final url = data?['thumbnailUrl'] as String?;
+    final url =
+        (data?['thumbnailUrl'] ??
+                data?['imageUrl'] ??
+                data?['image_url'] ??
+                data?['bannerUrl'] ??
+                data?['attachmentUrl'])
+            as String?;
     return ApiService.processImageUrl(url);
   }
 
@@ -83,10 +89,15 @@ class InAppNotification {
   }
 
   IconData getIcon() {
+    if (type.contains('lost_found') || type.contains('item')) {
+      return Icons.find_in_page_rounded;
+    }
+
     switch (iconKey) {
       case 'event':
         return Icons.event_rounded;
       case 'book':
+      case 'purchase_request':
         return Icons.menu_book_rounded;
       case 'notice':
         return Icons.notifications_active_rounded;
@@ -94,6 +105,11 @@ class InAppNotification {
         return Icons.school_rounded;
       case 'general':
       default:
+        if (type.contains('event')) return Icons.event_rounded;
+        if (type.contains('book') || type.contains('purchase')) {
+          return Icons.menu_book_rounded;
+        }
+        if (type.contains('notice')) return Icons.notifications_active_rounded;
         return Icons.notifications_rounded;
     }
   }
