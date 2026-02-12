@@ -98,6 +98,7 @@ class LostFoundItem {
       images:
           (json['images'] as List<dynamic>?)
               ?.map((i) => LostFoundImage.fromJson(i as Map<String, dynamic>))
+              .where((i) => i.imageUrl.isNotEmpty)
               .toList() ??
           [],
       claims: (json['claims'] as List<dynamic>?)
@@ -128,11 +129,11 @@ class LostFoundItem {
               LostFoundImage(
                 id: 0,
                 itemId: json['id'] as int,
-                imageUrl: ApiService.processImageUrl(
-                  json['imageUrl'] as String,
-                ),
+                imageUrl:
+                    ApiService.processImageUrl(json['imageUrl'] as String?) ??
+                    '',
               ),
-            ]
+            ].where((i) => i.imageUrl.isNotEmpty).toList()
           : [],
     );
   }
@@ -204,9 +205,11 @@ class LostFoundImage {
     return LostFoundImage(
       id: json['id'] as int,
       itemId: json['itemId'] ?? json['item_id'] as int,
-      imageUrl: ApiService.processImageUrl(
-        json['imageUrl'] ?? json['image_url'] as String,
-      ),
+      imageUrl:
+          ApiService.processImageUrl(
+            json['imageUrl'] ?? json['image_url'] as String?,
+          ) ??
+          '',
       sortOrder: json['sortOrder'] ?? json['sort_order'] as int? ?? 0,
     );
   }

@@ -59,7 +59,7 @@ class BookImage {
     return BookImage(
       id: json['id'] as int? ?? 0,
       listingId: json['listingId'] as int? ?? 0,
-      imageUrl: ApiService.processImageUrl(json['imageUrl'] as String? ?? ''),
+      imageUrl: ApiService.processImageUrl(json['imageUrl'] as String?) ?? '',
       imagePublicId: json['imagePublicId'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
@@ -232,6 +232,7 @@ class BookListing {
       images: json['images'] != null
           ? (json['images'] as List)
                 .map((e) => BookImage.fromJson(e as Map<String, dynamic>))
+                .where((image) => image.imageUrl.isNotEmpty)
                 .toList()
           : null,
       category: json['category'] != null
@@ -286,6 +287,7 @@ class BookListing {
       images: json['images'] != null
           ? (json['images'] as List)
                 .map((e) => BookImage.fromJson(e as Map<String, dynamic>))
+                .where((image) => image.imageUrl.isNotEmpty)
                 .toList()
           : null,
       category: json['category'] != null

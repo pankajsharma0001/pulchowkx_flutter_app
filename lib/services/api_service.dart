@@ -4226,8 +4226,8 @@ class ApiService {
   }
 
   /// Process and optimize image URL (Cloudinary + Google Drive support)
-  static String processImageUrl(String? url, {int? width}) {
-    if (url == null || url.isEmpty) return '';
+  static String? processImageUrl(String? url, {int? width}) {
+    if (url == null || url.isEmpty) return null;
 
     // Handle Google Drive links
     if (url.contains('drive.google.com')) {
@@ -4254,7 +4254,7 @@ class ApiService {
   /// Optimize Cloudinary URL by adding auto format and quality
   /// @deprecated Use [processImageUrl] instead
   String optimizeCloudinaryUrl(String url, {int? width}) {
-    return processImageUrl(url, width: width);
+    return processImageUrl(url, width: width) ?? url;
   }
 }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pulchowkx_app/services/api_service.dart';
 
 enum NotificationAudience {
   direct,
@@ -61,7 +62,11 @@ class InAppNotification {
     );
   }
 
-  String? get thumbnailUrl => data?['thumbnailUrl'] as String?;
+  String? get thumbnailUrl {
+    final url = data?['thumbnailUrl'] as String?;
+    return ApiService.processImageUrl(url);
+  }
+
   String? get iconKey => data?['iconKey'] as String?;
 
   // Specific data IDs
