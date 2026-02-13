@@ -30,7 +30,7 @@ class MainLayout extends StatefulWidget {
 
 class MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
   late int _selectedIndex;
-  bool _isAdmin = false;
+  String _userRole = 'student';
   final ApiService _apiService = ApiService();
 
   /// ValueNotifier to notify children when tab changes
@@ -57,7 +57,11 @@ class MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
       GlobalKey<NavigatorState>();
 
   GlobalKey<NavigatorState> _getNavigatorKey(int index) {
-    if (index == 2 && _isAdmin) {
+    if (index == 2 && _userRole == 'teacher') {
+      // Return normal navigator for teacher, but we handle content in build
+      // Actually, we use the same key index but switch the page content
+      return _navigatorKeys[2];
+    } else if (index == 2 && _userRole == 'admin') {
       return _adminNavigatorKey;
     }
     return _navigatorKeys[index];
@@ -69,9 +73,10 @@ class MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _selectedIndex = widget.initialIndex;
     tabIndexNotifier.value = _selectedIndex;
-    _checkAdminStatus();
+    tabIndexNotifier.value = _selectedIndex;
+    _checkUserRole();
     // Also perform a background refresh on launch
-    _apiService.refreshUserRole().then((_) => _checkAdminStatus());
+    _apiService.refreshUserRole().then((_) => _checkUserRole());
   }
 
   @override
@@ -79,16 +84,16 @@ class MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       // Refresh role when app returns to foreground
       _apiService.refreshUserRole().then((_) {
-        _checkAdminStatus();
+        _checkUserRole();
       });
     }
   }
 
-  Future<void> _checkAdminStatus() async {
-    final isAdmin = await _apiService.isAdmin();
+  Future<void> _checkUserRole() async {
+    final role = await _apiService.getUserRole();
     if (mounted) {
       setState(() {
-        _isAdmin = isAdmin;
+        _userRole = role;
       });
     }
   }
@@ -126,6 +131,11 @@ class MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
         _selectedIndex = 7;
         tabIndexNotifier.value = 7;
       });
+      return;
+    }
+
+    if (index == 2 && _userRole == 'guest') {
+      // Guest cannot access Class/Admin tab
       return;
     }
 
@@ -197,9 +207,11 @@ class MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
               rootPage: const MapPage(),
             ),
             _TabNavigator(
-              key: ValueKey(_isAdmin),
-              navigatorKey: _isAdmin ? _adminNavigatorKey : _navigatorKeys[2],
-              rootPage: _isAdmin
+              key: ValueKey(_userRole),
+              navigatorKey: _userRole == 'admin'
+                  ? _adminNavigatorKey
+                  : _navigatorKeys[2],
+              rootPage: _userRole == 'admin'
                   ? const AdminDashboardPage()
                   : const ClassroomPage(),
             ),
@@ -235,7 +247,7 @@ class MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
         ),
         bottomNavigationBar: _BottomNavBar(
           selectedIndex: _selectedIndex,
-          isAdmin: _isAdmin,
+          userRole: _userRole,
           onItemSelected: setSelectedIndex,
         ),
       ),
@@ -279,12 +291,12 @@ class _TabNavigator extends StatelessWidget {
 
 class _BottomNavBar extends StatelessWidget {
   final int selectedIndex;
-  final bool isAdmin;
+  final String userRole;
   final Function(int) onItemSelected;
 
   const _BottomNavBar({
     required this.selectedIndex,
-    required this.isAdmin,
+    required this.userRole,
     required this.onItemSelected,
   });
 
@@ -357,14 +369,15 @@ class _BottomNavBar extends StatelessWidget {
                       isActive: selectedIndex == 1,
                       onTap: () => onItemSelected(1),
                     ),
-                    _NavIcon(
-                      icon: isAdmin
-                          ? Icons.admin_panel_settings_rounded
-                          : Icons.school_rounded,
-                      label: isAdmin ? 'Admin' : 'Class',
-                      isActive: selectedIndex == 2,
-                      onTap: () => onItemSelected(2),
-                    ),
+                    if (userRole != 'guest')
+                      _NavIcon(
+                        icon: userRole == 'admin'
+                            ? Icons.admin_panel_settings_rounded
+                            : Icons.school_rounded,
+                        label: _getRoleLabel(userRole),
+                        isActive: selectedIndex == 2,
+                        onTap: () => onItemSelected(2),
+                      ),
                     _NavIcon(
                       icon: Icons.menu_book_rounded,
                       label: 'Books',
@@ -385,6 +398,12 @@ class _BottomNavBar extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getRoleLabel(String role) {
+    if (role == 'admin') return 'Admin';
+    if (role == 'teacher') return 'Teacher';
+    return 'Class';
   }
 }
 

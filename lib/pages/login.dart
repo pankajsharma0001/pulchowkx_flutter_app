@@ -13,9 +13,46 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends State<LoginPage>
+    with SingleTickerProviderStateMixin {
   final FirebaseServices _firebaseServices = FirebaseServices();
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOut,
+    );
+
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+
+    // Start animation after a slight delay
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) _animationController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   Future<void> _handleGoogleSignIn() async {
     setState(() {
@@ -90,13 +127,19 @@ class _LoginPageState extends State<LoginPage> {
                   horizontal: AppSpacing.lg,
                   vertical: AppSpacing.xl,
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildLoginCard(context, isDark),
-                    const SizedBox(height: AppSpacing.xl),
-                    _buildInformativeSection(context, isDark),
-                  ],
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildLoginCard(context, isDark),
+                        const SizedBox(height: AppSpacing.xl),
+                        _buildInformativeSection(context, isDark),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -219,29 +262,52 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildGoogleButton(BuildContext context, bool isDark) {
+    // Theme-aware colors
+    final backgroundColor = isDark ? const Color(0xFF131314) : Colors.white;
+    final textColor = isDark
+        ? const Color(0xFFE3E3E3)
+        : const Color(0xFF1F1F1F);
+    final borderColor = isDark
+        ? const Color(0xFF8E918F)
+        : const Color(0xFF747775);
+
     return Container(
       width: double.infinity,
-      height: 60,
+      height: 54, // Standard Google button height usually around 40-54
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        boxShadow: _isLoading ? null : AppShadows.md,
+        borderRadius: BorderRadius.circular(
+          AppRadius.full,
+        ), // Pill shape is more modern
+        boxShadow: _isLoading
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.md),
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(AppRadius.full),
         child: InkWell(
           onTap: _isLoading ? null : _handleGoogleSignIn,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          borderRadius: BorderRadius.circular(AppRadius.full),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            decoration: BoxDecoration(
+              border: Border.all(color: borderColor.withValues(alpha: 0.2)),
+              borderRadius: BorderRadius.circular(AppRadius.full),
+            ),
             child: _isLoading
-                ? const Center(
+                ? Center(
                     child: SizedBox(
-                      width: 28,
-                      height: 28,
+                      width: 24,
+                      height: 24,
                       child: CircularProgressIndicator(
-                        strokeWidth: 3,
-                        color: AppColors.primary,
+                        strokeWidth: 2.5,
+                        color: textColor, // Adapt spinner to text color
                       ),
                     ),
                   )
@@ -257,8 +323,11 @@ class _LoginPageState extends State<LoginPage> {
                       Text(
                         'Continue with Google',
                         style: AppTextStyles.button.copyWith(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w700,
+                          color: textColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                          letterSpacing:
+                              0.2, // Google font spec usually adds slight tracking
                         ),
                       ),
                     ],

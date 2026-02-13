@@ -50,7 +50,7 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   final ApiService _apiService = ApiService();
-  bool _isAdmin = false;
+  String _userRole = 'student';
   bool _isLoading = true;
   int _upcomingEnrollmentsCount = 0;
   List<EventRegistration> _enrolledEvents = [];
@@ -95,7 +95,9 @@ class _DashboardPageState extends State<DashboardPage> {
       // Temporary admin check to decide if we fetch admin stats
       // We need to await isAdmin first effectively, or just handle it after
       // But parallel is better. Let's do isAdmin first.
-      final isAdminResult = await _apiService.isAdmin();
+      // But parallel is better. Let's do isAdmin first.
+      final role = await _apiService.getUserRole();
+      final isAdminResult = role == 'admin';
 
       Map<String, dynamic>? adminOverview;
       if (isAdminResult) {
@@ -181,7 +183,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
       if (mounted) {
         setState(() {
-          _isAdmin = isAdminResult;
+          _userRole = role;
           final comingEvents = enrollments
               .where(
                 (e) =>
@@ -361,7 +363,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       ? const DashboardHeaderShimmer()
                       : _buildProfileHeader(
                           FirebaseAuth.instance.currentUser?.displayName ??
-                              'Student',
+                              (_userRole == 'guest' ? 'Guest User' : 'Student'),
                           FirebaseAuth.instance.currentUser?.email ?? '',
                           FirebaseAuth.instance.currentUser?.photoURL,
                         ),
@@ -388,7 +390,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         )
                       : Column(
                           children: [
-                            if (_isAdmin) ...[
+                            if (_userRole == 'admin') ...[
                               _QuickActionCard(
                                 icon: Icons.add_circle_outline_rounded,
                                 title: 'Create Club',
@@ -427,6 +429,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                   ),
                             ),
                             const SizedBox(height: AppSpacing.md),
+                            // Hide Lost & Found for guests as they can't report anyway?
+                            // Actually guests might report found items. Let's keep it but maybe restrict reporting inside.
+                            // But for now, let's keep it visible.
                             _QuickActionCard(
                               icon: Icons.search_rounded,
                               title: 'Lost & Found',
@@ -451,26 +456,28 @@ class _DashboardPageState extends State<DashboardPage> {
                                 }
                               },
                             ),
-                            const SizedBox(height: AppSpacing.md),
-                            _QuickActionCard(
-                              icon: Icons.shopping_bag_rounded,
-                              title: 'Book Requests',
-                              description: 'View active book requests',
-                              color: Colors.orange,
-                              heroTag: 'book-requests',
-                              onTap: () =>
-                                  Navigator.of(
-                                    context,
-                                    rootNavigator: true,
-                                  ).push(
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const BookRequestsPage(
-                                            showAppBar: true,
-                                          ),
+                            if (_userRole != 'guest') ...[
+                              const SizedBox(height: AppSpacing.md),
+                              _QuickActionCard(
+                                icon: Icons.shopping_bag_rounded,
+                                title: 'Book Requests',
+                                description: 'View active book requests',
+                                color: Colors.orange,
+                                heroTag: 'book-requests',
+                                onTap: () =>
+                                    Navigator.of(
+                                      context,
+                                      rootNavigator: true,
+                                    ).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const BookRequestsPage(
+                                              showAppBar: true,
+                                            ),
+                                      ),
                                     ),
-                                  ),
-                            ),
+                              ),
+                            ],
                             const SizedBox(height: AppSpacing.md),
                             _QuickActionCard(
                               icon: Icons.settings_rounded,
@@ -525,7 +532,11 @@ class _DashboardPageState extends State<DashboardPage> {
             children: [
               TabBar(
                 tabs: [
-                  Tab(text: _isAdmin ? 'Pending Tasks' : 'Assignments'),
+                  Tab(
+                    text: _userRole == 'admin'
+                        ? 'Pending Tasks'
+                        : 'Assignments',
+                  ),
                   const Tab(text: 'Events'),
                   const Tab(text: 'Books'),
                 ],
@@ -540,7 +551,7 @@ class _DashboardPageState extends State<DashboardPage> {
               Expanded(
                 child: TabBarView(
                   children: [
-                    _isAdmin
+                    _userRole == 'admin'
                         ? _buildActivityTabList(
                             _adminTasks,
                             Icons.task_alt_rounded,
@@ -744,7 +755,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
-                              (_isAdmin ? 'Admin' : 'Student').toUpperCase(),
+                              _userRole.toUpperCase(),
                               style: AppTextStyles.labelSmall.copyWith(
                                 color: AppColors.primary,
                                 fontSize: 10,
@@ -814,14 +825,14 @@ class _DashboardPageState extends State<DashboardPage> {
             StaggeredScaleFade(
               index: 0,
               child: StatCard(
-                label: _isAdmin ? 'Pending Tasks' : 'Assignments',
-                value: _isAdmin
+                label: _userRole == 'admin' ? 'Pending Tasks' : 'Assignments',
+                value: _userRole == 'admin'
                     ? _adminPendingCount.toString()
                     : _pendingAssignmentsCount.toString(),
                 icon: Icons.assignment_outlined,
                 color: AppColors.primary,
                 onTap: () {
-                  if (_isAdmin) {
+                  if (_userRole == 'admin') {
                     // For admins, scroll to activity section where tasks are listed
                   } else {
                     MainLayout.of(context)?.setSelectedIndex(2);
@@ -879,7 +890,7 @@ class _DashboardPageState extends State<DashboardPage> {
     final List<Widget> items = [];
 
     // Add Assignments (only if not admin or if we want to show student stuff too? User asked to hide it)
-    if (!_isAdmin) {
+    if (_userRole != 'admin') {
       for (var assignment in _pendingAssignments) {
         items.add(
           _ComingUpItem(

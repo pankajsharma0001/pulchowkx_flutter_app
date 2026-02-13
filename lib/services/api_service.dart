@@ -265,6 +265,12 @@ class ApiService {
     return role == 'admin';
   }
 
+  /// Check if user is a guest (non-campus email)
+  Future<bool> isGuest() async {
+    final role = await getUserRole();
+    return role == 'guest';
+  }
+
   /// Get list of users for admin
   Future<Map<String, dynamic>> getAdminUsers({
     String? search,
