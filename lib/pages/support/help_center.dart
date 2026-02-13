@@ -190,6 +190,31 @@ class HelpCenterPage extends StatelessWidget {
           'How do I report inappropriate content?',
           'Use the "My Reports" option in settings to view status, or use the menu on any item to report it directly to moderators.',
         ),
+        _buildFAQItem(
+          context,
+          'Where can I find class routines?',
+          'Navigate to the Notices tab, then select the "Routines" sub-tab. You can filter by department (B.E. or M.Sc.) and your specific semester.',
+        ),
+        _buildFAQItem(
+          context,
+          'How does the Campus Map work?',
+          'The interactive map shows all campus buildings. Use the search bar to find specific lecture halls, departments, or amenities. Tapping a location will show you the quickest route.',
+        ),
+        _buildFAQItem(
+          context,
+          'Does the app work offline?',
+          'Yes! Most content you\'ve previously viewed (notices, events, marketplace) is cached on your device. You can access it even without an internet connection.',
+        ),
+        _buildFAQItem(
+          context,
+          'How do I update my profile?',
+          'Your basic profile info is synced from your Google account. You can update your campus-specific details in the Settings page or when you first sign in.',
+        ),
+        _buildFAQItem(
+          context,
+          'How do I use Lost & Found?',
+          'Report items you\'ve lost or found by tapping the "+" button in the Lost & Found section. Include a clear photo and description to help others identify the item.',
+        ),
       ],
     );
   }
