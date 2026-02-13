@@ -311,6 +311,62 @@ class BookListing {
 
   /// Check if book is available for purchase
   bool get isAvailable => status == BookStatus.available;
+
+  BookListing copyWith({
+    int? id,
+    String? sellerId,
+    String? title,
+    String? author,
+    String? isbn,
+    String? edition,
+    String? publisher,
+    int? publicationYear,
+    BookCondition? condition,
+    String? description,
+    String? price,
+    BookStatus? status,
+    String? courseCode,
+    int? categoryId,
+    int? viewCount,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? soldAt,
+    BookSeller? seller,
+    List<BookImage>? images,
+    BookCategory? category,
+    bool? isSaved,
+    bool? isOwner,
+    String? buyerContactInfo,
+    int? requestCount,
+  }) {
+    return BookListing(
+      id: id ?? this.id,
+      sellerId: sellerId ?? this.sellerId,
+      title: title ?? this.title,
+      author: author ?? this.author,
+      isbn: isbn ?? this.isbn,
+      edition: edition ?? this.edition,
+      publisher: publisher ?? this.publisher,
+      publicationYear: publicationYear ?? this.publicationYear,
+      condition: condition ?? this.condition,
+      description: description ?? this.description,
+      price: price ?? this.price,
+      status: status ?? this.status,
+      courseCode: courseCode ?? this.courseCode,
+      categoryId: categoryId ?? this.categoryId,
+      viewCount: viewCount ?? this.viewCount,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      soldAt: soldAt ?? this.soldAt,
+      seller: seller ?? this.seller,
+      images: images ?? this.images,
+      category: category ?? this.category,
+      isSaved: isSaved ?? this.isSaved,
+      isOwner: isOwner ?? this.isOwner,
+      buyerContactInfo: buyerContactInfo ?? this.buyerContactInfo,
+      requestCount: requestCount ?? this.requestCount,
+    );
+  }
 }
 
 /// Saved book model

@@ -28,7 +28,7 @@ class MainLayout extends StatefulWidget {
   State<MainLayout> createState() => MainLayoutState();
 }
 
-class MainLayoutState extends State<MainLayout> {
+class MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
   late int _selectedIndex;
   bool _isAdmin = false;
   final ApiService _apiService = ApiService();
@@ -66,9 +66,22 @@ class MainLayoutState extends State<MainLayout> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _selectedIndex = widget.initialIndex;
     tabIndexNotifier.value = _selectedIndex;
     _checkAdminStatus();
+    // Also perform a background refresh on launch
+    _apiService.refreshUserRole().then((_) => _checkAdminStatus());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Refresh role when app returns to foreground
+      _apiService.refreshUserRole().then((_) {
+        _checkAdminStatus();
+      });
+    }
   }
 
   Future<void> _checkAdminStatus() async {
@@ -82,6 +95,7 @@ class MainLayoutState extends State<MainLayout> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     tabIndexNotifier.dispose();
     super.dispose();
   }

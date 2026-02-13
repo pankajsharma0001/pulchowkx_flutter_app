@@ -823,3 +823,96 @@ class SellBookShimmer extends StatelessWidget {
     );
   }
 }
+
+class NotificationCardShimmer extends StatelessWidget {
+  const NotificationCardShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color cardBackground = isDark
+        ? AppColors.cardBackgroundDark
+        : AppColors.surface;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.border,
+          width: 0.5,
+        ),
+      ),
+      child: ShimmerLoader(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon Placeholder
+            Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title Placeholder
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        height: 14,
+                        width: 120,
+                        color: AppColors.surface,
+                      ),
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: AppColors.surface,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Body Placeholder (2 lines)
+                  Container(
+                    height: 12,
+                    width: double.infinity,
+                    color: AppColors.surface,
+                  ),
+                  const SizedBox(height: 6),
+                  Container(height: 12, width: 200, color: AppColors.surface),
+                  const SizedBox(height: 12),
+                  // Date Placeholder
+                  Container(height: 10, width: 80, color: AppColors.surface),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class NotificationPageShimmer extends StatelessWidget {
+  const NotificationPageShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: 8, // Show 8 shimmer items
+      itemBuilder: (context, index) => const NotificationCardShimmer(),
+    );
+  }
+}

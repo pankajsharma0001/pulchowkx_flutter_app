@@ -93,21 +93,50 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     if (_book == null) return;
 
     final wasSaved = _book!.isSaved;
-    final result = wasSaved
-        ? await _apiService.unsaveBook(_book!.id)
-        : await _apiService.saveBook(_book!.id);
 
-    if (result['success'] == true) {
-      await _loadBook();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              wasSaved ? 'Removed from saved' : 'Saved to your list',
+    // Optimistic Update
+    setState(() {
+      _book = _book!.copyWith(isSaved: !wasSaved);
+    });
+    haptics.lightImpact();
+
+    try {
+      final result = wasSaved
+          ? await _apiService.unsaveBook(_book!.id)
+          : await _apiService.saveBook(_book!.id);
+
+      if (result['success'] == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                wasSaved ? 'Removed from saved' : 'Saved to your list',
+              ),
+              backgroundColor: AppColors.success,
+              duration: const Duration(seconds: 1),
             ),
-            backgroundColor: AppColors.success,
-          ),
-        );
+          );
+        }
+      } else {
+        // Rollback on failure
+        if (mounted) {
+          setState(() {
+            _book = _book!.copyWith(isSaved: wasSaved);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Action failed'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Rollback on error
+      if (mounted) {
+        setState(() {
+          _book = _book!.copyWith(isSaved: wasSaved);
+        });
       }
     }
   }

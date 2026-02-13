@@ -14,6 +14,7 @@ import 'package:pulchowkx_app/services/in_app_notification_service.dart';
 import 'package:pulchowkx_app/pages/notice_details_page.dart';
 import 'package:pulchowkx_app/pages/lost_found/lost_found_details_page.dart';
 import 'package:pulchowkx_app/widgets/staggered_scale_fade.dart';
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 
 class InAppNotificationsPage extends StatefulWidget {
   const InAppNotificationsPage({super.key});
@@ -37,7 +38,8 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
   @override
   void initState() {
     super.initState();
-    if (inAppNotifications.isInitialized) {
+    // Check if initialized AND not needing refresh
+    if (inAppNotifications.isInitialized && !inAppNotifications.needsRefresh) {
       _notifications = List.from(inAppNotifications.notifications);
       _offset = inAppNotifications.offset;
       _hasMore = inAppNotifications.hasMore;
@@ -158,12 +160,21 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
   Future<void> _markAsRead(InAppNotification notification) async {
     if (notification.isRead) return;
 
-    final success = await _apiService.markNotificationAsRead(notification.id);
-    if (success) {
-      inAppNotifications.markAsRead(notification.id);
-      setState(() {
-        _notifications = List.from(inAppNotifications.notifications);
-      });
+    // Optimistic Update
+    inAppNotifications.markAsRead(notification.id);
+    setState(() {
+      _notifications = List.from(inAppNotifications.notifications);
+    });
+
+    try {
+      final success = await _apiService.markNotificationAsRead(notification.id);
+      if (!success) {
+        // Rollback if failed (though InAppNotificationService doesn't have easy rollback,
+        // we can at least refresh the list from API if it was critical)
+        debugPrint('Failed to mark notification as read on server');
+      }
+    } catch (e) {
+      debugPrint('Error marking notification as read: $e');
     }
   }
 
@@ -210,7 +221,7 @@ class _InAppNotificationsPageState extends State<InAppNotificationsPage> {
 
   Widget _buildBody(bool isDark) {
     if (_isLoading && _notifications.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const NotificationPageShimmer();
     }
 
     if (_error != null && _notifications.isEmpty) {

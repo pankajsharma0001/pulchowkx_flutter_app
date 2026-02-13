@@ -182,6 +182,30 @@ class ApiService {
     return 'student';
   }
 
+  /// Perform a background role sync with the server.
+  /// This updates the local database ID and role without requiring a re-login.
+  Future<void> refreshUserRole() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final idToken = await user.getIdToken(true); // Force refresh token
+      if (idToken == null) return;
+
+      await syncUser(
+        authStudentId: user.uid,
+        email: user.email ?? '',
+        name: user.displayName ?? 'Unknown',
+        firebaseIdToken: idToken,
+        image: user.photoURL,
+      );
+
+      debugPrint('User role refreshed successfully');
+    } catch (e) {
+      debugPrint('Error refreshing user role: $e');
+    }
+  }
+
   /// Get overview statistics for admin dashboard
   Future<Map<String, dynamic>> getAdminOverview({
     bool forceRefresh = false,
@@ -1574,43 +1598,62 @@ class ApiService {
     return null;
   }
 
-  /// Get a single book listing by ID
+  /// Get a single book listing by ID (cache-first for instant loading)
   Future<BookListing?> getBookListingById(int id) async {
     final String cacheKey = 'book_listing_${id}_cache';
-    bool isOnline = await _hasInternetConnection();
 
-    if (isOnline) {
-      try {
-        final response = await http.get(
-          Uri.parse('$apiBaseUrl/books/listings/$id'),
-          headers: await _getAuthHeader(),
-        );
-
-        if (response.statusCode == 200) {
-          await _saveToCache(cacheKey, response.body);
-          final json = jsonDecode(response.body);
-          if (json['success'] == true && json['data'] != null) {
-            return BookListing.fromJson(json['data'] as Map<String, dynamic>);
-          }
-        }
-      } catch (e) {
-        debugPrint('Error fetching book details online: $e');
-      }
-    }
-
-    // Offline or fallback
+    // 1. Try cache first
     final cachedData = await _getFromCache(cacheKey);
     if (cachedData != null) {
       try {
         final json = jsonDecode(cachedData);
         if (json['success'] == true && json['data'] != null) {
-          return BookListing.fromJson(json['data'] as Map<String, dynamic>);
+          final book = BookListing.fromJson(
+            json['data'] as Map<String, dynamic>,
+          );
+          // Refresh in background if online
+          _refreshBookListingInBackground(id, cacheKey);
+          return book;
         }
       } catch (e) {
         debugPrint('Error parsing cached book details: $e');
       }
     }
 
+    // 2. If no cache or error parsing, fetch from network
+    return _fetchBookListingFromNetwork(id, cacheKey);
+  }
+
+  /// Refreshes book listing details in the background
+  Future<void> _refreshBookListingInBackground(int id, String cacheKey) async {
+    if (await _hasInternetConnection()) {
+      await _fetchBookListingFromNetwork(id, cacheKey);
+    }
+  }
+
+  /// Fetches book listing from network and saves to cache
+  Future<BookListing?> _fetchBookListingFromNetwork(
+    int id,
+    String cacheKey,
+  ) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$apiBaseUrl/books/listings/$id'),
+            headers: await _getAuthHeader(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        await _saveToCache(cacheKey, response.body);
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return BookListing.fromJson(json['data'] as Map<String, dynamic>);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching book details online: $e');
+    }
     return null;
   }
 
@@ -3307,15 +3350,57 @@ class ApiService {
 
   // ==================== TRUST SYSTEM API ====================
 
-  /// Get seller reputation and recent ratings
+  /// Get seller reputation and recent ratings (with caching)
   Future<SellerReputation?> getSellerReputation(String sellerId) async {
+    final String cacheKey = 'seller_reputation_$sellerId';
+
+    // 1. Try cache first
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
+        if (json['success'] == true && json['data'] != null) {
+          final reputation = SellerReputation.fromJson(
+            json['data'] as Map<String, dynamic>,
+          );
+          // Refresh in background if online
+          _refreshSellerReputationInBackground(sellerId, cacheKey);
+          return reputation;
+        }
+      } catch (e) {
+        debugPrint('Error parsing cached seller reputation: $e');
+      }
+    }
+
+    // 2. Fetch from network
+    return _fetchSellerReputationFromNetwork(sellerId, cacheKey);
+  }
+
+  /// Refreshes seller reputation in the background
+  Future<void> _refreshSellerReputationInBackground(
+    String sellerId,
+    String cacheKey,
+  ) async {
+    if (await _hasInternetConnection()) {
+      await _fetchSellerReputationFromNetwork(sellerId, cacheKey);
+    }
+  }
+
+  /// Fetches seller reputation from network and saves to cache
+  Future<SellerReputation?> _fetchSellerReputationFromNetwork(
+    String sellerId,
+    String cacheKey,
+  ) async {
     try {
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/books/trust/sellers/$sellerId/reputation'),
-        headers: await _getAuthHeader(),
-      );
+      final response = await http
+          .get(
+            Uri.parse('$apiBaseUrl/books/trust/sellers/$sellerId/reputation'),
+            headers: await _getAuthHeader(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
+        await _saveToCache(cacheKey, response.body);
         final json = jsonDecode(response.body);
         if (json['success'] == true && json['data'] != null) {
           return SellerReputation.fromJson(
@@ -3324,7 +3409,7 @@ class ApiService {
         }
       }
     } catch (e) {
-      debugPrint('Error getting seller reputation: $e');
+      debugPrint('Error getting seller reputation online: $e');
     }
     return null;
   }

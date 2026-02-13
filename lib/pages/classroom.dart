@@ -39,6 +39,8 @@ class _ClassroomPageState extends State<ClassroomPage> {
     });
 
     try {
+      // Sync role with server
+      await _apiService.refreshUserRole();
       _isTeacher = await _apiService.isTeacher();
 
       if (_isTeacher) {
