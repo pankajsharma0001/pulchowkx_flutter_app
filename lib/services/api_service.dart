@@ -192,13 +192,24 @@ class ApiService {
       final idToken = await user.getIdToken(true); // Force refresh token
       if (idToken == null) return;
 
-      await syncUser(
-        authStudentId: user.uid,
-        email: user.email ?? '',
-        name: user.displayName ?? 'Unknown',
-        firebaseIdToken: idToken,
-        image: user.photoURL,
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/users/me'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
       );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final data = json['data'];
+        if (data != null && data['success'] == true && data['user'] != null) {
+          final databaseUserId = data['user']['id'] as String;
+          final userRole = data['user']['role'] as String? ?? 'student';
+          await _storeDatabaseUserId(databaseUserId);
+          await _storeUserRole(userRole);
+        }
+      }
 
       debugPrint('User role refreshed successfully');
     } catch (e) {

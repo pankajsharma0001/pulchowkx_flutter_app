@@ -420,7 +420,9 @@ class _NotificationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final timeStr = DateFormat('MMM d, h:mm a').format(notification.createdAt);
+    final timeStr = DateFormat(
+      'MMM d, h:mm a',
+    ).format(notification.createdAt.toLocal());
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
